@@ -867,17 +867,29 @@ async function resetLearningData() {
     return;
   }
 
-  const { error } = await supabase.rpc("reset_learning_data");
+  // Call the RPC
+  const { data, error } = await supabase.rpc("reset_learning_data");
+
   if (error) {
-    showToast("Error: " + error.message);
+    console.error(error);
+    showToast("Error resetting data: " + error.message);
     return;
   }
 
-  showToast("Progress reset.");
+  // Success toast (longer so the user sees it)
+  showToast("All learning data has been reset.", 4000);
 
+  // Reload cards to reflect changes
   await loadCards();
   updateProgressDisplay();
+
+  // Reset the confirmation checkbox
+  box.checked = false;
+  const btn = document.getElementById("reset-btn");
+  btn.disabled = true;
+  btn.style.opacity = "0.5";
 }
+
 
 // ============================================================
 // Toast
@@ -968,6 +980,7 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
 
 
 
