@@ -108,10 +108,17 @@ function openScreen(name) {
     if (el) el.classList.toggle("active", s === name);
   });
 
-  if (name === "review") {
-    prepareTodayQueue();
-    renderCurrentCard();
-  } else if (name === "wordReview") {
+if (name === "review") {
+  prepareTodayQueue();
+
+  if (todayQueue.length === 0) {
+    showToast("No cards due right now!");
+    return; // Do not switch screens
+  }
+
+  renderCurrentCard();
+}
+ else if (name === "wordReview") {
     renderWordReview();
   } else if (name === "settings") {
     initSettingsUI();
@@ -921,4 +928,5 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
 
