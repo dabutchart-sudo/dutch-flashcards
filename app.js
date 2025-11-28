@@ -41,6 +41,10 @@ let todayQueue = [];
 let currentIndex = 0;
 let currentShowingBack = false;
 
+let sessionNewCount = 0;
+let sessionReviewCount = 0;
+
+
 let wordSort = { column: 'dutch', direction: 'asc' };
 
 // ============================================================
@@ -201,6 +205,9 @@ function prepareTodayQueue() {
   todayQueue = [...dueReviews, ...aheadReviews, ...todaysNew];
   currentIndex = 0;
   currentShowingBack = false;
+
+  sessionNewCount = 0;
+sessionReviewCount = 0;
 }
 
 // Fisher-Yates
@@ -376,15 +383,31 @@ async function handleRating(rating) {
   const card = currentCard();
   if (!card) return;
 
+  // --------------------------------------------
+  // Feature 3A — Count new vs review cards
+  // --------------------------------------------
+  if (card.queueStatus === "new") {
+    sessionNewCount++;
+  } else {
+    sessionReviewCount++;
+  }
+
   try {
+    // Apply SRS logic + save to Supabase
     const updated = await applySrsAndPersist(card, rating);
 
+    // Update card in allCards[]
     const idxAll = allCards.findIndex((c) => c.id === card.id);
-    if (idxAll !== -1) allCards[idxAll] = { ...allCards[idxAll], ...updated };
+    if (idxAll !== -1)
+      allCards[idxAll] = { ...allCards[idxAll], ...updated };
 
+    // Update card in today's queue
     todayQueue[currentIndex] = { ...card, ...updated };
 
+    // Update progress info in menu
     updateProgressDisplay();
+
+    // Move to next card (Feature 3B will hook in here)
     renderNextCard();
   } catch (e) {
     console.error(e);
@@ -392,10 +415,22 @@ async function handleRating(rating) {
   }
 }
 
+
 function renderNextCard() {
   currentIndex += 1;
+
+  if (currentIndex >= todayQueue.length) {
+    const msg = `Session complete! ${sessionNewCount} new cards, ${sessionReviewCount} reviewed.`;
+    showToast(msg, 5000);
+
+    setTimeout(() => openScreen("menu"), 1000);
+
+    return;
+  }
+
   renderCurrentCard();
 }
+
 
 // ============================================================
 // Text To Speech
@@ -928,5 +963,6 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
 
 
