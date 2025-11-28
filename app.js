@@ -850,33 +850,51 @@ document.addEventListener("change", () => {
 
 async function resetLearningData() {
   const box = document.getElementById("reset-confirm");
+
   if (!box.checked) {
-    showToast("Please confirm first.");
+    showToast("Please tick the confirmation box.");
     return;
   }
 
-  // Call the RPC
-  const { data, error } = await supabase.rpc("reset_learning_data");
+  try {
+    const { error } = await supabase
+      .from("cards")
+      .update({
+        card_type: "new",
+        interval_days: 0,
+        ease: 2.5,
+        reps: 0,
+        lapses: 0,
+        first_seen: null,
+        last_reviewed: null,
+        due_date: null,
+        suspended: false
+      });
 
-  if (error) {
-    console.error(error);
-    showToast("Error resetting data: " + error.message);
-    return;
+    if (error) {
+      console.error(error);
+      showToast("Error resetting: " + error.message);
+      return;
+    }
+
+    showToast("All learning data has been reset!");
+
+    // Reload data
+    await loadCards();
+    updateProgressDisplay();
+
+    // Reset checkbox + button
+    box.checked = false;
+    const btn = document.getElementById("reset-btn");
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+
+  } catch (e) {
+    console.error(e);
+    showToast("Unexpected error occurred.");
   }
-
-  // Success toast (longer so the user sees it)
-  showToast("All learning data has been reset.", 4000);
-
-  // Reload cards to reflect changes
-  await loadCards();
-  updateProgressDisplay();
-
-  // Reset the confirmation checkbox
-  box.checked = false;
-  const btn = document.getElementById("reset-btn");
-  btn.disabled = true;
-  btn.style.opacity = "0.5";
 }
+
 
 
 // ============================================================
@@ -968,6 +986,7 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
 
 
 
