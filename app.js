@@ -849,6 +849,8 @@ document.addEventListener("change", () => {
 });
 
 async function resetLearningData() {
+
+  console.log("RESET FUNCTION CALLED");
   const box = document.getElementById("reset-confirm");
 
   if (!box.checked) {
@@ -990,6 +992,7 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
 
 
 
