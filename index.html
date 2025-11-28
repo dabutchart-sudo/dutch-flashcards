@@ -369,34 +369,54 @@
 
       <div id="review-info" class="small-muted"></div>
 
-      <div class="flashcard-wrapper">
-        <div class="flashcard-container">
-          <div id="flashcard" class="flashcard">
-            <!-- Front: Dutch -->
-            <div class="card-face card-front">
-<div class="card-header">
-  <span class="card-flag">🇬🇧</span>
-  <span id="card-status-back" class="card-status-pill">Review</span>
-</div>
-              <div id="card-dutch-text" class="card-text-main">Loading…</div>
-              <div class="card-footer">
-                <button id="tts-button" class="icon-button" type="button">🔊</button>
-                <span>Tap card to flip</span>
-              </div>
-            </div>
-            <!-- Back: English -->
-            <div class="card-face card-back">
-              <div class="card-header">
-                <span class="card-flag">🇬🇧</span>
-                <span id="card-status-back" class="card-status-pill">Review</span>
-              </div>
-              <div id="card-english-text" class="card-text-main">Loading…</div>
-              <div class="card-footer">
-                <span>Tap card to flip back</span>
-              </div>
-            </div>
-          </div>
+<div class="flashcard-wrapper">
+  <div class="flashcard-container">
+    <div id="flashcard" class="flashcard">
+      <!-- Front: Dutch -->
+      <div class="card-face card-front">
+        <div class="card-header">
+          <span class="card-flag">🇳🇱</span>
+          <span id="card-status-front" class="card-status-pill">New</span>
         </div>
+        <div id="card-dutch-text" class="card-text-main">Loading…</div>
+        <div class="card-footer">
+          <button id="tts-button" class="icon-button" type="button">🔊</button>
+          <span>Tap card to flip</span>
+        </div>
+      </div>
+
+      <!-- Back: English -->
+      <div class="card-face card-back">
+        <div class="card-header">
+          <span class="card-flag">🇬🇧</span>
+          <span id="card-status-back" class="card-status-pill">Review</span>
+        </div>
+        <div id="card-english-text" class="card-text-main">Loading…</div>
+        <div class="card-footer">
+          <span>Tap card to flip back</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="review-why" class="small-muted" style="margin-top:6px;"></div>
+
+  <div id="hint-text" class="hint-text">
+    Guess the translation, tap to reveal, then rate your recall.
+  </div>
+
+  <div id="review-buttons" class="review-buttons hidden">
+    <div class="review-row">
+      <button class="btn" onclick="handleRating('again')">Again</button>
+      <button class="btn" onclick="handleRating('hard')">Hard</button>
+    </div>
+    <div class="review-row">
+      <button class="btn" onclick="handleRating('good')">Good</button>
+      <button class="btn" onclick="handleRating('easy')">Easy</button>
+    </div>
+  </div>
+</div>
+
 
         <div id="review-why" class="small-muted" style="margin-top:6px;"></div>
 
