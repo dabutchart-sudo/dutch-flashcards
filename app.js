@@ -631,29 +631,17 @@ function clearCardInfoPanel() {
 }
 
 function updateCardInfoPanel(card) {
-  if (!card) return clearCardInfoPanel();
+  const panel = document.getElementById("card-info-panel");
 
-  document.getElementById("info-status").textContent = card.suspended
-    ? "Suspended"
-    : card.card_type;
+  // Element removed from UI — avoid crashes
+  if (!panel) return;
 
-  document.getElementById("info-interval").textContent =
-    (card.interval_days || 0) + " days";
+  if (!card) {
+    panel.textContent = "";
+    return;
+  }
 
-  document.getElementById("info-ease").textContent =
-    card.ease?.toFixed(2) || "–";
-
-  document.getElementById("info-reps").textContent =
-    `${card.reps || 0} reps, ${card.lapses || 0} lapses`;
-
-  document.getElementById("info-firstSeen").textContent =
-    card.first_seen || "–";
-
-  document.getElementById("info-lastReviewed").textContent =
-    card.last_reviewed || "–";
-
-  document.getElementById("info-dueDate").textContent =
-    card.due_date || "–";
+  panel.textContent = `Ease: ${card.ease}, Interval: ${card.interval_days}, Reps: ${card.reps}, Lapses: ${card.lapses}`;
 }
 
 // ============================================================
@@ -980,6 +968,7 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
 
 
 
