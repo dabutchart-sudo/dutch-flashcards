@@ -843,6 +843,22 @@ function showToast(msg, duration = 3000) {
   setTimeout(() => t.classList.remove("show"), duration);
 }
 
+function showCardInfoToast() {
+  const card = currentCard();
+  if (!card) return;
+
+  const text =
+    `Status: ${card.card_type}\n` +
+    `Interval: ${card.interval_days} days\n` +
+    `Ease: ${card.ease?.toFixed(2)}\n` +
+    `Reps: ${card.reps}, Lapses: ${card.lapses}\n` +
+    `First seen: ${card.first_seen || "—"}\n` +
+    `Last reviewed: ${card.last_reviewed || "—"}\n` +
+    `Due: ${card.due_date || "—"}`;
+
+  showToast(text.replace(/null/g, "—"), 5000);
+}
+
 // ============================================================
 // Initialization
 // ============================================================
@@ -860,6 +876,15 @@ async function init() {
       e.stopPropagation();
       speakCurrentDutch();
     });
+
+  // Card info → toast
+document
+  .getElementById("info-button")
+  .addEventListener("click", (e) => {
+    e.stopPropagation(); // prevent card flip
+    showCardInfoToast();
+  });
+
 
   // New card limit
   document
@@ -896,3 +921,4 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
