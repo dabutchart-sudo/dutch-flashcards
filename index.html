@@ -329,6 +329,31 @@
       gap: 4px 8px;
     }
     .info-label { font-weight: 600; }
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 9999;
+}
+.toast.show {
+  opacity: 1;
+}
+
+
+
+
+
   </style>
 </head>
 <body>
@@ -1306,6 +1331,35 @@ async function resetLearningData() {
 
 
     window.addEventListener('load', init);
+
+    function showToast(msg, duration = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// Display card info in toast
+function showCardInfo(event) {
+  event.stopPropagation();
+  const card = currentCard();
+  if (!card) return;
+
+  const info = 
+    `Status: ${card.card_type}
+Interval: ${card.interval_days} days
+Ease: ${card.ease?.toFixed(2)}
+Reps: ${card.reps}, Lapses: ${card.lapses}
+First seen: ${card.first_seen || '—'}
+Last reviewed: ${card.last_reviewed || '—'}
+Due: ${card.due_date || '—'}`;
+
+  showToast(info.replace(/null/g, "—"), 5000);
+}
+
   </script>
+
+  <div id="toast" class="toast"></div>
+
 </body>
 </html>
