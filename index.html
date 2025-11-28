@@ -526,6 +526,32 @@
         <input id="ui-scale-slider" type="range" min="50" max="250" value="100" step="10" style="width:100%;">
         <div class="small-muted">Scale: <span id="ui-scale-value">100%</span></div>
       </div>
+
+
+
+
+
+      <div class="card">
+  <div class="section-title">Reset Learning Data</div>
+  <p class="small-muted">
+    This will delete all learning progress: intervals, ease, reps, lapses,
+    due dates, first seen and last reviewed. Your words remain intact.
+  </p>
+
+  <label class="pill-toggle">
+    <input type="checkbox" id="reset-confirm">
+    <span>I understand this will erase all progress</span>
+  </label>
+
+  <button class="btn"
+          id="reset-btn"
+          style="margin-top:12px; opacity:0.5;"
+          disabled
+          onclick="resetLearningData()">
+    🔄 Reset All Learning Data
+  </button>
+</div>
+
     </div>
   </div>
 
@@ -1226,6 +1252,38 @@
 
       await loadCards();
     }
+
+// Enable/disable reset button when checkbox is toggled
+document.addEventListener('change', () => {
+  const box = document.getElementById('reset-confirm');
+  const btn = document.getElementById('reset-btn');
+  if (box && btn) {
+    btn.disabled = !box.checked;
+    btn.style.opacity = box.checked ? '1' : '0.5';
+  }
+});
+
+async function resetLearningData() {
+  const box = document.getElementById('reset-confirm');
+  if (!box.checked) {
+    alert("Please tick the confirmation box first.");
+    return;
+  }
+
+  const { error } = await supabase.rpc('reset_learning_data');
+  if (error) {
+    alert("Error: " + error.message);
+    return;
+  }
+
+  alert("All learning progress has been reset.");
+
+  // reload cards and refresh progress display
+  await loadCards();
+  updateProgressDisplay();
+}
+
+
 
     window.addEventListener('load', init);
   </script>
