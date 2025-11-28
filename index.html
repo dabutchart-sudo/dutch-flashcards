@@ -5,449 +5,79 @@
   <title>Dutch Flashcards – Supabase</title>
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-  <style>
-    :root {
-      --ui-scale: 1;
-      --bg: #f5f7fb;
-      --card-bg: #ffffff;
-      --accent: #ff8c32;
-      --accent-dark: #e6731e;
-      --text-main: #222;
-      --text-muted: #666;
-      --border-radius: 18px;
-    }
-
-    html {
-      font-size: calc(16px * var(--ui-scale));
-    }
-    @media (max-width: 600px) {
-      html {
-        font-size: calc(18px * var(--ui-scale));
-      }
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text-main);
-      overflow-x: hidden;
-    }
-
-    #app {
-      width: calc(420px * var(--ui-scale));
-      max-width: calc(480px * var(--ui-scale));
-      margin: 0 auto;
-      min-height: 100vh;
-      padding: calc(12px * var(--ui-scale));
-      display: flex;
-      flex-direction: column;
-    }
-
-    .screen {
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      flex: 1;
-    }
-    .screen.active {
-      display: flex;
-    }
-
-    .app-header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .app-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin: 0 auto;
-      text-align: center;
-    }
-    .emoji-big { font-size: 1.5rem; }
-
-    .back-btn {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      padding: 22px 24px;
-      font-size: 1.2rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-left: auto;
-    }
-    .back-btn:active { background: var(--accent-dark); }
-
-    .card {
-      background: var(--card-bg);
-      border-radius: var(--border-radius);
-      padding: 12px 14px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
-    .menu-card { margin-top: 4px; }
-
-    .menu-progress {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .menu-actions {
-      margin-top: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 22px 20px;
-      border-radius: 999px;
-      border: none;
-      background: var(--accent);
-      color: #fff;
-      font-size: 1.25rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: center;
-    }
-    .btn:active { background: var(--accent-dark); }
-    .btn-secondary { opacity: 0.9; }
-
-    .section-title {
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .small-muted {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-    .menu-stats {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    /* Flashcard */
-    .flashcard-wrapper {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      justify-content: center;
-      margin-top: 4px;
-    }
-    .flashcard-container {
-      perspective: 1200px;
-      width: 100%;
-      max-width: 420px;
-      margin: 0 auto;
-    }
-    .flashcard {
-      position: relative;
-      width: 100%;
-      max-width: 420px;
-      aspect-ratio: 3 / 2;
-      max-height: 60vh;
-      transform-style: preserve-3d;
-      transition: transform 0.45s ease;
-      cursor: pointer;
-    }
-    .flashcard.flipped { transform: rotateY(180deg); }
-
-    .card-face {
-      position: absolute;
-      inset: 0;
-      padding: 14px 14px 10px;
-      background: var(--card-bg);
-      border-radius: var(--border-radius);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      backface-visibility: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    .card-back { transform: rotateY(180deg); }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .card-flag { font-size: 1.5rem; }
-    .card-status-pill {
-      font-size: 0.8rem;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #ffe4cc;
-      color: #9b4a10;
-      font-weight: 600;
-    }
-
-    .card-text-main {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px; /* fixed, not scaled by slider */
-      text-align: center;
-      padding: 0 6px;
-      word-break: break-word;
-    }
-
-    .card-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .icon-button {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      font-size: 1.6rem;
-    }
-    .hint-text {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: 6px;
-    }
-
-    .review-buttons {
-      margin-top: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .review-row {
-      display: flex;
-      gap: 8px;
-    }
-    .review-row .btn {
-      flex: 1;
-      font-size: 1.25rem;
-    }
-    .hidden { display: none !important; }
-
-    /* Word Review table */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    @media (max-width: 600px) {
-      table { font-size: 1rem; }
-    }
-    th, td {
-      padding: 6px 4px;
-      text-align: left;
-      vertical-align: top;
-    }
-    @media (max-width: 600px) {
-      th, td { padding: 10px 8px; }
-    }
-    th {
-      font-weight: 600;
-      border-bottom: 1px solid #eee;
-      cursor: pointer;
-      user-select: none;
-    }
-    tbody tr:nth-child(odd) { background: #fafafa; }
-
-    .chip {
-      display: inline-flex;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      background: #eee;
-      color: #555;
-    }
-    .chip-review {
-      background: #e4f1ff;
-      color: #235b9b;
-    }
-    .chip-tomorrow {
-      background: #fff1cc;
-      color: #956300;
-    }
-    .chip-suspended {
-      background: #ffd1d1;
-      color: #8b1a1a;
-    }
-
-    .pill-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid #ddd;
-      background: #fff;
-      font-size: 0.85rem;
-    }
-    .pill-toggle input {
-      width: 18px;
-      height: 18px;
-    }
-
-    .link-btn {
-      background: transparent;
-      border: none;
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      color: var(--accent-dark);
-    }
-    .link-btn:active {
-      background: rgba(0,0,0,0.04);
-    }
-
-    .info-card {
-      font-size: 0.8rem;
-    }
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px 8px;
-    }
-    .info-label { font-weight: 600; }
-
-/* Toast notification */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #333;
-  color: white;
-  padding: 14px 18px;
-  border-radius: 12px;
-  font-size: 1rem;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
-  z-index: 9999;
-}
-.toast.show {
-  opacity: 1;
-}
-
-
-
-
-
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <div id="app">
-    <!-- MAIN MENU -->
-    <div id="screen-menu" class="screen active">
-      <div class="app-header">
-        <div class="app-title">
-          <span class="emoji-big">🇳🇱</span>
-          <span>Dutch Flashcards</span>
-          <span class="emoji-big">🇬🇧</span>
-        </div>
-      </div>
 
-      <div class="card menu-card">
-        <div class="section-title">Today&apos;s Progress</div>
+<body>
+  <main id="app">
+
+    <!-- ===== MAIN MENU ===== -->
+    <section id="screen-menu" class="screen active" aria-label="Main Menu">
+      <header class="app-header">
+        <h1 class="app-title" aria-label="Dutch Flashcards">
+          <span class="emoji-big">🇳🇱</span>
+          Dutch Flashcards
+          <span class="emoji-big">🇬🇧</span>
+        </h1>
+      </header>
+
+      <article class="card menu-card">
+        <h2 class="section-title">Today’s Progress</h2>
         <div class="menu-progress">
           <div id="progress-new">New today: –</div>
           <div id="progress-review">Reviews due: –</div>
           <div id="progress-tomorrow">Tomorrow: –</div>
         </div>
-        <div id="menu-stats" class="menu-stats" style="margin-top:8px;"></div>
-      </div>
+        <div id="menu-stats" class="menu-stats"></div>
+      </article>
 
-      <div class="menu-actions">
+      <nav class="menu-actions">
         <button class="btn" onclick="openScreen('review')">📚 Review Cards</button>
         <button class="btn btn-secondary" onclick="openScreen('wordReview')">📝 Word Review</button>
         <button class="btn btn-secondary" onclick="openScreen('settings')">⚙️ Settings</button>
-      </div>
-    </div>
+      </nav>
+    </section>
 
-    <!-- REVIEW CARDS -->
-    <div id="screen-review" class="screen">
-      <div class="app-header">
-        <div class="app-title">Review Cards</div>
+    <!-- ===== REVIEW CARDS ===== -->
+    <section id="screen-review" class="screen" aria-label="Review Cards">
+      <header class="app-header">
+        <h1 class="app-title">Review Cards</h1>
         <button class="back-btn" onclick="openScreen('menu')">← Menu</button>
-      </div>
+      </header>
 
       <div id="review-info" class="small-muted"></div>
 
-<div class="flashcard-wrapper">
-  <div class="flashcard-container">
-    <div id="flashcard" class="flashcard">
-      <!-- Front: Dutch -->
-      <div class="card-face card-front">
-        <div class="card-header">
-          <span class="card-flag">🇳🇱</span>
-          <span id="card-status-front" class="card-status-pill">New</span>
+      <div class="flashcard-wrapper">
+        <div class="flashcard-container">
+          <div id="flashcard" class="flashcard" role="button" aria-label="Flashcard">
+            <!-- Front Side -->
+            <div class="card-face card-front">
+              <div class="card-header">
+                <span class="card-flag">🇳🇱</span>
+                <span id="card-status-front" class="card-status-pill">New</span>
+              </div>
+              <div id="card-dutch-text" class="card-text-main">Loading…</div>
+              <div class="card-footer">
+                <button id="tts-button" class="icon-button" type="button" aria-label="Speak Dutch word">🔊</button>
+                <span>Tap to flip</span>
+              </div>
+            </div>
+
+            <!-- Back Side -->
+            <div class="card-face card-back">
+              <div class="card-header">
+                <span class="card-flag">🇬🇧</span>
+                <span id="card-status-back" class="card-status-pill">Review</span>
+              </div>
+              <div id="card-english-text" class="card-text-main">Loading…</div>
+              <div class="card-footer"><span>Tap to flip back</span></div>
+            </div>
+          </div>
         </div>
-        <div id="card-dutch-text" class="card-text-main">Loading…</div>
-        <div class="card-footer">
-          <button id="tts-button" class="icon-button" type="button">🔊</button>
-          <span>Tap card to flip</span>
-        </div>
-      </div>
 
-      <!-- Back: English -->
-      <div class="card-face card-back">
-        <div class="card-header">
-          <span class="card-flag">🇬🇧</span>
-          <span id="card-status-back" class="card-status-pill">Review</span>
-        </div>
-        <div id="card-english-text" class="card-text-main">Loading…</div>
-        <div class="card-footer">
-          <span>Tap card to flip back</span>
-        </div>
-      </div>
-    </div>
-  </div>
+        <div id="review-why" class="small-muted"></div>
 
-  <div id="review-why" class="small-muted" style="margin-top:6px;"></div>
-
-  <div id="hint-text" class="hint-text">
-    Guess the translation, tap to reveal, then rate your recall.
-  </div>
-
-  <div id="review-buttons" class="review-buttons hidden">
-    <div class="review-row">
-      <button class="btn" onclick="handleRating('again')">Again</button>
-      <button class="btn" onclick="handleRating('hard')">Hard</button>
-    </div>
-    <div class="review-row">
-      <button class="btn" onclick="handleRating('good')">Good</button>
-      <button class="btn" onclick="handleRating('easy')">Easy</button>
-    </div>
-  </div>
-</div>
-
-
-        <div id="review-why" class="small-muted" style="margin-top:6px;"></div>
-
-        <div id="hint-text" class="hint-text">
-          Guess the translation, tap to reveal, then rate your recall.
-        </div>
+        <p id="hint-text" class="hint-text">Guess the translation, tap to reveal, then rate your recall.</p>
 
         <div id="review-buttons" class="review-buttons hidden">
           <div class="review-row">
@@ -461,11 +91,13 @@
         </div>
       </div>
 
-      </div> <!-- end of info-card -->
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span class="section-title">Card Info</span>
+      <!-- Card Info Panel -->
+      <div class="card info-card">
+        <div class="info-header">
+          <h3 class="section-title">Card Info</h3>
           <button class="link-btn" type="button" onclick="toggleCardInfoPanel()">Details</button>
         </div>
+
         <div id="card-info-panel" class="hidden">
           <div class="info-grid">
             <span class="info-label">Status:</span>
@@ -493,873 +125,94 @@
       </div>
 
       <div id="review-empty" class="card hidden">
-        <div class="section-title">All done for now 🎉</div>
+        <h3 class="section-title">All done for now 🎉</h3>
         <p class="small-muted">
-          No cards due. You can still adjust your settings or review the full
-          word list from the menu.
+          No cards due. You can adjust settings or browse the full word list from the menu.
         </p>
       </div>
-    </div>
+    </section>
 
-    <!-- WORD REVIEW -->
-    <div id="screen-wordReview" class="screen">
-      <div class="app-header">
-        <div class="app-title">Word Review</div>
+    <!-- ===== WORD REVIEW ===== -->
+    <section id="screen-wordReview" class="screen" aria-label="Word Review">
+      <header class="app-header">
+        <h1 class="app-title">Word Review</h1>
         <button class="back-btn" onclick="openScreen('menu')">← Menu</button>
-      </div>
+      </header>
 
-      <div class="card">
+      <article class="card">
         <div class="small-muted" id="wordReview-summary"></div>
-      </div>
+      </article>
 
-      <div class="card" style="flex:1; overflow:auto;">
+      <article class="card table-card">
         <table>
           <thead>
             <tr>
-              <th onclick="sortWordTable('dutch')">Dutch <span id="sort-dutch"></span></th>
-              <th onclick="sortWordTable('english')">English <span id="sort-english"></span></th>
-              <th onclick="sortWordTable('last_reviewed')">Last Reviewed <span id="sort-lastReviewed"></span></th>
-              <th onclick="sortWordTable('due_date')">Next Review <span id="sort-dueDate"></span></th>
+              <th data-col="dutch">Dutch</th>
+              <th data-col="english">English</th>
+              <th data-col="last_reviewed">Last Reviewed</th>
+              <th data-col="due_date">Next Review</th>
               <th>Suspended</th>
             </tr>
           </thead>
           <tbody id="word-table-body"></tbody>
         </table>
-      </div>
-    </div>
+      </article>
+    </section>
 
-    <!-- SETTINGS -->
-    <div id="screen-settings" class="screen">
-      <div class="app-header">
-        <div class="app-title">Settings</div>
+    <!-- ===== SETTINGS ===== -->
+    <section id="screen-settings" class="screen" aria-label="Settings">
+      <header class="app-header">
+        <h1 class="app-title">Settings</h1>
         <button class="back-btn" onclick="openScreen('menu')">← Menu</button>
-      </div>
+      </header>
 
-      <div class="card">
-        <div class="section-title">Daily New Card Limit</div>
+      <article class="card">
+        <h2 class="section-title">Daily New Card Limit</h2>
         <p class="small-muted">
           Choose the maximum number of new words introduced per day.
-          Stored locally in your browser.
         </p>
-        <select id="max-new-select" style="width:100%; padding:10px; border-radius:999px; border:1px solid #ddd;">
-          <option value="5">5 per day</option>
-          <option value="10">10 per day</option>
-          <option value="15">15 per day</option>
-          <option value="20">20 per day</option>
-          <option value="30">30 per day</option>
-        </select>
+        <label>
+          <select id="max-new-select" class="full-select"></select>
+        </label>
         <p class="small-muted" id="settings-note"></p>
-      </div>
+      </article>
 
-      <div class="card">
-        <div class="section-title">Review Ahead</div>
+      <article class="card">
+        <h2 class="section-title">Review Ahead</h2>
         <p class="small-muted">
-          When enabled, cards due <strong>tomorrow</strong> can also appear
-          today as &quot;review ahead&quot;.
+          If enabled, cards due tomorrow can appear today.
         </p>
         <label class="pill-toggle">
-          <input type="checkbox" id="review-ahead-toggle" />
-          <span>Allow review ahead (include cards due tomorrow)</span>
+          <input type="checkbox" id="review-ahead-toggle">
+          <span>Allow review ahead</span>
         </label>
-      </div>
+      </article>
 
-      <div class="card">
-        <div class="section-title">UI Size</div>
-        <p class="small-muted">
-          Adjust the overall interface size. Flashcard text size stays constant.
-        </p>
-        <input id="ui-scale-slider" type="range" min="50" max="250" value="100" step="10" style="width:100%;">
+      <article class="card">
+        <h2 class="section-title">UI Size</h2>
+        <p class="small-muted">Adjust the overall interface scale.</p>
+        <input id="ui-scale-slider" type="range" min="50" max="250" step="10" value="100">
         <div class="small-muted">Scale: <span id="ui-scale-value">100%</span></div>
-      </div>
-
-
-
-
-
-      <div class="card">
-  <div class="section-title">Reset Learning Data</div>
-  <p class="small-muted">
-    This will delete all learning progress: intervals, ease, reps, lapses,
-    due dates, first seen and last reviewed. Your words remain intact.
-  </p>
-
-  <label class="pill-toggle">
-    <input type="checkbox" id="reset-confirm">
-    <span>I understand this will erase all progress</span>
-  </label>
-
-  <button class="btn"
-          id="reset-btn"
-          style="margin-top:12px; opacity:0.5;"
-          disabled
-          onclick="resetLearningData()">
-    🔄 Reset All Learning Data
-  </button>
-</div>
-
-    </div>
-  </div>
-
-  <!-- Supabase JS client -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script>
-    // ====== CONFIG ======
-    const SUPABASE_URL = 'https://dntitlrtvkgisxwqjxch.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRudGl0bHJ0dmtnaXN4d3FqeGNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxOTQ0MzEsImV4cCI6MjA3OTc3MDQzMX0.S9CXEsHoqp9ATaX23nLI77Q78SvVUSp9V30U-MNcm90';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    const STORAGE_MAX_NEW_KEY = 'dfc_max_new_per_day';
-    const STORAGE_REVIEW_AHEAD_KEY = 'dfc_review_ahead';
-    const UI_SCALE_KEY = 'dfc_ui_scale';
-
-    const ANKI = {
-      learningSteps: [1,3],
-      relearningSteps: [1],
-      graduatingInterval: 3,
-      easyGraduatingInterval: 4,
-      easyBonus: 1.3,
-      intervalModifier: 1.0,
-      easeMin: 1.3,
-      easeDefault: 2.5,
-      easeHardDelta: -0.15,
-      easeAgainDelta: -0.20,
-      easeEasyDelta: +0.15
-    };
-
-    let allCards = [];
-    let todayQueue = [];
-    let currentIndex = 0;
-    let currentShowingBack = false;
-
-    let wordSort = { column: 'dutch', direction: 'asc' };
-
-    // ====== UTIL ======
-    function todayString() {
-      const d = new Date();
-      const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      return dateOnly.toISOString().slice(0,10);
-    }
-    function addDays(str, days) {
-      const parts = str.split('-').map(Number);
-      const d = new Date(parts[0], parts[1]-1, parts[2]);
-      d.setDate(d.getDate() + days);
-      return d.toISOString().slice(0,10);
-    }
-    function parseDateOrNull(str) {
-      if (!str) return null;
-      const parts = str.split('-').map(Number);
-      if (parts.length !== 3 || isNaN(parts[0])) return null;
-      return new Date(parts[0], parts[1]-1, parts[2]);
-    }
-    function isSameDayStr(a,b) {
-      return a && b && a === b;
-    }
-
-    function getMaxNew() {
-      const stored = localStorage.getItem(STORAGE_MAX_NEW_KEY);
-      return stored ? parseInt(stored,10) : 10;
-    }
-    function setMaxNew(v) { localStorage.setItem(STORAGE_MAX_NEW_KEY, String(v)); }
-    function getReviewAheadEnabled() {
-      return localStorage.getItem(STORAGE_REVIEW_AHEAD_KEY) === '1';
-    }
-    function setReviewAheadEnabled(flag) {
-      localStorage.setItem(STORAGE_REVIEW_AHEAD_KEY, flag ? '1' : '0');
-    }
-
-    function applyUiScale(percent) {
-      let p = Math.min(250, Math.max(50, percent || 100));
-      const scale = p / 100;
-      document.documentElement.style.setProperty('--ui-scale', scale);
-      const label = document.getElementById('ui-scale-value');
-      if (label) label.textContent = p + '%';
-      const slider = document.getElementById('ui-scale-slider');
-      if (slider && String(slider.value) !== String(p)) slider.value = p;
-      try { localStorage.setItem(UI_SCALE_KEY, String(p)); } catch(e){}
-    }
-
-    function openScreen(name) {
-      const screens = ['menu','review','wordReview','settings'];
-      screens.forEach(s => {
-        const el = document.getElementById('screen-' + s);
-        if (!el) return;
-        el.classList.toggle('active', s === name);
-      });
-      if (name === 'review') {
-        prepareTodayQueue();
-        renderCurrentCard();
-      } else if (name === 'wordReview') {
-        renderWordReview();
-      } else if (name === 'settings') {
-        initSettingsUI();
-      }
-      if (name === 'menu') {
-        updateProgressDisplay();
-      }
-    }
-
-    async function loadCards() {
-      const { data, error } = await supabase
-        .from('cards')
-        .select('*')
-        .order('id', { ascending: true });
-      if (error) {
-        console.error(error);
-        alert('Error loading cards: ' + error.message);
-        return;
-      }
-      allCards = data || [];
-      updateProgressDisplay();
-      // simple stats from local data (you could build from stats table later)
-      document.getElementById('menu-stats').textContent =
-        `LoadedX ${allCards.length} cards from Supabase.`;
-    }
-
-    // ====== PROGRESS & QUEUE ======
-    function prepareTodayQueue() {
-      if (!allCards.length) {
-        todayQueue = [];
-        currentIndex = 0;
-        return;
-      }
-      const today = todayString();
-      const tomorrow = addDays(today,1);
-      const maxNew = getMaxNew();
-      const reviewAhead = getReviewAheadEnabled();
-
-      const dueReviews = [];
-      const aheadReviews = [];
-      allCards.forEach(c => {
-        if (c.suspended) return;
-        if (c.card_type === 'new') return;
-        if (!c.due_date) return;
-        if (c.due_date <= today) {
-          dueReviews.push({...c, queueStatus:'due'});
-        } else if (reviewAhead && c.due_date <= tomorrow) {
-          aheadReviews.push({...c, queueStatus:'ahead'});
-        }
-      });
-
-      const introducedToday = allCards.filter(
-        c => !c.suspended && isSameDayStr(c.first_seen, today)
-      ).length;
-      const remainingQuota = Math.max(0, maxNew - introducedToday);
-      const newPool = allCards.filter(
-        c => !c.suspended && c.card_type === 'new' && !c.first_seen
-      );
-
-      // fisher-yates shuffle
-      for (let i=newPool.length-1;i>0;i--){
-        const j=Math.floor(Math.random()*(i+1));
-        [newPool[i],newPool[j]]=[newPool[j],newPool[i]];
-      }
-      const todaysNew = newPool.slice(0, remainingQuota).map(c=>({...c,queueStatus:'new'}));
-
-      function shuffleInPlace(arr){
-        for (let i=arr.length-1;i>0;i--){
-          const j=Math.floor(Math.random()*(i+1));
-          [arr[i],arr[j]]=[arr[j],arr[i]];
-        }
-      }
-      shuffleInPlace(dueReviews);
-      shuffleInPlace(aheadReviews);
-
-      todayQueue = dueReviews.concat(aheadReviews).concat(todaysNew);
-      currentIndex = 0;
-      currentShowingBack = false;
-    }
-
-    function updateProgressDisplay() {
-      const newEl = document.getElementById('progress-new');
-      const revEl = document.getElementById('progress-review');
-      const tomEl = document.getElementById('progress-tomorrow');
-
-      if (!allCards.length) {
-        newEl.textContent = 'New today: 0 / –';
-        revEl.textContent = 'Reviews due: 0';
-        tomEl.textContent = 'Tomorrow: 0 reviews planned.';
-        return;
-      }
-
-      const today = todayString();
-      const tomorrow = addDays(today,1);
-      const maxNew = getMaxNew();
-
-      const introducedToday = allCards.filter(
-        c => !c.suspended && isSameDayStr(c.first_seen, today)
-      ).length;
-      const newRemaining = Math.max(0, maxNew - introducedToday);
-      const globalNewPool = allCards.filter(
-        c => !c.suspended && c.card_type === 'new'
-      ).length;
-
-      const dueReviewsCount = allCards.filter(c => {
-        if (c.suspended || c.card_type === 'new' || !c.due_date) return false;
-        return c.due_date <= today;
-      }).length;
-
-      const reviewsTomorrow = allCards.filter(c => {
-        if (c.suspended || c.card_type === 'new') return false;
-        return isSameDayStr(c.due_date, tomorrow);
-      }).length;
-
-      newEl.textContent = `New today: ${introducedToday} / ${maxNew} (up to ${Math.min(newRemaining, globalNewPool)} still available)`;
-      revEl.textContent = `Reviews due: ${dueReviewsCount}`;
-      tomEl.textContent = `Tomorrow: ${reviewsTomorrow} scheduled reviews + up to ${maxNew} new cards.`;
-    }
-
-    // ====== REVIEW SCREEN ======
-    function currentCard() {
-      if (!todayQueue.length) return null;
-      if (currentIndex < 0 || currentIndex >= todayQueue.length) return null;
-      return todayQueue[currentIndex];
-    }
-
-    function renderCurrentCard() {
-      const card = currentCard();
-      const flashcard = document.getElementById('flashcard');
-      const reviewButtons = document.getElementById('review-buttons');
-      const emptyState = document.getElementById('review-empty');
-      const hint = document.getElementById('hint-text');
-      const info = document.getElementById('review-info');
-      const whyEl = document.getElementById('review-why');
-
-      if (!card) {
-        flashcard.classList.add('hidden');
-        reviewButtons.classList.add('hidden');
-        hint.classList.add('hidden');
-        emptyState.classList.remove('hidden');
-        info.textContent = '';
-        whyEl.textContent = '';
-        clearCardInfoPanel();
-        return;
-      }
-
-      flashcard.classList.remove('hidden');
-      emptyState.classList.add('hidden');
-      hint.classList.remove('hidden');
-
-      document.getElementById('card-dutch-text').textContent = card.dutch;
-      document.getElementById('card-english-text').textContent = card.english;
-
-      const isNewLike = card.card_type === 'new' || card.queueStatus === 'new' || !card.due_date;
-      document.getElementById('card-status-front').textContent = isNewLike
-        ? 'New'
-        : (card.queueStatus === 'ahead' ? 'Review ahead' : 'Review');
-      document.getElementById('card-status-back').textContent = isNewLike
-        ? 'New'
-        : (card.queueStatus === 'ahead' ? 'Review ahead' : 'Review');
-
-      const positionText = `${currentIndex+1} / ${todayQueue.length}`;
-      const statusLabel = isNewLike ? 'New / Learning' : 'Being reviewed';
-      info.textContent = `Card ${positionText} – ${statusLabel}${card.queueStatus === 'ahead' ? ' (review ahead)' : ''}`;
-
-      whyEl.textContent = buildWhyText(card);
-
-      currentShowingBack = false;
-      flashcard.classList.remove('flipped');
-      reviewButtons.classList.add('hidden');
-
-      updateCardInfoPanel(card);
-    }
-
-    function buildWhyText(card) {
-      const today = todayString();
-      if (card.queueStatus === 'new') {
-        return 'This is a new card from the pool, selected randomly within today’s new card limit.';
-      }
-      if (!card.due_date || card.card_type === 'new') {
-        return 'This card has not yet entered the main review schedule.';
-      }
-      if (card.queueStatus === 'ahead') {
-        return `This is a review-ahead card: scheduled for ${card.due_date}, shown early because Review Ahead is enabled.`;
-      }
-      if (card.due_date < today) {
-        return `This card is overdue: scheduled for ${card.due_date}, now being reviewed late.`;
-      }
-      if (card.due_date === today) {
-        return `This card is scheduled for review today (interval ${card.interval_days} days, ease ${card.ease.toFixed(2)}).`;
-      }
-      return `This card is in the review queue with next due date ${card.due_date}.`;
-    }
-
-    function handleCardFlip() {
-      const card = currentCard();
-      if (!card) return;
-      const flashcard = document.getElementById('flashcard');
-      currentShowingBack = !currentShowingBack;
-      flashcard.classList.toggle('flipped', currentShowingBack);
-      const reviewButtons = document.getElementById('review-buttons');
-      if (currentShowingBack) reviewButtons.classList.remove('hidden');
-      else reviewButtons.classList.add('hidden');
-    }
-
-    async function handleRating(rating) {
-      const card = currentCard();
-      if (!card) return;
-
-      try {
-        const updated = await applySrsAndPersist(card, rating);
-        // update local allCards and todayQueue
-        const idxAll = allCards.findIndex(c => c.id === card.id);
-        if (idxAll !== -1) allCards[idxAll] = {...allCards[idxAll], ...updated};
-        todayQueue[currentIndex] = {...card, ...updated};
-        updateProgressDisplay();
-        renderNextCard();
-      } catch (e) {
-        console.error(e);
-        alert('Error updating card: ' + e.message);
-      }
-    }
-
-    function renderNextCard() {
-      currentIndex += 1;
-      renderCurrentCard();
-    }
-
-    function speakCurrentDutch() {
-      const card = currentCard();
-      if (!card || !card.dutch) return;
-      if (!('speechSynthesis' in window)) {
-        alert('Text-to-speech not supported in this browser.');
-        return;
-      }
-      const utter = new SpeechSynthesisUtterance(card.dutch);
-      utter.lang = 'nl-NL';
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utter);
-    }
-
-    // ====== SRS + persistence to Supabase ======
-    async function applySrsAndPersist(card, rating) {
-      const today = new Date();
-      const todayStr = today.toISOString().slice(0,10);
-
-      let type = card.card_type || 'new';
-      let interval = card.interval_days || 0;
-      let ease = card.ease || ANKI.easeDefault;
-      let lapses = card.lapses || 0;
-      let reps = card.reps || 0;
-      let firstSeen = card.first_seen;
-      let lastReviewed = todayStr;
-
-      const wasNewIntro = (type === 'new' && !firstSeen);
-
-      function fuzzInterval(days) {
-        if (days < 2) return days;
-        const fuzz = Math.floor(days * 0.05);
-        const low = days - fuzz;
-        const high = days + fuzz;
-        return Math.floor(Math.random() * (high - low + 1)) + low;
-      }
-
-      reps += 1;
-
-      if (type === 'new') {
-        if (!firstSeen) firstSeen = todayStr;
-        const steps = ANKI.learningSteps;
-        if (rating === 'again') {
-          interval = steps[0];
-          type = 'learning';
-        } else if (rating === 'hard') {
-          interval = steps[0];
-          type = 'learning';
-        } else if (rating === 'good') {
-          if (steps.length === 1) {
-            interval = ANKI.graduatingInterval;
-            type = 'review';
-          } else {
-            interval = steps[1];
-            type = 'learning';
-          }
-        } else if (rating === 'easy') {
-          interval = ANKI.easyGraduatingInterval;
-          ease += ANKI.easeEasyDelta;
-          type = 'review';
-        }
-      } else if (type === 'learning') {
-        const steps = ANKI.learningSteps;
-        if (rating === 'again' || rating === 'hard') {
-          interval = steps[0];
-        } else if (rating === 'good') {
-          if (steps.length > 1 && interval === steps[0]) {
-            interval = steps[1];
-          } else {
-            interval = ANKI.graduatingInterval;
-            type = 'review';
-          }
-        } else if (rating === 'easy') {
-          interval = ANKI.easyGraduatingInterval;
-          ease += ANKI.easeEasyDelta;
-          type = 'review';
-        }
-      } else if (type === 'review') {
-        if (rating === 'again') {
-          lapses += 1;
-          ease = Math.max(ANKI.easeMin, ease + ANKI.easeAgainDelta);
-          const steps = ANKI.relearningSteps;
-          interval = steps[0];
-          type = 'relearning';
-        } else if (rating === 'hard') {
-          ease = Math.max(ANKI.easeMin, ease + ANKI.easeHardDelta);
-          interval = Math.max(1, Math.round(interval * 1.2));
-        } else if (rating === 'good') {
-          interval = Math.max(1, Math.round(interval * ease * ANKI.intervalModifier));
-        } else if (rating === 'easy') {
-          ease += ANKI.easeEasyDelta;
-          interval = Math.max(1, Math.round(interval * ease * ANKI.easyBonus * ANKI.intervalModifier));
-        }
-      } else if (type === 'relearning') {
-        const steps = ANKI.relearningSteps;
-        if (rating === 'again') {
-          interval = steps[0];
-        } else {
-          interval = ANKI.graduatingInterval;
-          type = 'review';
-        }
-      }
-
-      const due = new Date(today.getTime() + fuzzInterval(interval) * 86400000);
-      const dueStr = due.toISOString().slice(0,10);
-
-      const { data, error } = await supabase
-        .from('cards')
-        .update({
-          card_type: type,
-          interval_days: interval,
-          ease: ease,
-          reps: reps,
-          lapses: lapses,
-          due_date: dueStr,
-          first_seen: firstSeen,
-          last_reviewed: todayStr
-        })
-        .eq('id', card.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // TODO: update stats table if you want, similar to GAS version
-
-      return {
-        card_type: type,
-        interval_days: interval,
-        ease: ease,
-        reps: reps,
-        lapses: lapses,
-        due_date: dueStr,
-        first_seen: firstSeen,
-        last_reviewed: todayStr
-      };
-    }
-
-    // ====== CARD INFO PANEL ======
-    function toggleCardInfoPanel() {
-      const panel = document.getElementById('card-info-panel');
-      panel.classList.toggle('hidden');
-    }
-    function clearCardInfoPanel() {
-      document.getElementById('info-status').textContent = '–';
-      document.getElementById('info-interval').textContent = '–';
-      document.getElementById('info-ease').textContent = '–';
-      document.getElementById('info-reps').textContent = '–';
-      document.getElementById('info-firstSeen').textContent = '–';
-      document.getElementById('info-lastReviewed').textContent = '–';
-      document.getElementById('info-dueDate').textContent = '–';
-    }
-    function updateCardInfoPanel(card) {
-      if (!card) { clearCardInfoPanel(); return; }
-      const status = card.suspended ? 'Suspended' : card.card_type;
-      document.getElementById('info-status').textContent =
-        status + (card.queueStatus === 'ahead' ? ' (review ahead)' : '');
-      document.getElementById('info-interval').textContent =
-        (card.interval_days || 0) + ' days';
-      document.getElementById('info-ease').textContent = card.ease
-        ? card.ease.toFixed(2) : '–';
-      document.getElementById('info-reps').textContent =
-        (card.reps || 0) + ' reps, ' + (card.lapses || 0) + ' lapses';
-      document.getElementById('info-firstSeen').textContent =
-        card.first_seen || '–';
-      document.getElementById('info-lastReviewed').textContent =
-        card.last_reviewed || '–';
-      document.getElementById('info-dueDate').textContent =
-        card.due_date || '–';
-    }
-
-    // ====== WORD REVIEW TABLE ======
-    function sortWordTable(col) {
-      if (wordSort.column === col) {
-        wordSort.direction = (wordSort.direction === 'asc') ? 'desc' : 'asc';
-      } else {
-        wordSort.column = col;
-        wordSort.direction = 'asc';
-      }
-      renderWordReview();
-    }
-
-    function renderWordReview() {
-      const tbody = document.getElementById('word-table-body');
-      tbody.innerHTML = '';
-
-      if (!allCards.length) return;
-
-      const sortCol = wordSort.column;
-      const sortDir = wordSort.direction;
-      const cardsCopy = allCards.slice();
-
-      cardsCopy.sort((a,b) => {
-        let va = a[sortCol] || '';
-        let vb = b[sortCol] || '';
-        if (sortCol === 'last_reviewed' || sortCol === 'due_date') {
-          const da = parseDateOrNull(va);
-          const db = parseDateOrNull(vb);
-          const na = da ? da.getTime() : 0;
-          const nb = db ? db.getTime() : 0;
-          return sortDir === 'asc' ? na - nb : nb - na;
-        } else {
-          const sa = String(va).toLowerCase();
-          const sb = String(vb).toLowerCase();
-          if (sa < sb) return sortDir === 'asc' ? -1 : 1;
-          if (sa > sb) return sortDir === 'asc' ? 1 : -1;
-          return 0;
-        }
-      });
-
-      const today = todayString();
-      const tomorrow = addDays(today,1);
-
-      let tomorrowCount = 0;
-      cardsCopy.forEach(c => {
-        if (isSameDayStr(c.due_date, tomorrow)) tomorrowCount++;
-      });
-
-      cardsCopy.forEach(c => {
-        const tr = document.createElement('tr');
-
-        const tdDutch = document.createElement('td');
-        tdDutch.textContent = c.dutch;
-
-        const tdEnglish = document.createElement('td');
-        tdEnglish.textContent = c.english;
-
-        const tdLast = document.createElement('td');
-        const lastSpan = document.createElement('span');
-        lastSpan.textContent = c.last_reviewed || '—';
-        tdLast.appendChild(lastSpan);
-        if (isSameDayStr(c.last_reviewed, today)) {
-          const chip = document.createElement('span');
-          chip.className = 'chip chip-review';
-          chip.textContent = 'today';
-          tdLast.appendChild(document.createElement('br'));
-          tdLast.appendChild(chip);
-        }
-
-        const tdDue = document.createElement('td');
-        const dueSpan = document.createElement('span');
-        dueSpan.textContent = c.due_date || '—';
-        tdDue.appendChild(dueSpan);
-        if (isSameDayStr(c.due_date, today)) {
-          const chip = document.createElement('span');
-          chip.className = 'chip chip-review';
-          chip.textContent = 'today';
-          tdDue.appendChild(document.createElement('br'));
-          tdDue.appendChild(chip);
-        } else if (isSameDayStr(c.due_date, tomorrow)) {
-          const chip = document.createElement('span');
-          chip.className = 'chip chip-tomorrow';
-          chip.textContent = 'tomorrow';
-          tdDue.appendChild(document.createElement('br'));
-          tdDue.appendChild(chip);
-        }
-
-        const tdSusp = document.createElement('td');
-        if (c.suspended) {
-          const chip = document.createElement('span');
-          chip.className = 'chip chip-suspended';
-          chip.textContent = 'suspended';
-          tdSusp.appendChild(chip);
-          tdSusp.appendChild(document.createElement('br'));
-        }
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'link-btn';
-        btn.textContent = c.suspended ? 'Unsuspend' : 'Suspend';
-        btn.onclick = () => toggleSuspend(c.id, !c.suspended);
-        tdSusp.appendChild(btn);
-
-        tr.appendChild(tdDutch);
-        tr.appendChild(tdEnglish);
-        tr.appendChild(tdLast);
-        tr.appendChild(tdDue);
-        tr.appendChild(tdSusp);
-
-        tbody.appendChild(tr);
-      });
-
-      document.getElementById('wordReview-summary').textContent =
-        `Showing ${cardsCopy.length} cards. Tomorrow you will see ${tomorrowCount} scheduled review cards, plus up to ${getMaxNew()} random new cards.`;
-
-      const cols = ['dutch','english','last_reviewed','due_date'];
-      cols.forEach(col => {
-        const span = document.getElementById(col === 'last_reviewed' ? 'sort-lastReviewed'
-                             : col === 'due_date' ? 'sort-dueDate'
-                             : 'sort-' + col);
-        if (!span) return;
-        if (wordSort.column === col) {
-          span.textContent = wordSort.direction === 'asc' ? '▲' : '▼';
-        } else {
-          span.textContent = '';
-        }
-      });
-    }
-
-    async function toggleSuspend(cardId, newValue) {
-      const { data, error } = await supabase
-        .from('cards')
-        .update({ suspended: newValue })
-        .eq('id', cardId)
-        .select()
-        .single();
-      if (error) {
-        console.error(error);
-        alert('Error updating Suspended: ' + error.message);
-        return;
-      }
-      const idx = allCards.findIndex(c => c.id === cardId);
-      if (idx !== -1) allCards[idx].suspended = data.suspended;
-      renderWordReview();
-      updateProgressDisplay();
-    }
-
-    // ====== SETTINGS UI ======
-    function initSettingsUI() {
-      const maxNew = getMaxNew();
-      const select = document.getElementById('max-new-select');
-      let found = false;
-      for (let i=0;i<select.options.length;i++){
-        if (parseInt(select.options[i].value,10) === maxNew) {
-          select.selectedIndex = i; found = true; break;
-        }
-      }
-      if (!found) {
-        const opt = document.createElement('option');
-        opt.value = String(maxNew);
-        opt.textContent = maxNew + ' per day';
-        select.appendChild(opt);
-        select.value = String(maxNew);
-      }
-      document.getElementById('settings-note').textContent =
-        `Currently limited to ${maxNew} new cards per day.`;
-
-      const reviewAheadToggle = document.getElementById('review-ahead-toggle');
-      reviewAheadToggle.checked = getReviewAheadEnabled();
-
-      // UI scale slider
-      const slider = document.getElementById('ui-scale-slider');
-      const stored = localStorage.getItem(UI_SCALE_KEY);
-      const initialPercent = stored ? parseInt(stored,10) : 100;
-      applyUiScale(initialPercent);
-      if (slider) {
-        slider.value = initialPercent;
-        slider.addEventListener('input', () => {
-          const val = parseInt(slider.value,10) || 100;
-          applyUiScale(val);
-        });
-      }
-    }
-
-    // ====== INIT ======
-    async function init() {
-      document.getElementById('flashcard').addEventListener('click', handleCardFlip);
-      document.getElementById('tts-button').addEventListener('click', e => {
-        e.stopPropagation();
-        speakCurrentDutch();
-      });
-
-      const maxNewSelect = document.getElementById('max-new-select');
-      maxNewSelect.addEventListener('change', () => {
-        setMaxNew(parseInt(maxNewSelect.value,10));
-        document.getElementById('settings-note').textContent =
-          `Currently limited to ${maxNewSelect.value} new cards per day.`;
-        updateProgressDisplay();
-      });
-
-      const reviewAheadToggle = document.getElementById('review-ahead-toggle');
-      reviewAheadToggle.addEventListener('change', () => {
-        setReviewAheadEnabled(reviewAheadToggle.checked);
-        updateProgressDisplay();
-      });
-
-      // apply initial UI scale outside settings
-      const stored = localStorage.getItem(UI_SCALE_KEY);
-      applyUiScale(stored ? parseInt(stored,10) : 100);
-
-      await loadCards();
-    }
-
-// Enable/disable reset button when checkbox is toggled
-document.addEventListener('change', () => {
-  const box = document.getElementById('reset-confirm');
-  const btn = document.getElementById('reset-btn');
-  if (box && btn) {
-    btn.disabled = !box.checked;
-    btn.style.opacity = box.checked ? '1' : '0.5';
-  }
-});
-
-async function resetLearningData() {
-  const box = document.getElementById('reset-confirm');
-  if (!box.checked) {
-    alert("Please tick the confirmation box first.");
-    return;
-  }
-
-  const { error } = await supabase.rpc('reset_learning_data');
-  if (error) {
-    alert("Error: " + error.message);
-    return;
-  }
-
-  alert("All learning progress has been reset.");
-
-  // reload cards and refresh progress display
-  await loadCards();
-  updateProgressDisplay();
-}
-
-
-
-    window.addEventListener('load', init);
-
-    function showToast(msg, duration = 3000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
-}
-
-// Display card info in toast
-function showCardInfo(event) {
-  event.stopPropagation();
-  const card = currentCard();
-  if (!card) return;
-
-  const info = 
-    `Status: ${card.card_type}
-Interval: ${card.interval_days} days
-Ease: ${card.ease?.toFixed(2)}
-Reps: ${card.reps}, Lapses: ${card.lapses}
-First seen: ${card.first_seen || '—'}
-Last reviewed: ${card.last_reviewed || '—'}
-Due: ${card.due_date || '—'}`;
-
-  showToast(info.replace(/null/g, "—"), 5000);
-}
-
-  </script>
-
-  <div id="toast" class="toast"></div>
-
+      </article>
+
+      <article class="card">
+        <h2 class="section-title">Reset Learning Data</h2>
+        <p class="small-muted">
+          This resets intervals, ease, reps, lapses, due dates, first seen, and last reviewed.
+        </p>
+        <label class="pill-toggle">
+          <input type="checkbox" id="reset-confirm">
+          <span>I understand this will erase all progress</span>
+        </label>
+        <button class="btn" id="reset-btn" disabled style="opacity:0.5;">🔄 Reset All Learning Data</button>
+      </article>
+    </section>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" role="status"></div>
+
+  </main>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
