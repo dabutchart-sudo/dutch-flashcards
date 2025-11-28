@@ -856,46 +856,50 @@ async function resetLearningData() {
     return;
   }
 
-  try {
-    const { error } = await supabase
-      .from("cards")
-      .update({
-        card_type: "new",
-        interval_days: 0,
-        ease: 2.5,
-        reps: 0,
-        lapses: 0,
-        first_seen: null,
-        last_reviewed: null,
-        due_date: null,
-        suspended: false
-      });
+  // Step 1: get all card IDs
+  const { data: cards, error: fetchError } = await supabase
+    .from("cards")
+    .select("id");
 
-    if (error) {
-      console.error(error);
-      showToast("Error resetting: " + error.message);
-      return;
-    }
-
-    showToast("All learning data has been reset!");
-
-    // Reload data
-    await loadCards();
-    updateProgressDisplay();
-
-    // Reset checkbox + button
-    box.checked = false;
-    const btn = document.getElementById("reset-btn");
-    btn.disabled = true;
-    btn.style.opacity = "0.5";
-
-  } catch (e) {
-    console.error(e);
-    showToast("Unexpected error occurred.");
+  if (fetchError) {
+    console.error(fetchError);
+    showToast("Failed to fetch cards.");
+    return;
   }
+
+  const ids = cards.map(c => c.id);
+
+  // Step 2: update exactly those rows
+  const { error } = await supabase
+    .from("cards")
+    .update({
+      card_type: "new",
+      interval_days: 0,
+      ease: 2.5,
+      reps: 0,
+      lapses: 0,
+      first_seen: null,
+      last_reviewed: null,
+      due_date: null,
+      suspended: false
+    })
+    .in("id", ids);
+
+  if (error) {
+    console.error(error);
+    showToast("Reset error: " + error.message);
+    return;
+  }
+
+  showToast("All progress reset!");
+  await loadCards();
+  updateProgressDisplay();
+
+  box.checked = false;
+  const btn = document.getElementById("reset-btn");
+  btn.disabled = true;
+  btn.style.opacity = "0.5";
 }
-
-
 
 // ============================================================
 // Toast
@@ -986,6 +990,7 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
 
 
 
