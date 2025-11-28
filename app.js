@@ -107,22 +107,26 @@ function applyUiScale(percent) {
 function openScreen(name) {
   const screens = ["menu", "review", "wordReview", "settings"];
 
+  // If user tries entering review screen, check queue first
+  if (name === "review") {
+    prepareTodayQueue();
+
+    if (todayQueue.length === 0) {
+      showToast("No cards due right now!");
+      return; // ⛔ STOP — do NOT switch screens
+    }
+
+    // If there ARE cards, load and show the screen
+    renderCurrentCard();
+  }
+
+  // Switch screens only AFTER the early-exit check
   screens.forEach((s) => {
     const el = document.getElementById(`screen-${s}`);
     if (el) el.classList.toggle("active", s === name);
   });
 
-if (name === "review") {
-  prepareTodayQueue();
-
-  if (todayQueue.length === 0) {
-    showToast("No cards due right now!");
-    return; // Do not switch screens
-  }
-
-  renderCurrentCard();
-}
- else if (name === "wordReview") {
+  if (name === "wordReview") {
     renderWordReview();
   } else if (name === "settings") {
     initSettingsUI();
@@ -130,6 +134,7 @@ if (name === "review") {
     updateProgressDisplay();
   }
 }
+
 
 // ============================================================
 // Load Cards
@@ -963,6 +968,7 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
 
 
 
