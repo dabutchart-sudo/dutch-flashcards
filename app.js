@@ -631,10 +631,9 @@ function clearCardInfoPanel() {
 }
 
 function updateCardInfoPanel(card) {
+  // This panel no longer exists in the UI — avoid crashes
   const panel = document.getElementById("card-info-panel");
-
-  // Element removed from UI — avoid crashes
-  if (!panel) return;
+  if (!panel) return;  // <<< THIS PREVENTS THE CRASH
 
   if (!card) {
     panel.textContent = "";
@@ -643,6 +642,7 @@ function updateCardInfoPanel(card) {
 
   panel.textContent = `Ease: ${card.ease}, Interval: ${card.interval_days}, Reps: ${card.reps}, Lapses: ${card.lapses}`;
 }
+
 
 // ============================================================
 // Word Review Table
@@ -968,6 +968,7 @@ window.openScreen = openScreen;
 window.handleRating = handleRating;
 window.toggleCardInfoPanel = toggleCardInfoPanel;
 window.resetLearningData = resetLearningData;
+
 
 
 
