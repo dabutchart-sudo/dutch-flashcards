@@ -1,0 +1,437 @@
+/* ============================================================
+   Root Variables
+   ============================================================ */
+:root {
+  --ui-scale: 1;
+  --bg: #f5f7fb;
+  --card-bg: #ffffff;
+  --accent: #ff8c32;
+  --accent-dark: #e6731e;
+  --text-main: #222;
+  --text-muted: #666;
+  --border-radius: 18px;
+}
+
+html {
+  font-size: calc(16px * var(--ui-scale));
+}
+
+@media (max-width: 600px) {
+  html {
+    font-size: calc(18px * var(--ui-scale));
+  }
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text-main);
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ============================================================
+   Layout Containers
+   ============================================================ */
+#app {
+  width: calc(420px * var(--ui-scale));
+  max-width: calc(480px * var(--ui-scale));
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: calc(12px * var(--ui-scale));
+  display: flex;
+  flex-direction: column;
+}
+
+.screen {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.screen.active {
+  display: flex;
+}
+
+/* ============================================================
+   Headers
+   ============================================================ */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.app-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.emoji-big {
+  font-size: 1.5rem;
+}
+
+.back-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 22px 24px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.back-btn:active {
+  background: var(--accent-dark);
+}
+
+/* ============================================================
+   Card Containers
+   ============================================================ */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  padding: 12px 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.menu-card {
+  margin-top: 4px;
+}
+
+.section-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.small-muted {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.menu-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-actions {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  width: 100%;
+  padding: 22px 20px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn:active {
+  background: var(--accent-dark);
+}
+
+.btn-secondary {
+  opacity: 0.9;
+}
+
+.link-btn {
+  background: transparent;
+  border: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: var(--accent-dark);
+}
+
+.link-btn:active {
+  background: rgba(0,0,0,0.04);
+}
+
+/* ============================================================
+   Flashcard
+   ============================================================ */
+.flashcard-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.flashcard-container {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  perspective: 1200px;
+}
+
+.flashcard {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 3 / 2;
+  max-height: 60vh;
+  transform-style: preserve-3d;
+  transition: transform 0.45s ease;
+  cursor: pointer;
+}
+
+.flashcard.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  padding: 14px 14px 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.card-flag {
+  font-size: 1.5rem;
+}
+
+.card-status-pill {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ffe4cc;
+  color: #9b4a10;
+  font-weight: 600;
+}
+
+.card-text-main {
+  flex: 1;
+  font-size: 26px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  word-break: break-word;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.icon-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.6rem;
+}
+
+/* ============================================================
+   Review Buttons
+   ============================================================ */
+.review-buttons {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-row {
+  display: flex;
+  gap: 8px;
+}
+
+.review-row .btn {
+  flex: 1;
+}
+
+/* ============================================================
+   Info Panel
+   ============================================================ */
+.info-card {
+  font-size: 0.8rem;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+}
+
+.info-label {
+  font-weight: 600;
+}
+
+/* ============================================================
+   Word Review Table
+   ============================================================ */
+.table-card {
+  flex: 1;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  table {
+    font-size: 1rem;
+  }
+}
+
+th, td {
+  padding: 6px 4px;
+  text-align: left;
+  vertical-align: top;
+}
+
+@media (max-width: 600px) {
+  th, td {
+    padding: 10px 8px;
+  }
+}
+
+th {
+  font-weight: 600;
+  border-bottom: 1px solid #eee;
+  user-select: none;
+  cursor: pointer;
+}
+
+tbody tr:nth-child(odd) {
+  background: #fafafa;
+}
+
+/* Status Chips */
+.chip {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  background: #eee;
+  color: #555;
+}
+
+.chip-review {
+  background: #e4f1ff;
+  color: #235b9b;
+}
+
+.chip-tomorrow {
+  background: #fff1cc;
+  color: #956300;
+}
+
+.chip-suspended {
+  background: #ffd1d1;
+  color: #8b1a1a;
+}
+
+/* ============================================================
+   Settings Items
+   ============================================================ */
+.full-select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+}
+
+.pill-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 0.85rem;
+}
+
+.pill-toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+/* ============================================================
+   Toast Notification
+   ============================================================ */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 9999;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+/* ============================================================
+   Utility
+   ============================================================ */
+.hidden {
+  display: none !important;
+}
