@@ -57,10 +57,12 @@
                 <span id="card-status-front" class="card-status-pill">New</span>
               </div>
               <div id="card-dutch-text" class="card-text-main">Loading…</div>
-              <div class="card-footer">
-                <button id="tts-button" class="icon-button" type="button" aria-label="Speak Dutch word">🔊</button>
-                <span>Tap to flip</span>
-              </div>
+<div class="card-footer">
+  <button id="tts-button" class="icon-button" type="button" aria-label="Speak Dutch word">🔊</button>
+
+  <button id="info-button" class="icon-button" type="button" aria-label="Card Info">ℹ️</button>
+</div>
+
             </div>
 
             <!-- Back Side -->
@@ -90,40 +92,7 @@
           </div>
         </div>
       </div>
-
-      <!-- Card Info Panel -->
-      <div class="card info-card">
-        <div class="info-header">
-          <h3 class="section-title">Card Info</h3>
-          <button class="link-btn" type="button" onclick="toggleCardInfoPanel()">Details</button>
-        </div>
-
-        <div id="card-info-panel" class="hidden">
-          <div class="info-grid">
-            <span class="info-label">Status:</span>
-            <span id="info-status">–</span>
-
-            <span class="info-label">Interval:</span>
-            <span id="info-interval">–</span>
-
-            <span class="info-label">Ease:</span>
-            <span id="info-ease">–</span>
-
-            <span class="info-label">Reps / Lapses:</span>
-            <span id="info-reps">–</span>
-
-            <span class="info-label">First seen:</span>
-            <span id="info-firstSeen">–</span>
-
-            <span class="info-label">Last reviewed:</span>
-            <span id="info-lastReviewed">–</span>
-
-            <span class="info-label">Next due:</span>
-            <span id="info-dueDate">–</span>
-          </div>
-        </div>
-      </div>
-
+      
       <div id="review-empty" class="card hidden">
         <h3 class="section-title">All done for now 🎉</h3>
         <p class="small-muted">
