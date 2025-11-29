@@ -7,6 +7,10 @@ let allCards = [];
 let reviewQueue = [];
 let currentIndex = 0;
 
+// ============================================================
+// Utility
+// ============================================================
+
 function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
@@ -29,6 +33,27 @@ function showToast(msg) {
   }, 2500);
 }
 
+// ============================================================
+// Settings: Max New Cards Per Day
+// ============================================================
+
+const MAX_NEW_KEY = "maxNewCardsPerDay";
+
+function getMaxNewCardsPerDay() {
+  const stored = localStorage.getItem(MAX_NEW_KEY);
+  const num = stored ? parseInt(stored, 10) : NaN;
+  if (Number.isNaN(num)) return 10; // default 10
+  return num;
+}
+
+function setMaxNewCardsPerDay(val) {
+  localStorage.setItem(MAX_NEW_KEY, String(val));
+}
+
+// ============================================================
+// Navigation
+// ============================================================
+
 function openScreen(name) {
   document.querySelectorAll(".screen").forEach(s => {
     s.classList.remove("visible");
@@ -36,14 +61,23 @@ function openScreen(name) {
   });
 
   const screen = document.getElementById(`${name}-screen`);
-  screen.classList.remove("hidden");
-  screen.classList.add("visible");
+  if (screen) {
+    screen.classList.remove("hidden");
+    screen.classList.add("visible");
+  }
 }
 
 window.openScreen = openScreen;
 
+// ============================================================
+// Load Cards
+// ============================================================
+
 async function loadCards() {
-  const { data, error } = await supabaseClient.from("cards").select("*").order("id");
+  const { data, error } = await supabaseClient
+    .from("cards")
+    .select("*")
+    .order("id");
 
   if (error) {
     console.error(error);
@@ -54,11 +88,16 @@ async function loadCards() {
   allCards = data || [];
 }
 
+// ============================================================
+// Review Session (with daily new-card limit)
+// ============================================================
+
 function buildReviewQueue() {
   const today = todayStr();
+  const maxNew = getMaxNewCardsPerDay();
 
   const due = [];
-  const fresh = [];
+  const newCandidates = [];
 
   for (const c of allCards) {
     if (c.suspended) continue;
@@ -66,9 +105,16 @@ function buildReviewQueue() {
     if (c.card_type !== "new" && c.due_date && c.due_date <= today) {
       due.push(c);
     } else if (c.card_type === "new") {
-      fresh.push(c);
+      newCandidates.push(c);
     }
   }
+
+  // How many new cards introduced today?
+  const introducedToday = allCards.filter(
+    c => c.first_seen === today
+  ).length;
+
+  const remainingNewToday = Math.max(0, maxNew - introducedToday);
 
   const shuffle = arr => {
     for (let i = arr.length - 1; i > 0; i--) {
@@ -78,9 +124,11 @@ function buildReviewQueue() {
   };
 
   shuffle(due);
-  shuffle(fresh);
+  shuffle(newCandidates);
 
-  reviewQueue = [...due, ...fresh];
+  const selectedNew = newCandidates.slice(0, remainingNewToday);
+
+  reviewQueue = [...due, ...selectedNew];
 }
 
 function renderCurrentCard() {
@@ -121,6 +169,7 @@ function startReviewSession() {
 
 window.startReviewSession = startReviewSession;
 
+// Flip card on click
 document.getElementById("card-box").addEventListener("click", () => {
   const box = document.getElementById("card-box");
   const ratingButtons = document.getElementById("rating-buttons");
@@ -137,6 +186,10 @@ document.getElementById("card-box").addEventListener("click", () => {
     ratingButtons.classList.add("hidden");
   }
 });
+
+// ============================================================
+// Handle Rating & SRS Updating
+// ============================================================
 
 window.handleRating = async function (rating) {
   const card = reviewQueue[currentIndex];
@@ -162,8 +215,9 @@ window.handleRating = async function (rating) {
     }
     card_type = interval_days > 1 ? "review" : "learning";
   } else if (card_type === "learning") {
-    if (rating === "again") interval_days = 1;
-    else {
+    if (rating === "again") {
+      interval_days = 1;
+    } else {
       interval_days = 3;
       card_type = "review";
     }
@@ -196,11 +250,12 @@ window.handleRating = async function (rating) {
       lapses,
       last_reviewed: today,
       due_date: dueDate,
-      first_seen: card.first_seen || today,
+      first_seen: card.first_seen || today, // first-seen marking for daily limit
     })
     .eq("id", card.id);
 
   if (error) {
+    console.error(error);
     showToast("Error saving review");
     return;
   }
@@ -215,6 +270,10 @@ window.handleRating = async function (rating) {
 
   renderCurrentCard();
 };
+
+// ============================================================
+// WORD REVIEW TABLE
+// ============================================================
 
 let currentSortCol = null;
 let sortAsc = true;
@@ -259,6 +318,10 @@ document.addEventListener("click", e => {
   buildWordTable(sorted);
 });
 
+// ============================================================
+// RESET LEARNING
+// ============================================================
+
 window.resetLearningData = async function () {
   const { data: cards, error: fetchErr } =
     await supabaseClient.from("cards").select("id");
@@ -294,9 +357,28 @@ window.resetLearningData = async function () {
   await loadCards();
 };
 
+// ============================================================
+// Init
+// ============================================================
+
 async function init() {
   const version = document.getElementById("app-version");
-  version.textContent = "Version: " + APP_VERSION;
+  if (version) version.textContent = "Version: " + APP_VERSION;
+
+  // Set up settings dropdown
+  const maxNewSelect = document.getElementById("max-new-cards-select");
+  if (maxNewSelect) {
+    const current = getMaxNewCardsPerDay();
+    maxNewSelect.value = String(current);
+
+    maxNewSelect.addEventListener("change", () => {
+      const val = parseInt(maxNewSelect.value, 10);
+      if (!Number.isNaN(val)) {
+        setMaxNewCardsPerDay(val);
+        showToast("Max new cards per day set to " + val);
+      }
+    });
+  }
 
   await loadCards();
   openScreen("menu");
