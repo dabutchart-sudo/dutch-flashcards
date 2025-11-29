@@ -53,6 +53,68 @@ window.openScreen = function (name) {
   }
 };
 
+// ----------------- Summary (Today & Tomorrow) -----------------
+
+function updateSummary() {
+  const panel = document.getElementById("summary-panel");
+  if (!panel) return;
+
+  const today = todayStr();
+  const maxNew = getMaxNewCardsPerDay();
+  const tomorrow = addDays(today, 1);
+
+  let dueReviewToday = 0;
+  let dueReviewTomorrow = 0;
+  let newPool = 0;          // truly new: card_type='new' and first_seen null/undefined
+  let introducedToday = 0;  // any card whose first_seen == today
+
+  for (const c of allCards) {
+    if (c.suspended) continue;
+
+    const isReviewCard = c.card_type !== "new";
+
+    if (isReviewCard && c.due_date) {
+      if (c.due_date <= today) {
+        dueReviewToday++;
+      }
+      if (c.due_date === tomorrow) {
+        dueReviewTomorrow++;
+      }
+    }
+
+    const isTrulyNew =
+      c.card_type === "new" &&
+      (c.first_seen === null || c.first_seen === undefined);
+
+    if (isTrulyNew) {
+      newPool++;
+    }
+
+    if (c.first_seen === today) {
+      introducedToday++;
+    }
+  }
+
+  // Today (Option A)
+  let availableNewToday = maxNew - introducedToday;
+  if (availableNewToday < 0) availableNewToday = 0;
+  if (availableNewToday > newPool) availableNewToday = newPool;
+
+  // Tomorrow (Option B): after today's new come from newPool
+  const remainingAfterToday = Math.max(0, newPool - availableNewToday);
+  let availableNewTomorrow = Math.min(maxNew, remainingAfterToday);
+
+  panel.innerHTML = `
+    <h2>Study Summary</h2>
+    <div class="summary-row">
+      <strong>Today:</strong> ${dueReviewToday} review, ${availableNewToday} new
+    </div>
+    <div class="summary-row">
+      <strong>Tomorrow:</strong> ${dueReviewTomorrow} review, ${availableNewTomorrow} new
+    </div>
+  `;
+}
+
 // ----------------- Data Loading -----------------
 
 async function loadCards() {
@@ -65,10 +127,12 @@ async function loadCards() {
     console.error("loadCards error:", error);
     showToast("Error loading cards");
     allCards = [];
+    updateSummary();
     return;
   }
 
   allCards = data || [];
+  updateSummary();
 }
 
 // ----------------- Build Review Queue (Anki-style) -----------------
@@ -219,8 +283,6 @@ window.handleRating = async function (rating) {
 
   reps++;
 
-  const wasTrulyNewBefore = !card.first_seen;
-
   if (card_type === "new") {
     if (rating === "again") interval_days = 1;
     else if (rating === "hard") interval_days = 1;
@@ -287,6 +349,8 @@ window.handleRating = async function (rating) {
 
   if (currentIndex >= reviewQueue.length) {
     showToast("Session complete");
+    // Reload cards so summary reflects new due/new counts
+    await loadCards();
     openScreen("menu");
     return;
   }
@@ -365,6 +429,7 @@ window.addEventListener("load", async () => {
       const v = parseInt(sel.value, 10);
       setMaxNewCardsPerDay(v);
       showToast("Max new cards updated");
+      updateSummary();
     });
   }
 
