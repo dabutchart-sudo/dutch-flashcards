@@ -1,19 +1,17 @@
+// app.js
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase v2 CDN global
+const { createClient } = window.supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ============================================================
-// Global state
-// ============================================================
+// =============== Global State ==================
 
 let allCards = [];
 let reviewQueue = [];
 let currentIndex = 0;
-let showingAnswer = false;
 
-// ============================================================
-// Utility functions
-// ============================================================
+// =============== Utilities =====================
 
 function todayStr() {
   const d = new Date();
@@ -26,41 +24,46 @@ function addDays(dateStr, days) {
   return d.toISOString().split("T")[0];
 }
 
-function showToast(msg, duration = 2500) {
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.classList.remove("hidden");
-  el.classList.add("show");
-
+function showToast(message, duration = 2500) {
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+  toast.classList.add("show");
   setTimeout(() => {
-    el.classList.remove("show");
-    el.classList.add("hidden");
+    toast.classList.remove("show");
+    toast.classList.add("hidden");
   }, duration);
 }
 
-// ============================================================
-// Screen navigation
-// ============================================================
+// =============== Screen Navigation =============
 
 function openScreen(name) {
-  document.querySelectorAll(".screen").forEach((s) => {
-    s.classList.add("hidden");
+  const screens = document.querySelectorAll(".screen");
+  screens.forEach((s) => {
     s.classList.remove("visible");
+    s.classList.add("hidden");
   });
 
   const screen = document.getElementById(`${name}-screen`);
-  if (screen) screen.classList.remove("hidden");
+  if (screen) {
+    screen.classList.remove("hidden");
+    screen.classList.add("visible");
+  }
 }
 
-// ============================================================
-// Load cards
-// ============================================================
+window.openScreen = openScreen;
+
+// =============== Load Cards =====================
 
 async function loadCards() {
-  const { data, error } = await supabase.from("cards").select("*").order("id");
+  const { data, error } = await supabaseClient
+    .from("cards")
+    .select("*")
+    .order("id");
 
   if (error) {
-    console.error("loadCards:", error);
+    console.error("loadCards error:", error);
     showToast("Error loading cards: " + error.message);
     allCards = [];
     return;
@@ -70,72 +73,102 @@ async function loadCards() {
   console.log("Loaded cards:", allCards.length);
 }
 
-// ============================================================
-// Review Session
-// ============================================================
+// =============== Review Session =================
 
 function buildReviewQueue() {
   const today = todayStr();
+  const due = [];
+  const fresh = [];
 
-  const due = allCards.filter(
-    (c) => c.card_type !== "new" && c.due_date && c.due_date <= today
-  );
-  const fresh = allCards.filter((c) => c.card_type === "new");
-
-  // Shuffle
-  for (let a of [due, fresh]) {
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
+  for (const c of allCards) {
+    if (c.suspended) continue;
+    if (c.card_type !== "new" && c.due_date && c.due_date <= today) {
+      due.push(c);
+    } else if (c.card_type === "new") {
+      fresh.push(c);
     }
   }
+
+  // Shuffle
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  shuffle(due);
+  shuffle(fresh);
 
   reviewQueue = [...due, ...fresh];
 }
 
-function renderCard() {
+function renderCurrentCard() {
   const card = reviewQueue[currentIndex];
-  const text = document.getElementById("card-text");
-  const ans = document.getElementById("answer-box");
-  const showBtn = document.getElementById("show-answer-btn");
-  const rateBtns = document.getElementById("rating-buttons");
+  const cardText = document.getElementById("card-text");
+  const answerBox = document.getElementById("answer-box");
+  const showAnswerBtn = document.getElementById("show-answer-btn");
+  const ratingButtons = document.getElementById("rating-buttons");
 
   if (!card) {
-    text.textContent = "No cards to review.";
-    ans.classList.add("hidden");
-    rateBtns.classList.add("hidden");
-    showBtn.style.display = "none";
+    cardText.textContent = "No cards to review.";
+    answerBox.classList.add("hidden");
+    ratingButtons.classList.add("hidden");
+    showAnswerBtn.style.display = "none";
     return;
   }
 
-  showingAnswer = false;
-  text.textContent = card.dutch;
-  ans.textContent = card.english;
-  ans.classList.add("hidden");
-  rateBtns.classList.add("hidden");
-  showBtn.style.display = "inline-block";
+  cardText.textContent = card.dutch;
+  answerBox.textContent = card.english;
+  answerBox.classList.add("hidden");
+  ratingButtons.classList.add("hidden");
+  showAnswerBtn.style.display = "inline-block";
 }
 
-function showAnswer() {
-  showingAnswer = true;
-  document.getElementById("answer-box").classList.remove("hidden");
-  document.getElementById("show-answer-btn").style.display = "none";
-  document.getElementById("rating-buttons").classList.remove("hidden");
+function startReviewSession() {
+  buildReviewQueue();
+
+  if (reviewQueue.length === 0) {
+    showToast("No cards available to review.");
+    openScreen("menu");
+    return;
+  }
+
+  currentIndex = 0;
+  renderCurrentCard();
+  openScreen("review");
 }
+
+// =============== Show Answer ====================
+
+function showAnswer() {
+  const answerBox = document.getElementById("answer-box");
+  const showAnswerBtn = document.getElementById("show-answer-btn");
+  const ratingButtons = document.getElementById("rating-buttons");
+
+  answerBox.classList.remove("hidden");
+  showAnswerBtn.style.display = "none";
+  ratingButtons.classList.remove("hidden");
+}
+
+window.showAnswer = showAnswer;
+
+// =============== Handle Rating ==================
 
 async function handleRating(rating) {
   const card = reviewQueue[currentIndex];
   if (!card) return;
 
   const today = todayStr();
-  let interval = card.interval_days ?? 0;
-  let ease = Number(card.ease ?? 2.5);
-  let type = card.card_type;
-  let reps = card.reps ?? 0;
-  let lapses = card.lapses ?? 0;
+  let type = card.card_type || "new";
+  let interval = card.interval_days || 0;
+  let ease = Number(card.ease || 2.5);
+  let reps = card.reps || 0;
+  let lapses = card.lapses || 0;
 
-  reps++;
+  reps += 1;
 
+  // Very simple SRS logic
   if (type === "new") {
     if (rating === "again") {
       interval = 1;
@@ -151,20 +184,16 @@ async function handleRating(rating) {
       ease += 0.15;
       type = "review";
     }
-  }
-
-  else if (type === "learning") {
+  } else if (type === "learning") {
     if (rating === "again") {
       interval = 1;
     } else {
       interval = 3;
       type = "review";
     }
-  }
-
-  else { // review
+  } else { // review
     if (rating === "again") {
-      lapses++;
+      lapses += 1;
       ease = Math.max(1.3, ease - 0.2);
       interval = 1;
       type = "learning";
@@ -181,7 +210,8 @@ async function handleRating(rating) {
 
   const dueDate = addDays(today, interval);
 
-  const { error } = await supabase.from("cards")
+  const { error } = await supabaseClient
+    .from("cards")
     .update({
       card_type: type,
       interval_days: interval,
@@ -190,40 +220,43 @@ async function handleRating(rating) {
       lapses,
       last_reviewed: today,
       due_date: dueDate,
-      first_seen: card.first_seen ?? today
+      first_seen: card.first_seen || today
     })
     .eq("id", card.id);
 
   if (error) {
-    console.error("Rating update error:", error);
+    console.error("handleRating update error:", error);
     showToast("Error saving review.");
     return;
   }
 
-  currentIndex++;
+  currentIndex += 1;
   if (currentIndex >= reviewQueue.length) {
     showToast("Session complete.");
     openScreen("menu");
     return;
   }
 
-  renderCard();
+  renderCurrentCard();
 }
 
-// ============================================================
-// Add new card
-// ============================================================
+window.handleRating = handleRating;
+
+// =============== Add New Card ===================
 
 async function addNewCard() {
-  const dutch = document.getElementById("new-dutch").value.trim();
-  const english = document.getElementById("new-english").value.trim();
+  const dutchInput = document.getElementById("new-dutch");
+  const englishInput = document.getElementById("new-english");
+
+  const dutch = dutchInput.value.trim();
+  const english = englishInput.value.trim();
 
   if (!dutch || !english) {
-    showToast("Please fill both fields.");
+    showToast("Please fill in both fields.");
     return;
   }
 
-  const { error } = await supabase.from("cards").insert({
+  const { error } = await supabaseClient.from("cards").insert({
     dutch,
     english,
     card_type: "new",
@@ -238,29 +271,30 @@ async function addNewCard() {
   });
 
   if (error) {
-    console.error("Insert error:", error);
+    console.error("addNewCard error:", error);
     showToast("Error adding card.");
     return;
   }
 
+  dutchInput.value = "";
+  englishInput.value = "";
   showToast("Card added.");
-  document.getElementById("new-dutch").value = "";
-  document.getElementById("new-english").value = "";
   await loadCards();
 }
 
-// ============================================================
-// Reset all learning data
-// ============================================================
+window.addNewCard = addNewCard;
+
+// =============== Reset Learning Data ============
 
 async function resetLearningData() {
   console.log("RESET CALLED");
 
-  const { data: cards, error: fetchErr } = await supabase
+  const { data: cards, error: fetchErr } = await supabaseClient
     .from("cards")
     .select("id");
 
   if (fetchErr) {
+    console.error("reset fetch error:", fetchErr);
     showToast("Error fetching cards.");
     return;
   }
@@ -270,9 +304,9 @@ async function resetLearningData() {
     return;
   }
 
-  const ids = cards.map(c => c.id);
+  const ids = cards.map((c) => c.id);
 
-  const { error: updateErr } = await supabase
+  const { error: updateErr } = await supabaseClient
     .from("cards")
     .update({
       card_type: "new",
@@ -288,7 +322,7 @@ async function resetLearningData() {
     .in("id", ids);
 
   if (updateErr) {
-    console.error(updateErr);
+    console.error("reset update error:", updateErr);
     showToast("Reset failed.");
     return;
   }
@@ -297,22 +331,19 @@ async function resetLearningData() {
   await loadCards();
 }
 
-// ============================================================
-// Init
-// ============================================================
+window.resetLearningData = resetLearningData;
+
+// =============== Init ===========================
 
 async function init() {
-  document.getElementById("show-answer-btn")
-    .addEventListener("click", showAnswer);
+  console.log("App init");
+  const showBtn = document.getElementById("show-answer-btn");
+  if (showBtn) {
+    showBtn.addEventListener("click", showAnswer);
+  }
 
   await loadCards();
   openScreen("menu");
 }
 
 window.addEventListener("load", init);
-
-// Expose for HTML
-window.openScreen = openScreen;
-window.handleRating = handleRating;
-window.addNewCard = addNewCard;
-window.resetLearningData = resetLearningData;
