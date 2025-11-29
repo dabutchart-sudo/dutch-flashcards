@@ -27,6 +27,7 @@
     <div class="menu-buttons">
       <button onclick="startReviewSession()">Review Cards</button>
       <button onclick="openWordReview()">Word Review</button>
+      <button onclick="openReport()">Report</button>
       <button onclick="openScreen('settings')">Settings</button>
     </div>
   </div>
@@ -91,6 +92,24 @@
     </table>
   </div>
 
+  <!-- REPORT SCREEN -->
+  <div id="report-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
+    <h2>Report</h2>
+
+    <div class="report-controls">
+      <button class="report-group-btn active" data-mode="day">Day</button>
+      <button class="report-group-btn" data-mode="month">Month</button>
+      <button class="report-group-btn" data-mode="year">Year</button>
+    </div>
+
+    <div class="chart-scroll-container">
+      <div class="chart-inner">
+        <canvas id="report-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div id="settings-screen" class="screen hidden">
     <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
@@ -116,8 +135,10 @@
 
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <!-- Chart.js for the Report chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="config.js"></script>
-  <script type="module" src="app.js?v=27"></script>
+  <script type="module" src="app.js?v=28"></script>
 
 </body>
 </html>
