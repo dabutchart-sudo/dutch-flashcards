@@ -7,6 +7,10 @@ let allCards = [];
 let reviewQueue = [];
 let currentIndex = 0;
 
+// Browse mode
+let browseList = [];
+let browseIndex = 0;
+
 // Word review sorting
 let sortColumn = null;
 let sortDirection = 1;
@@ -202,7 +206,7 @@ window.startReviewSession = async function () {
   openScreen("review");
 };
 
-/* ------------------------- Card Flip ------------------------- */
+/* ------------------------- Card Flip (Review) ------------------------- */
 document.getElementById("card-box").addEventListener("click", () => {
   const card = reviewQueue[currentIndex];
   if (!card) return;
@@ -224,7 +228,7 @@ document.getElementById("card-box").addEventListener("click", () => {
   }
 });
 
-/* ------------------------- TTS ------------------------- */
+/* ------------------------- TTS (Review) ------------------------- */
 document.getElementById("tts-btn").addEventListener("click", (e) => {
   e.stopPropagation();
   const card = reviewQueue[currentIndex];
@@ -236,7 +240,7 @@ document.getElementById("tts-btn").addEventListener("click", (e) => {
   speechSynthesis.speak(utter);
 });
 
-/* ------------------------- Hint ------------------------- */
+/* ------------------------- Hint (Review) ------------------------- */
 document.getElementById("hint-btn").addEventListener("click", (e) => {
   e.stopPropagation();
   const card = reviewQueue[currentIndex];
@@ -405,6 +409,132 @@ window.handleRating = async function (rating) {
 
   renderCurrentCard();
 };
+
+/* ------------------------- Browse Mode ------------------------- */
+window.openBrowse = async function () {
+  await loadCards();
+  updateSummary();
+
+  // Build browse list sorted by due_date (oldest first, nulls last)
+  browseList = allCards
+    .filter((c) => !c.suspended)
+    .slice()
+    .sort((a, b) => {
+      const da = a.due_date ? a.due_date : "9999-12-31";
+      const db = b.due_date ? b.due_date : "9999-12-31";
+      if (da < db) return -1;
+      if (da > db) return 1;
+      return 0;
+    });
+
+  if (!browseList.length) {
+    showToast("No cards to browse.");
+    return;
+  }
+
+  browseIndex = 0;
+  renderBrowseCard();
+  openScreen("browse");
+};
+
+function renderBrowseCard() {
+  const card = browseList[browseIndex];
+
+  const front = document.getElementById("browse-front-text");
+  const back = document.getElementById("browse-back-text");
+  const flipper = document.getElementById("browse-card-flipper");
+  const status = document.getElementById("browse-status");
+  const bar = document.getElementById("browse-progress-bar");
+  const counter = document.getElementById("browse-counter");
+  const hintBtn = document.getElementById("browse-hint-btn");
+
+  if (!card) {
+    front.textContent = "No cards.";
+    back.textContent = "";
+    status.textContent = "";
+    if (hintBtn) hintBtn.classList.add("hidden");
+    bar.style.width = "0%";
+    counter.textContent = "0 / 0";
+    return;
+  }
+
+  flipper.classList.remove("flip");
+  void flipper.offsetWidth;
+
+  front.textContent = card.dutch;
+  back.textContent = "";
+
+  if (card.card_type === "new") {
+    status.textContent = "NEW";
+    status.style.color = "#ff8800";
+  } else if (card.card_type === "learning") {
+    status.textContent = "LEARNING";
+    status.style.color = "#5bc0de";
+  } else {
+    status.textContent = "REVIEW";
+    status.style.color = "#5cb85c";
+  }
+
+  if (card.image_url) hintBtn.classList.remove("hidden");
+  else hintBtn.classList.add("hidden");
+
+  const progress = ((browseIndex + 1) / browseList.length) * 100;
+  bar.style.width = `${progress}%`;
+  counter.textContent = `${browseIndex + 1} / ${browseList.length}`;
+}
+
+// Flip for browse
+document.getElementById("browse-card-box").addEventListener("click", () => {
+  const card = browseList[browseIndex];
+  if (!card) return;
+
+  const flipper = document.getElementById("browse-card-flipper");
+  const back = document.getElementById("browse-back-text");
+
+  if (!flipper.classList.contains("flip")) {
+    back.textContent = card.english;
+  }
+
+  flipper.classList.toggle("flip");
+});
+
+// TTS for browse
+document.getElementById("browse-tts-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const card = browseList[browseIndex];
+  if (!card) return;
+
+  const utter = new SpeechSynthesisUtterance(card.dutch);
+  utter.lang = "nl-NL";
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+});
+
+// Hint for browse
+document.getElementById("browse-hint-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const card = browseList[browseIndex];
+  if (!card || !card.image_url) return;
+
+  const img = document.getElementById("hint-image");
+  img.src = card.image_url;
+
+  const modal = document.getElementById("hint-modal");
+  modal.classList.remove("hidden");
+});
+
+// Browse nav
+document.getElementById("browse-prev-btn").addEventListener("click", () => {
+  if (!browseList.length) return;
+  browseIndex = (browseIndex - 1 + browseList.length) % browseList.length;
+  renderBrowseCard();
+});
+
+document.getElementById("browse-next-btn").addEventListener("click", () => {
+  if (!browseList.length) return;
+  browseIndex = (browseIndex + 1) % browseList.length;
+  renderBrowseCard();
+});
 
 /* ------------------------- Word Review ------------------------- */
 window.openWordReview = function () {
@@ -615,7 +745,6 @@ function openEditModal(card) {
 
   dutchInput.value = card.dutch || "";
   englishInput.value = card.english || "";
-
   searchInput.value = card.english || card.dutch || "";
 
   if (card.image_url) {
@@ -629,7 +758,6 @@ function openEditModal(card) {
   }
 
   results.innerHTML = "";
-
   document.getElementById("edit-modal").classList.remove("hidden");
 }
 
@@ -641,6 +769,12 @@ window.openEditFromList = function (id) {
 
 document.getElementById("review-edit-btn").addEventListener("click", () => {
   const card = reviewQueue[currentIndex];
+  if (!card) return;
+  openEditModal(card);
+});
+
+document.getElementById("browse-edit-btn").addEventListener("click", () => {
+  const card = browseList[browseIndex];
   if (!card) return;
   openEditModal(card);
 });
@@ -660,7 +794,7 @@ document.getElementById("edit-search-btn").addEventListener("click", async () =>
   const url =
     "https://commons.wikimedia.org/w/api.php" +
     "?action=query&format=json&origin=*" +
-    "&prop=imageinfo&iiprop=url|mime&generator=search" +
+    "&prop=imageinfo&iiprop=url|mime|thumburl&generator=search" +
     "&gsrnamespace=6" +
     "&gsrlimit=12" +
     "&gsrsearch=" +
@@ -761,9 +895,20 @@ document.getElementById("edit-save-btn").addEventListener("click", async () => {
     }
   });
 
-  // Refresh UI
+  browseList.forEach((c) => {
+    if (c.id === editCardId) {
+      c.dutch = dutch;
+      c.english = english;
+      c.image_url = imageUrl;
+    }
+  });
+
+  // Refresh UI if needed
   if (document.getElementById("review-screen").classList.contains("visible")) {
     renderCurrentCard();
+  }
+  if (document.getElementById("browse-screen").classList.contains("visible")) {
+    renderBrowseCard();
   }
   if (document.getElementById("wordreview-screen").classList.contains("visible")) {
     openWordReview();
