@@ -8,7 +8,6 @@ let reviewQueue = [];
 let currentIndex = 0;
 
 // ----------------- Utility -----------------
-
 function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
@@ -27,7 +26,6 @@ function showToast(msg) {
 }
 
 // ----------------- Settings -----------------
-
 const MAX_NEW_KEY = "maxNewCardsPerDay";
 
 function getMaxNewCardsPerDay() {
@@ -39,7 +37,6 @@ function setMaxNewCardsPerDay(val) {
 }
 
 // ----------------- Navigation -----------------
-
 window.openScreen = function (name) {
   document.querySelectorAll(".screen").forEach((s) => {
     s.classList.remove("visible");
@@ -54,7 +51,6 @@ window.openScreen = function (name) {
 };
 
 // ----------------- Summary (Today & Tomorrow) -----------------
-
 function updateSummary() {
   const panel = document.getElementById("summary-panel");
   if (!panel) return;
@@ -65,7 +61,7 @@ function updateSummary() {
 
   let dueReviewToday = 0;
   let dueReviewTomorrow = 0;
-  let trulyNewCards = 0;
+  let trulyNew = 0;
   let introducedToday = 0;
 
   for (const c of allCards) {
@@ -78,33 +74,27 @@ function updateSummary() {
       if (c.due_date === tomorrow) dueReviewTomorrow++;
     }
 
-    const isTrulyNew =
-      c.card_type === "new" &&
+    const isNew = c.card_type === "new" &&
       (c.first_seen === null || c.first_seen === undefined);
 
-    if (isTrulyNew) trulyNewCards++;
+    if (isNew) trulyNew++;
 
     if (c.first_seen === today) introducedToday++;
   }
 
-  // --- TODAY new count ---
-  let availableNewToday = maxNew - introducedToday;
-  if (availableNewToday < 0) availableNewToday = 0;
-  if (availableNewToday > trulyNewCards) availableNewToday = trulyNewCards;
+  let newToday = Math.max(0, Math.min(maxNew - introducedToday, trulyNew));
 
-  // --- TOMORROW new count (Option B) ---
-  // Should always show: min(maxNew, total remaining new)
-  let availableNewTomorrow = Math.min(maxNew, trulyNewCards);
+  // Tomorrow = Option B → min(maxNew, all new cards)
+  let newTomorrow = Math.min(maxNew, trulyNew);
 
   panel.innerHTML = `
     <h2>Study Summary</h2>
-    <div class="summary-row"><strong>Today:</strong> ${dueReviewToday} review, ${availableNewToday} new</div>
-    <div class="summary-row"><strong>Tomorrow:</strong> ${dueReviewTomorrow} review, ${availableNewTomorrow} new</div>
+    <div class="summary-row"><strong>Today:</strong> ${dueReviewToday} review, ${newToday} new</div>
+    <div class="summary-row"><strong>Tomorrow:</strong> ${dueReviewTomorrow} review, ${newTomorrow} new</div>
   `;
 }
 
 // ----------------- Data Loading -----------------
-
 async function loadCards() {
   const { data, error } = await supabaseClient
     .from("cards")
@@ -112,74 +102,78 @@ async function loadCards() {
     .order("id");
 
   if (error) {
-    console.error("loadCards error:", error);
     showToast("Error loading cards");
+    console.error(error);
     allCards = [];
-    updateSummary();
-    return;
+  } else {
+    allCards = data || [];
   }
 
-  allCards = data || [];
   updateSummary();
 }
 
 // ----------------- Build Review Queue -----------------
-
 function buildReviewQueue() {
   const today = todayStr();
   const maxNew = getMaxNewCardsPerDay();
 
   const due = [];
-  const newCandidates = [];
+  const newCards = [];
 
   for (const c of allCards) {
     if (c.suspended) continue;
 
-    const isDue =
-      c.card_type !== "new" &&
-      c.due_date &&
-      c.due_date <= today;
+    if (c.card_type !== "new" && c.due_date && c.due_date <= today) {
+      due.push(c);
+      continue;
+    }
 
-    const isTrulyNew =
-      c.card_type === "new" &&
-      (c.first_seen === null || c.first_seen === undefined);
-
-    if (isDue) due.push(c);
-    else if (isTrulyNew) newCandidates.push(c);
+    if (c.card_type === "new" && (c.first_seen === null || c.first_seen === undefined)) {
+      newCards.push(c);
+    }
   }
 
-  const introducedTodayCount = allCards.filter(
-    (c) => c.first_seen === today
-  ).length;
+  const introducedToday = allCards.filter((c) => c.first_seen === today).length;
 
-  let remainingNew = maxNew - introducedTodayCount;
+  let remainingNew = maxNew - introducedToday;
   if (remainingNew < 0) remainingNew = 0;
 
-  const shuffle = (arr) => {
-    for (let i = arr.length - 1; i > 0; i--) {
+  const shuffle = (a) => {
+    for (let i = a.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+      [a[i], a[j]] = [a[j], a[i]];
     }
   };
 
   shuffle(due);
-  shuffle(newCandidates);
+  shuffle(newCards);
 
-  const selectedNew = newCandidates.slice(0, remainingNew);
-
-  reviewQueue = [...due, ...selectedNew];
+  reviewQueue = [...due, ...newCards.slice(0, remainingNew)];
 }
 
 // ----------------- Rendering -----------------
-
 function updateCounter() {
   const el = document.getElementById("review-counter");
   if (!el) return;
 
-  if (!reviewQueue.length) {
-    el.textContent = "No cards";
+  el.textContent = reviewQueue.length
+    ? `Card ${currentIndex + 1} of ${reviewQueue.length}`
+    : "No cards";
+}
+
+function renderCardStatus(card) {
+  const el = document.getElementById("card-status");
+  if (!el || !card) return;
+
+  if (card.card_type === "new") {
+    el.textContent = "NEW";
+    el.style.color = "#ff8800";
+  } else if (card.card_type === "learning") {
+    el.textContent = "LEARNING";
+    el.style.color = "#5bc0de";
   } else {
-    el.textContent = `Card ${currentIndex + 1} of ${reviewQueue.length}`;
+    el.textContent = "REVIEW";
+    el.style.color = "#5cb85c";
   }
 }
 
@@ -206,17 +200,17 @@ function renderCurrentCard() {
   backText.textContent = "";
 
   ratingButtons.classList.add("hidden");
+  renderCardStatus(card);
   updateCounter();
 }
 
 // ----------------- Start Review Session -----------------
-
 window.startReviewSession = async function () {
   await loadCards();
   buildReviewQueue();
 
   if (!reviewQueue.length) {
-    showToast("No cards available to review.");
+    showToast("No cards available");
     return;
   }
 
@@ -226,17 +220,15 @@ window.startReviewSession = async function () {
 };
 
 // ----------------- Flip Card -----------------
-
 document.getElementById("card-box").addEventListener("click", () => {
   const card = reviewQueue[currentIndex];
   if (!card) return;
 
+  const backText = document.getElementById("card-back-text");
   const box = document.getElementById("card-box");
   const ratingButtons = document.getElementById("rating-buttons");
-  const backText = document.getElementById("card-back-text");
 
   backText.textContent = card.english;
-
   box.classList.toggle("flip");
 
   if (box.classList.contains("flip")) {
@@ -247,18 +239,18 @@ document.getElementById("card-box").addEventListener("click", () => {
 });
 
 // ----------------- Handle Rating -----------------
-
 window.handleRating = async function (rating) {
   const card = reviewQueue[currentIndex];
   if (!card) return;
 
   const today = todayStr();
 
-  let card_type = card.card_type ?? "new";
-  let interval_days = card.interval_days ?? 0;
-  let ease = Number(card.ease ?? 2.5);
-  let reps = card.reps ?? 0;
-  let lapses = card.lapses ?? 0;
+  let { card_type, interval_days, ease, reps, lapses } = card;
+  card_type = card_type || "new";
+  interval_days = interval_days || 0;
+  ease = Number(ease || 2.5);
+  reps = reps || 0;
+  lapses = lapses || 0;
 
   reps++;
 
@@ -266,17 +258,13 @@ window.handleRating = async function (rating) {
     if (rating === "again") interval_days = 1;
     else if (rating === "hard") interval_days = 1;
     else if (rating === "good") interval_days = 3;
-    else if (rating === "easy") {
-      interval_days = 4;
-      ease += 0.15;
-    }
+    else if (rating === "easy") { interval_days = 4; ease += 0.15; }
     card_type = interval_days > 1 ? "review" : "learning";
+
   } else if (card_type === "learning") {
     if (rating === "again") interval_days = 1;
-    else {
-      interval_days = 3;
-      card_type = "review";
-    }
+    else { interval_days = 3; card_type = "review"; }
+
   } else {
     if (rating === "again") {
       lapses++;
@@ -296,7 +284,6 @@ window.handleRating = async function (rating) {
 
   interval_days = Math.max(1, interval_days);
   const due_date = addDays(today, interval_days);
-  const first_seen = card.first_seen || today;
 
   const updatePayload = {
     card_type,
@@ -304,7 +291,7 @@ window.handleRating = async function (rating) {
     ease,
     reps,
     lapses,
-    first_seen,
+    first_seen: card.first_seen || today,
     last_reviewed: today,
     due_date,
     suspended: false,
@@ -316,8 +303,8 @@ window.handleRating = async function (rating) {
     .eq("id", card.id);
 
   if (error) {
-    console.error("Update failed:", error);
-    showToast("Failed to save review");
+    showToast("Save failed");
+    console.error(error);
     return;
   }
 
@@ -334,7 +321,6 @@ window.handleRating = async function (rating) {
 };
 
 // ----------------- Word Review -----------------
-
 window.openWordReview = function () {
   const tbody = document.getElementById("word-tbody");
   tbody.innerHTML = "";
@@ -354,17 +340,11 @@ window.openWordReview = function () {
 };
 
 // ----------------- Reset Learning -----------------
-
 window.resetLearningData = async function () {
-  const { data, error } = await supabaseClient.from("cards").select("id");
-  if (error) {
-    showToast("Error fetching cards to reset");
-    return;
-  }
-
+  const { data } = await supabaseClient.from("cards").select("id");
   const ids = (data || []).map((r) => r.id);
 
-  const { error: updErr } = await supabaseClient
+  const { error } = await supabaseClient
     .from("cards")
     .update({
       card_type: "new",
@@ -379,32 +359,29 @@ window.resetLearningData = async function () {
     })
     .in("id", ids);
 
-  if (updErr) {
-    console.error("Reset failed:", updErr);
+  if (error) {
     showToast("Reset failed");
+    console.error(error);
     return;
   }
 
-  showToast("All learning data reset");
+  showToast("All learning reset");
   await loadCards();
 };
 
 // ----------------- Init -----------------
-
 window.addEventListener("load", async () => {
   const ver = document.getElementById("app-version");
   if (ver) ver.textContent = "Version: " + APP_VERSION;
 
   const sel = document.getElementById("max-new-cards-select");
-  if (sel) {
-    sel.value = String(getMaxNewCardsPerDay());
-    sel.addEventListener("change", () => {
-      const v = parseInt(sel.value, 10);
-      setMaxNewCardsPerDay(v);
-      showToast("Max new cards updated");
-      updateSummary();
-    });
-  }
+  sel.value = String(getMaxNewCardsPerDay());
+  sel.addEventListener("change", () => {
+    const v = parseInt(sel.value, 10);
+    setMaxNewCardsPerDay(v);
+    showToast("Updated");
+    updateSummary();
+  });
 
   await loadCards();
   openScreen("menu");
