@@ -26,6 +26,7 @@
 
     <div class="menu-buttons">
       <button onclick="startReviewSession()">Review Cards</button>
+      <button onclick="openBrowse()">Browse Cards</button>
       <button onclick="openWordReview()">Word Review</button>
       <button onclick="openReport()">Report</button>
       <button onclick="openScreen('settings')">Settings</button>
@@ -71,6 +72,46 @@
       <button onclick="handleRating('hard')" class="rating-btn hard">Hard</button>
       <button onclick="handleRating('good')" class="rating-btn good">Good</button>
       <button onclick="handleRating('easy')" class="rating-btn easy">Easy</button>
+    </div>
+  </div>
+
+  <!-- BROWSE SCREEN -->
+  <div id="browse-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
+    <h2>Browse Cards</h2>
+
+    <button id="browse-edit-btn" class="small-secondary-btn">Edit This Card</button>
+
+    <div id="browse-status" class="card-status"></div>
+
+    <div class="progress-wrapper">
+      <div class="progress-container">
+        <div id="browse-progress-bar" class="progress-bar"></div>
+      </div>
+      <div id="browse-counter" class="review-counter">0 / 0</div>
+    </div>
+
+    <div id="browse-card-box" class="flip-container">
+      <div id="browse-card-flipper" class="flipper">
+        <!-- FRONT (Dutch) -->
+        <div class="front card-face">
+          <div class="flag">🇳🇱</div>
+          <button id="browse-tts-btn" class="tts-btn">🔊</button>
+          <button id="browse-hint-btn" class="hint-btn">💡</button>
+          <div class="card-text centered" id="browse-front-text"></div>
+        </div>
+
+        <!-- BACK (English) -->
+        <div class="back card-face">
+          <div class="flag">🇬🇧</div>
+          <div class="card-text centered" id="browse-back-text"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="browse-nav-row">
+      <button id="browse-prev-btn" class="small-secondary-btn">⬅ Prev</button>
+      <button id="browse-next-btn" class="small-secondary-btn">Next ➡</button>
     </div>
   </div>
 
@@ -185,7 +226,7 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="config.js"></script>
-  <script type="module" src="app.js?v=31"></script>
+  <script type="module" src="app.js?v=32"></script>
 
 </body>
 </html>
