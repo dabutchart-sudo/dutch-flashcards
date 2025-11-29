@@ -35,7 +35,7 @@ body {
   cursor: pointer;
 }
 
-/* Main menu buttons */
+/* Menu buttons */
 .menu-buttons button {
   display: block;
   width: 90%;
@@ -64,7 +64,7 @@ body {
   margin: 4px 0;
 }
 
-/* CARD STATUS */
+/* Card status */
 .card-status {
   font-size: 16px;
   font-weight: bold;
@@ -109,26 +109,28 @@ body {
 .flipper {
   position: relative;
   width: 100%;
-  height: 195px;
+  height: 220px;
   transform-style: preserve-3d;
   transition: 0.6s;
-  margin: 0 auto;
 }
 
-.flip-container.flip .flipper {
-  transform: rotateY(180deg);
-}
-
+/* Card faces */
 .card-face {
   position: absolute;
   width: 100%;
-  height: 195px;
+  height: 220px;
   border-radius: 16px;
   background: white;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   padding: 20px;
   box-sizing: border-box;
   backface-visibility: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
+  text-align: center;
 }
 
 .back {
@@ -143,13 +145,22 @@ body {
   font-size: 22px;
 }
 
-/* Card text */
-.card-text {
+/* TTS BUTTON */
+.tts-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
   font-size: 22px;
-  line-height: 1.25;
-  text-align: center;
+  cursor: pointer;
+}
+
+/* Centered text */
+.card-text.centered {
+  font-size: 22px;
+  padding: 0 10px;
   white-space: pre-wrap;
-  margin-top: 20px;
 }
 
 /* Rating row */
@@ -214,25 +225,4 @@ body {
 
 .toast.show {
   opacity: 1;
-}
-
-/* Version */
-.version {
-  font-size: 14px;
-  color: #555;
-  margin-bottom: 10px;
-}
-
-/* Settings row */
-.settings-row {
-  margin: 10px 0 20px 0;
-}
-.settings-row label {
-  margin-right: 8px;
-}
-.settings-row select {
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
 }
