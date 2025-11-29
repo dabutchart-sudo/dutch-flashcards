@@ -1,19 +1,14 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY, APP_VERSION } from "./config.js";
 
-// Supabase v2 CDN global
 const { createClient } = window.supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ============================================================
-// Global State
-// ============================================================
 
 let allCards = [];
 let reviewQueue = [];
 let currentIndex = 0;
 
 // ============================================================
-// Utility Functions
+// Utility
 // ============================================================
 
 function todayStr() {
@@ -27,7 +22,7 @@ function addDays(dateStr, days) {
   return d.toISOString().split("T")[0];
 }
 
-function showToast(msg, duration = 2500) {
+function showToast(msg) {
   const toast = document.getElementById("toast");
   toast.textContent = msg;
   toast.classList.remove("hidden");
@@ -36,7 +31,7 @@ function showToast(msg, duration = 2500) {
   setTimeout(() => {
     toast.classList.remove("show");
     toast.classList.add("hidden");
-  }, duration);
+  }, 2500);
 }
 
 // ============================================================
@@ -51,8 +46,8 @@ function openScreen(name) {
 
   const screen = document.getElementById(`${name}-screen`);
   if (screen) {
-    screen.classList.remove("hidden");
     screen.classList.add("visible");
+    screen.classList.remove("hidden");
   }
 }
 
@@ -69,29 +64,25 @@ async function loadCards() {
     .order("id");
 
   if (error) {
-    console.error("loadCards error:", error);
-    showToast("Error loading cards: " + error.message);
-    allCards = [];
+    console.error(error);
+    showToast("Error loading cards");
     return;
   }
 
   allCards = data || [];
-  console.log("Loaded cards:", allCards.length);
 }
 
 // ============================================================
-// Review Session Logic
+// Review Session
 // ============================================================
 
 function buildReviewQueue() {
   const today = todayStr();
-
   const due = [];
   const fresh = [];
 
   for (const c of allCards) {
     if (c.suspended) continue;
-
     if (c.card_type !== "new" && c.due_date && c.due_date <= today) {
       due.push(c);
     } else if (c.card_type === "new") {
@@ -114,16 +105,17 @@ function buildReviewQueue() {
 
 function renderCurrentCard() {
   const card = reviewQueue[currentIndex];
+
   const cardText = document.getElementById("card-text");
   const answerBox = document.getElementById("answer-box");
-  const showAnswerBtn = document.getElementById("show-answer-btn");
+  const showBtn = document.getElementById("show-answer-btn");
   const ratingButtons = document.getElementById("rating-buttons");
 
   if (!card) {
     cardText.textContent = "No cards to review.";
     answerBox.classList.add("hidden");
     ratingButtons.classList.add("hidden");
-    showAnswerBtn.style.display = "none";
+    showBtn.style.display = "none";
     return;
   }
 
@@ -132,7 +124,7 @@ function renderCurrentCard() {
 
   answerBox.classList.add("hidden");
   ratingButtons.classList.add("hidden");
-  showAnswerBtn.style.display = "inline-block";
+  showBtn.style.display = "inline-block";
 }
 
 function startReviewSession() {
@@ -150,23 +142,13 @@ function startReviewSession() {
 
 window.startReviewSession = startReviewSession;
 
-// ============================================================
-// Show Answer
-// ============================================================
-
-function showAnswer() {
+window.showAnswer = function () {
   document.getElementById("answer-box").classList.remove("hidden");
   document.getElementById("show-answer-btn").style.display = "none";
   document.getElementById("rating-buttons").classList.remove("hidden");
-}
+};
 
-window.showAnswer = showAnswer;
-
-// ============================================================
-// Handle Rating & SRS Updating
-// ============================================================
-
-async function handleRating(rating) {
+window.handleRating = async function (rating) {
   const card = reviewQueue[currentIndex];
   if (!card) return;
 
@@ -180,33 +162,17 @@ async function handleRating(rating) {
   reps++;
 
   if (type === "new") {
-    if (rating === "again") {
-      interval = 1;
-      type = "learning";
-    } else if (rating === "hard") {
-      interval = 1;
-      type = "learning";
-    } else if (rating === "good") {
-      interval = 3;
-      type = "review";
-    } else if (rating === "easy") {
-      interval = 4;
-      ease += 0.15;
-      type = "review";
-    }
+    if (rating === "again") { interval = 1; type = "learning"; }
+    else if (rating === "hard") { interval = 1; type = "learning"; }
+    else if (rating === "good") { interval = 3; type = "review"; }
+    else if (rating === "easy") { interval = 4; ease += 0.15; type = "review"; }
   } else if (type === "learning") {
-    if (rating === "again") {
-      interval = 1;
-    } else {
-      interval = 3;
-      type = "review";
-    }
+    interval = rating === "again" ? 1 : 3;
+    if (rating !== "again") type = "review";
   } else {
     if (rating === "again") {
-      lapses++;
-      ease = Math.max(1.3, ease - 0.2);
-      interval = 1;
-      type = "learning";
+      lapses++; ease = Math.max(1.3, ease - 0.2);
+      interval = 1; type = "learning";
     } else if (rating === "hard") {
       ease = Math.max(1.3, ease - 0.15);
       interval = Math.max(1, Math.round(interval * 1.2));
@@ -235,7 +201,7 @@ async function handleRating(rating) {
     .eq("id", card.id);
 
   if (error) {
-    console.error("Rating update error:", error);
+    console.error(error);
     showToast("Error saving review.");
     return;
   }
@@ -249,71 +215,71 @@ async function handleRating(rating) {
   }
 
   renderCurrentCard();
+};
+
+// ============================================================
+// WORD REVIEW TABLE
+// ============================================================
+
+let currentSortCol = null;
+let sortAsc = true;
+
+function openWordReview() {
+  buildWordTable(allCards);
+  openScreen("wordreview");
 }
 
-window.handleRating = handleRating;
+window.openWordReview = openWordReview;
 
-// ============================================================
-// Add New Card
-// ============================================================
+function buildWordTable(rows) {
+  const tbody = document.getElementById("word-tbody");
+  tbody.innerHTML = "";
 
-async function addNewCard() {
-  const dutch = document.getElementById("new-dutch").value.trim();
-  const english = document.getElementById("new-english").value.trim();
-
-  if (!dutch || !english) {
-    showToast("Please fill both fields.");
-    return;
+  for (const row of rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.dutch}</td>
+      <td>${row.english}</td>
+      <td>${row.last_reviewed || "-"}</td>
+      <td>${row.due_date || "-"}</td>
+    `;
+    tbody.appendChild(tr);
   }
+}
 
-  const { error } = await supabaseClient.from("cards").insert({
-    dutch,
-    english,
-    card_type: "new",
-    interval_days: 0,
-    ease: 2.5,
-    reps: 0,
-    lapses: 0,
-    suspended: false,
-    first_seen: null,
-    last_reviewed: null,
-    due_date: null,
+// Sort handler
+document.addEventListener("click", (e) => {
+  if (e.target.tagName !== "TH") return;
+
+  const col = e.target.dataset.col;
+  if (!col) return;
+
+  // Toggle direction if clicking same column
+  if (currentSortCol === col) sortAsc = !sortAsc;
+  else { currentSortCol = col; sortAsc = true; }
+
+  const sorted = [...allCards].sort((a, b) => {
+    const valA = a[col] || "";
+    const valB = b[col] || "";
+    return sortAsc
+      ? String(valA).localeCompare(String(valB))
+      : String(valB).localeCompare(String(valA));
   });
 
-  if (error) {
-    console.error("Insert error:", error);
-    showToast("Error adding card.");
-    return;
-  }
-
-  document.getElementById("new-dutch").value = "";
-  document.getElementById("new-english").value = "";
-
-  showToast("Card added.");
-  await loadCards();
-}
-
-window.addNewCard = addNewCard;
+  buildWordTable(sorted);
+});
 
 // ============================================================
-// Reset Learning Data
+// RESET LEARNING
 // ============================================================
 
-async function resetLearningData() {
-  console.log("RESET CALLED");
-
+window.resetLearningData = async function () {
   const { data: cards, error: fetchErr } = await supabaseClient
     .from("cards")
     .select("id");
 
-  if (fetchErr) {
-    console.error(fetchErr);
+  if (fetchErr || !cards) {
     showToast("Error fetching cards.");
-    return;
-  }
-
-  if (!cards || cards.length === 0) {
-    showToast("No cards to reset.");
     return;
   }
 
@@ -335,31 +301,24 @@ async function resetLearningData() {
     .in("id", ids);
 
   if (error) {
-    console.error(error);
     showToast("Reset failed.");
     return;
   }
 
   showToast("All learning data reset.");
   await loadCards();
-}
-
-window.resetLearningData = resetLearningData;
+};
 
 // ============================================================
 // Init
 // ============================================================
 
 async function init() {
-  console.log("App init");
-
   const versionBox = document.getElementById("app-version");
   if (versionBox) versionBox.textContent = "Version: " + APP_VERSION;
 
-  const showBtn = document.getElementById("show-answer-btn");
-  if (showBtn) {
-    showBtn.addEventListener("click", showAnswer);
-  }
+  document.getElementById("show-answer-btn")
+    .addEventListener("click", showAnswer);
 
   await loadCards();
   openScreen("menu");
