@@ -73,6 +73,7 @@ button:hover {
   perspective: 1000px;
   width: 360px;
   margin: 0 auto;
+  margin-bottom: 80px;   /* <<< FIXED: prevents overlap */
 }
 
 .flipper {
