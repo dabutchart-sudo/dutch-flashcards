@@ -6,7 +6,6 @@
   <title>Dutch Flashcards</title>
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- Prevent caching while developing -->
   <meta http-equiv="cache-control" content="no-cache" />
   <meta http-equiv="pragma" content="no-cache" />
   <meta http-equiv="expires" content="0" />
@@ -15,9 +14,9 @@
 <body>
 
   <!-- ====================== -->
-  <!--        MENU            -->
+  <!--         MENU           -->
   <!-- ====================== -->
-  <div id="menu-screen" style="display: block;">
+  <div id="menu-screen" class="screen visible">
     <h1>Dutch Flashcards</h1>
 
     <button onclick="openScreen('review')">Start Learning</button>
@@ -26,9 +25,9 @@
   </div>
 
   <!-- ====================== -->
-  <!--       REVIEW           -->
+  <!--        REVIEW          -->
   <!-- ====================== -->
-  <div id="review-screen" style="display: none;">
+  <div id="review-screen" class="screen hidden">
     <h2>Learning Session</h2>
 
     <div id="card-box">
@@ -50,7 +49,7 @@
   <!-- ====================== -->
   <!--        ADD CARD        -->
   <!-- ====================== -->
-  <div id="add-screen" style="display: none;">
+  <div id="add-screen" class="screen hidden">
     <h2>Add New Card</h2>
 
     <input id="new-dutch" type="text" placeholder="Dutch word..." />
@@ -61,9 +60,9 @@
   </div>
 
   <!-- ====================== -->
-  <!--       SETTINGS         -->
+  <!--        SETTINGS        -->
   <!-- ====================== -->
-  <div id="settings-screen" style="display: none;">
+  <div id="settings-screen" class="screen hidden">
     <h2>Settings</h2>
 
     <button id="reset-btn" onclick="resetLearningData()">
@@ -78,15 +77,12 @@
   <!-- ====================== -->
   <div id="toast" class="toast hidden"></div>
 
-  <!-- ===================================================== -->
-  <!-- Load Supabase BEFORE app.js (THIS IS REQUIRED!)       -->
-  <!-- ===================================================== -->
+  <!-- Supabase library -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- ===================================================== -->
-  <!-- Your App JS (cache-busted during testing)             -->
-  <!-- ===================================================== -->
-  <script type="module" src="app.js?v=999"></script>
+  <!-- Config and main app -->
+  <script type="module" src="config.js"></script>
+  <script type="module" src="app.js?v=1"></script>
 
 </body>
 </html>
