@@ -7,6 +7,10 @@ let allCards = [];
 let reviewQueue = [];
 let currentIndex = 0;
 
+// For table sorting
+let wordSortColumn = null;
+let wordSortAsc = true;
+
 // ----------------- Utility -----------------
 function todayStr() {
   return new Date().toISOString().split("T")[0];
@@ -48,6 +52,11 @@ window.openScreen = function (name) {
     screen.classList.add("visible");
     screen.classList.remove("hidden");
   }
+
+  // When returning to menu, refresh summary from latest allCards
+  if (name === "menu") {
+    updateSummary();
+  }
 };
 
 // ----------------- Summary (Today & Tomorrow) -----------------
@@ -74,7 +83,8 @@ function updateSummary() {
       if (c.due_date === tomorrow) dueReviewTomorrow++;
     }
 
-    const isNew = c.card_type === "new" &&
+    const isNew =
+      c.card_type === "new" &&
       (c.first_seen === null || c.first_seen === undefined);
 
     if (isNew) trulyNew++;
@@ -83,8 +93,6 @@ function updateSummary() {
   }
 
   let newToday = Math.max(0, Math.min(maxNew - introducedToday, trulyNew));
-
-  // Tomorrow = Option B → min(maxNew, all new cards)
   let newTomorrow = Math.min(maxNew, trulyNew);
 
   panel.innerHTML = `
@@ -128,7 +136,10 @@ function buildReviewQueue() {
       continue;
     }
 
-    if (c.card_type === "new" && (c.first_seen === null || c.first_seen === undefined)) {
+    if (
+      c.card_type === "new" &&
+      (c.first_seen === null || c.first_seen === undefined)
+    ) {
       newCards.push(c);
     }
   }
@@ -151,19 +162,34 @@ function buildReviewQueue() {
   reviewQueue = [...due, ...newCards.slice(0, remainingNew)];
 }
 
-// ----------------- Rendering -----------------
-function updateCounter() {
-  const el = document.getElementById("review-counter");
-  if (!el) return;
+// ----------------- Rendering: Counter + Progress + Status -----------------
+function updateCounterAndProgress() {
+  const counterEl = document.getElementById("review-counter");
+  const progressEl = document.getElementById("review-progress-bar");
 
-  el.textContent = reviewQueue.length
-    ? `Card ${currentIndex + 1} of ${reviewQueue.length}`
-    : "No cards";
+  const total = reviewQueue.length;
+  const answered = Math.min(currentIndex, total); // cards finished
+
+  if (!total) {
+    counterEl.textContent = "0 / 0";
+    progressEl.style.width = "0%";
+    return;
+  }
+
+  counterEl.textContent = `${answered} / ${total}`;
+
+  const pct = (answered / total) * 100;
+  progressEl.style.width = `${pct}%`;
 }
 
 function renderCardStatus(card) {
   const el = document.getElementById("card-status");
-  if (!el || !card) return;
+  if (!el) return;
+
+  if (!card) {
+    el.textContent = "";
+    return;
+  }
 
   if (card.card_type === "new") {
     el.textContent = "NEW";
@@ -189,7 +215,8 @@ function renderCurrentCard() {
     frontText.textContent = "No cards to review.";
     backText.textContent = "";
     ratingButtons.classList.add("hidden");
-    updateCounter();
+    renderCardStatus(null);
+    updateCounterAndProgress();
     return;
   }
 
@@ -201,7 +228,7 @@ function renderCurrentCard() {
 
   ratingButtons.classList.add("hidden");
   renderCardStatus(card);
-  updateCounter();
+  updateCounterAndProgress();
 }
 
 // ----------------- Start Review Session -----------------
@@ -258,13 +285,17 @@ window.handleRating = async function (rating) {
     if (rating === "again") interval_days = 1;
     else if (rating === "hard") interval_days = 1;
     else if (rating === "good") interval_days = 3;
-    else if (rating === "easy") { interval_days = 4; ease += 0.15; }
+    else if (rating === "easy") {
+      interval_days = 4;
+      ease += 0.15;
+    }
     card_type = interval_days > 1 ? "review" : "learning";
-
   } else if (card_type === "learning") {
     if (rating === "again") interval_days = 1;
-    else { interval_days = 3; card_type = "review"; }
-
+    else {
+      interval_days = 3;
+      card_type = "review";
+    }
   } else {
     if (rating === "again") {
       lapses++;
@@ -308,6 +339,7 @@ window.handleRating = async function (rating) {
     return;
   }
 
+  // Move to next card, one more answered
   currentIndex++;
 
   if (currentIndex >= reviewQueue.length) {
@@ -318,14 +350,14 @@ window.handleRating = async function (rating) {
   }
 
   renderCurrentCard();
-};
+}
 
-// ----------------- Word Review -----------------
-window.openWordReview = function () {
+// ----------------- Word Review + Sorting -----------------
+function buildWordTable(rows) {
   const tbody = document.getElementById("word-tbody");
   tbody.innerHTML = "";
 
-  allCards.forEach((r) => {
+  rows.forEach((r) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${r.dutch}</td>
@@ -335,7 +367,45 @@ window.openWordReview = function () {
     `;
     tbody.appendChild(tr);
   });
+}
 
+function sortWordData() {
+  if (!wordSortColumn) {
+    buildWordTable(allCards);
+    return;
+  }
+
+  const sorted = [...allCards];
+
+  sorted.sort((a, b) => {
+    const col = wordSortColumn;
+    let av = a[col];
+    let bv = b[col];
+
+    // Handle nulls: push them to the end on ascending, start on descending
+    if (av == null && bv == null) return 0;
+    if (av == null) return wordSortAsc ? 1 : -1;
+    if (bv == null) return wordSortAsc ? -1 : 1;
+
+    // Date columns (string ISO dates)
+    if (col === "last_reviewed" || col === "due_date") {
+      if (av < bv) return wordSortAsc ? -1 : 1;
+      if (av > bv) return wordSortAsc ? 1 : -1;
+      return 0;
+    }
+
+    // String compare
+    av = String(av);
+    bv = String(bv);
+    const cmp = av.localeCompare(bv, "nl", { sensitivity: "base" });
+    return wordSortAsc ? cmp : -cmp;
+  });
+
+  buildWordTable(sorted);
+}
+
+window.openWordReview = function () {
+  sortWordData();
   openScreen("wordreview");
 };
 
@@ -379,8 +449,25 @@ window.addEventListener("load", async () => {
   sel.addEventListener("change", () => {
     const v = parseInt(sel.value, 10);
     setMaxNewCardsPerDay(v);
-    showToast("Updated");
+    showToast("Max new cards updated");
     updateSummary();
+  });
+
+  // Set up Word Review sorting
+  document.querySelectorAll("#word-table th").forEach((th) => {
+    th.addEventListener("click", () => {
+      const col = th.getAttribute("data-col");
+      if (!col) return;
+
+      if (wordSortColumn === col) {
+        wordSortAsc = !wordSortAsc;
+      } else {
+        wordSortColumn = col;
+        wordSortAsc = true;
+      }
+
+      sortWordData();
+    });
   });
 
   await loadCards();
