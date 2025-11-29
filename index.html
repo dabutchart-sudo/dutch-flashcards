@@ -37,6 +37,8 @@
     <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
     <h2>Review Cards</h2>
 
+    <button id="review-edit-btn" class="small-secondary-btn">Edit This Card</button>
+
     <div id="card-status" class="card-status"></div>
 
     <div class="progress-wrapper">
@@ -48,12 +50,15 @@
 
     <div id="card-box" class="flip-container">
       <div id="card-flipper" class="flipper">
+        <!-- FRONT (Dutch) -->
         <div class="front card-face">
           <div class="flag">🇳🇱</div>
           <button id="tts-btn" class="tts-btn">🔊</button>
+          <button id="hint-btn" class="hint-btn">💡</button>
           <div class="card-text centered" id="card-front-text"></div>
         </div>
 
+        <!-- BACK (English) -->
         <div class="back card-face">
           <div class="flag">🇬🇧</div>
           <div class="card-text centered" id="card-back-text"></div>
@@ -81,6 +86,7 @@
           <th data-col="english">English</th>
           <th data-col="last_reviewed">Last Reviewed</th>
           <th data-col="due_date">Next Review Date</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody id="word-tbody"></tbody>
@@ -123,13 +129,63 @@
     <button id="reset-btn" onclick="resetLearningData()">Reset ALL Learning Data</button>
   </div>
 
+  <!-- HINT MODAL -->
+  <div id="hint-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Hint</h3>
+      <img id="hint-image" alt="Hint image" />
+      <button id="hint-close-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- SESSION SUMMARY MODAL -->
+  <div id="session-summary-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Session Summary</h3>
+      <div id="session-summary-text"></div>
+      <ul id="session-summary-list"></ul>
+      <button id="session-summary-close-btn">OK</button>
+    </div>
+  </div>
+
+  <!-- EDIT CARD MODAL -->
+  <div id="edit-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Edit Card</h3>
+
+      <label for="edit-dutch">Dutch</label>
+      <input id="edit-dutch" type="text" />
+
+      <label for="edit-english">English</label>
+      <input id="edit-english" type="text" />
+
+      <div class="edit-image-section">
+        <p>Current image:</p>
+        <img id="edit-current-image" alt="Current" class="hidden" />
+        <p id="edit-no-image-text">No image set.</p>
+      </div>
+
+      <label for="edit-image-search">Image search (English)</label>
+      <input id="edit-image-search" type="text" />
+
+      <button id="edit-search-btn" class="small-secondary-btn">Search Images</button>
+
+      <div id="edit-image-results" class="image-grid"></div>
+
+      <div class="edit-modal-actions">
+        <button id="edit-save-btn" class="primary-btn">Save</button>
+        <button id="edit-cancel-btn" class="small-secondary-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="config.js"></script>
-  <script type="module" src="app.js?v=29"></script>
+  <script type="module" src="app.js?v=31"></script>
 
 </body>
 </html>
