@@ -60,58 +60,46 @@ function updateSummary() {
   if (!panel) return;
 
   const today = todayStr();
-  const maxNew = getMaxNewCardsPerDay();
   const tomorrow = addDays(today, 1);
+  const maxNew = getMaxNewCardsPerDay();
 
   let dueReviewToday = 0;
   let dueReviewTomorrow = 0;
-  let newPool = 0;          // truly new: card_type='new' and first_seen null/undefined
-  let introducedToday = 0;  // any card whose first_seen == today
+  let trulyNewCards = 0;
+  let introducedToday = 0;
 
   for (const c of allCards) {
     if (c.suspended) continue;
 
-    const isReviewCard = c.card_type !== "new";
+    const isReview = c.card_type !== "new";
 
-    if (isReviewCard && c.due_date) {
-      if (c.due_date <= today) {
-        dueReviewToday++;
-      }
-      if (c.due_date === tomorrow) {
-        dueReviewTomorrow++;
-      }
+    if (isReview && c.due_date) {
+      if (c.due_date <= today) dueReviewToday++;
+      if (c.due_date === tomorrow) dueReviewTomorrow++;
     }
 
     const isTrulyNew =
       c.card_type === "new" &&
       (c.first_seen === null || c.first_seen === undefined);
 
-    if (isTrulyNew) {
-      newPool++;
-    }
+    if (isTrulyNew) trulyNewCards++;
 
-    if (c.first_seen === today) {
-      introducedToday++;
-    }
+    if (c.first_seen === today) introducedToday++;
   }
 
-  // Today (Option A)
+  // --- TODAY new count ---
   let availableNewToday = maxNew - introducedToday;
   if (availableNewToday < 0) availableNewToday = 0;
-  if (availableNewToday > newPool) availableNewToday = newPool;
+  if (availableNewToday > trulyNewCards) availableNewToday = trulyNewCards;
 
-  // Tomorrow (Option B): after today's new come from newPool
-  const remainingAfterToday = Math.max(0, newPool - availableNewToday);
-  let availableNewTomorrow = Math.min(maxNew, remainingAfterToday);
+  // --- TOMORROW new count (Option B) ---
+  // Should always show: min(maxNew, total remaining new)
+  let availableNewTomorrow = Math.min(maxNew, trulyNewCards);
 
   panel.innerHTML = `
     <h2>Study Summary</h2>
-    <div class="summary-row">
-      <strong>Today:</strong> ${dueReviewToday} review, ${availableNewToday} new
-    </div>
-    <div class="summary-row">
-      <strong>Tomorrow:</strong> ${dueReviewTomorrow} review, ${availableNewTomorrow} new
-    </div>
+    <div class="summary-row"><strong>Today:</strong> ${dueReviewToday} review, ${availableNewToday} new</div>
+    <div class="summary-row"><strong>Tomorrow:</strong> ${dueReviewTomorrow} review, ${availableNewTomorrow} new</div>
   `;
 }
 
@@ -135,7 +123,7 @@ async function loadCards() {
   updateSummary();
 }
 
-// ----------------- Build Review Queue (Anki-style) -----------------
+// ----------------- Build Review Queue -----------------
 
 function buildReviewQueue() {
   const today = todayStr();
@@ -156,14 +144,10 @@ function buildReviewQueue() {
       c.card_type === "new" &&
       (c.first_seen === null || c.first_seen === undefined);
 
-    if (isDue) {
-      due.push(c);
-    } else if (isTrulyNew) {
-      newCandidates.push(c);
-    }
+    if (isDue) due.push(c);
+    else if (isTrulyNew) newCandidates.push(c);
   }
 
-  // New cards already introduced today (any card_type)
   const introducedTodayCount = allCards.filter(
     (c) => c.first_seen === today
   ).length;
@@ -171,7 +155,6 @@ function buildReviewQueue() {
   let remainingNew = maxNew - introducedTodayCount;
   if (remainingNew < 0) remainingNew = 0;
 
-  // Shuffle helper
   const shuffle = (arr) => {
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -216,12 +199,11 @@ function renderCurrentCard() {
     return;
   }
 
-  // Remove flip and clear English to prevent flashes
   box.classList.remove("flip");
-  void box.offsetWidth; // force reflow
+  void box.offsetWidth;
 
   frontText.textContent = card.dutch;
-  backText.textContent = ""; // English only set when flipped
+  backText.textContent = "";
 
   ratingButtons.classList.add("hidden");
   updateCounter();
@@ -230,9 +212,7 @@ function renderCurrentCard() {
 // ----------------- Start Review Session -----------------
 
 window.startReviewSession = async function () {
-  // Always reload cards so daily limit respects today's progress
   await loadCards();
-
   buildReviewQueue();
 
   if (!reviewQueue.length) {
@@ -255,7 +235,6 @@ document.getElementById("card-box").addEventListener("click", () => {
   const ratingButtons = document.getElementById("rating-buttons");
   const backText = document.getElementById("card-back-text");
 
-  // Fill English only on flip
   backText.textContent = card.english;
 
   box.classList.toggle("flip");
@@ -293,14 +272,12 @@ window.handleRating = async function (rating) {
     }
     card_type = interval_days > 1 ? "review" : "learning";
   } else if (card_type === "learning") {
-    if (rating === "again") {
-      interval_days = 1;
-    } else {
+    if (rating === "again") interval_days = 1;
+    else {
       interval_days = 3;
       card_type = "review";
     }
   } else {
-    // review
     if (rating === "again") {
       lapses++;
       ease = Math.max(1.3, ease - 0.2);
@@ -319,7 +296,7 @@ window.handleRating = async function (rating) {
 
   interval_days = Math.max(1, interval_days);
   const due_date = addDays(today, interval_days);
-  const first_seen = card.first_seen || today; // mark first time we ever rate this card
+  const first_seen = card.first_seen || today;
 
   const updatePayload = {
     card_type,
@@ -344,12 +321,10 @@ window.handleRating = async function (rating) {
     return;
   }
 
-  // Move to next card
   currentIndex++;
 
   if (currentIndex >= reviewQueue.length) {
     showToast("Session complete");
-    // Reload cards so summary reflects new due/new counts
     await loadCards();
     openScreen("menu");
     return;
@@ -417,11 +392,9 @@ window.resetLearningData = async function () {
 // ----------------- Init -----------------
 
 window.addEventListener("load", async () => {
-  // Version display
   const ver = document.getElementById("app-version");
   if (ver) ver.textContent = "Version: " + APP_VERSION;
 
-  // Settings dropdown
   const sel = document.getElementById("max-new-cards-select");
   if (sel) {
     sel.value = String(getMaxNewCardsPerDay());
