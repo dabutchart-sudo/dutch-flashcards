@@ -18,6 +18,16 @@
     <h1>Dutch Flashcards</h1>
     <div id="app-version" class="version"></div>
 
+    <div id="summary-panel" class="summary-panel">
+      <h2>Study Summary</h2>
+      <div class="summary-row">
+        <strong>Today:</strong> —
+      </div>
+      <div class="summary-row">
+        <strong>Tomorrow:</strong> —
+      </div>
+    </div>
+
     <button onclick="startReviewSession()">Review Cards</button>
     <button onclick="openWordReview()">Word Review</button>
     <button onclick="openScreen('settings')">Settings</button>
@@ -25,6 +35,7 @@
 
   <!-- REVIEW SCREEN -->
   <div id="review-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
     <h2>Review Cards</h2>
 
     <div id="review-counter" class="review-counter">Card 0 of 0</div>
@@ -53,12 +64,11 @@
       <button onclick="handleRating('good')" class="rating good">Good</button>
       <button onclick="handleRating('easy')" class="rating easy">Easy</button>
     </div>
-
-    <button onclick="openScreen('menu')">Back to Menu</button>
   </div>
 
   <!-- WORD REVIEW -->
   <div id="wordreview-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
     <h2>Word Review</h2>
 
     <table id="word-table">
@@ -72,12 +82,11 @@
       </thead>
       <tbody id="word-tbody"></tbody>
     </table>
-
-    <button onclick="openScreen('menu')">Back to Menu</button>
   </div>
 
   <!-- SETTINGS -->
   <div id="settings-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
     <h2>Settings</h2>
 
     <div class="settings-row">
@@ -93,7 +102,6 @@
     </div>
 
     <button id="reset-btn" onclick="resetLearningData()">Reset ALL Learning Data</button>
-    <button onclick="openScreen('menu')">Back to Menu</button>
   </div>
 
   <!-- TOAST -->
@@ -102,7 +110,7 @@
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script type="module" src="config.js"></script>
-  <script type="module" src="app.js?v=14"></script>
+  <script type="module" src="app.js?v=15"></script>
 
 </body>
 </html>
