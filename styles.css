@@ -207,6 +207,20 @@ body {
   cursor: pointer;
 }
 
+.rating-btn.again { background: #d9534f; }
+.rating-btn.hard  { background: #f0ad4e; }
+.rating-btn.good  { background: #5cb85c; }
+.rating-btn.easy  { background: #5bc0de; }
+
+/* Browse navigation row */
+.browse-nav-row {
+  width: 360px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 /* Word table */
 #word-table {
   width: 100%;
