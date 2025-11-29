@@ -333,7 +333,10 @@ document.addEventListener("click", e => {
   if (!col) return;
 
   if (currentSortCol === col) sortAsc = !sortAsc;
-  else { currentSortCol = col; sortAsc = true; }
+  else {
+    currentSortCol = col;
+    sortAsc = true;
+  }
 
   const sorted = [...allCards].sort((a, b) => {
     const A = a[col] ?? "";
