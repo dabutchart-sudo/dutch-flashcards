@@ -36,6 +36,7 @@
     <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
     <h2>Review Cards</h2>
 
+    <div id="card-status" class="card-status"></div>
     <div id="review-counter" class="review-counter">Card 0 of 0</div>
 
     <div id="card-box" class="flip-container">
@@ -56,11 +57,11 @@
       </div>
     </div>
 
-    <div id="rating-buttons" class="hidden">
-      <button onclick="handleRating('again')" class="rating again">Again</button>
-      <button onclick="handleRating('hard')" class="rating hard">Hard</button>
-      <button onclick="handleRating('good')" class="rating good">Good</button>
-      <button onclick="handleRating('easy')" class="rating easy">Easy</button>
+    <div id="rating-buttons" class="rating-row hidden">
+      <button onclick="handleRating('again')" class="rating-btn again">Again</button>
+      <button onclick="handleRating('hard')" class="rating-btn hard">Hard</button>
+      <button onclick="handleRating('good')" class="rating-btn good">Good</button>
+      <button onclick="handleRating('easy')" class="rating-btn easy">Easy</button>
     </div>
   </div>
 
@@ -108,7 +109,7 @@
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script type="module" src="config.js"></script>
-  <script type="module" src="app.js?v=21"></script>
+  <script type="module" src="app.js?v=25"></script>
 
 </body>
 </html>
