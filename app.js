@@ -42,7 +42,7 @@ const MAX_NEW_KEY = "maxNewCardsPerDay";
 function getMaxNewCardsPerDay() {
   const stored = localStorage.getItem(MAX_NEW_KEY);
   const num = stored ? parseInt(stored, 10) : NaN;
-  if (Number.isNaN(num)) return 10; // default 10
+  if (Number.isNaN(num)) return 10; // default
   return num;
 }
 
@@ -89,7 +89,7 @@ async function loadCards() {
 }
 
 // ============================================================
-// Review Session (with daily new-card limit)
+// Build Review Queue (daily new card limit)
 // ============================================================
 
 function buildReviewQueue() {
@@ -109,7 +109,6 @@ function buildReviewQueue() {
     }
   }
 
-  // How many new cards introduced today?
   const introducedToday = allCards.filter(
     c => c.first_seen === today
   ).length;
@@ -131,13 +130,28 @@ function buildReviewQueue() {
   reviewQueue = [...due, ...selectedNew];
 }
 
+// ============================================================
+// Review Session + Rendering
+// ============================================================
+
+function updateCounter() {
+  const counter = document.getElementById("review-counter");
+  if (!counter) return;
+
+  if (reviewQueue.length === 0) {
+    counter.textContent = "No cards";
+  } else {
+    counter.textContent = `Card ${currentIndex + 1} of ${reviewQueue.length}`;
+  }
+}
+
 function renderCurrentCard() {
   const card = reviewQueue[currentIndex];
 
   const front = document.getElementById("card-front");
   const back = document.getElementById("card-back");
-  const ratingButtons = document.getElementById("rating-buttons");
   const container = document.getElementById("card-box");
+  const ratingButtons = document.getElementById("rating-buttons");
 
   if (!card) {
     front.textContent = "No cards to review.";
@@ -152,6 +166,8 @@ function renderCurrentCard() {
   back.textContent = card.english;
 
   ratingButtons.classList.add("hidden");
+
+  updateCounter();
 }
 
 function startReviewSession() {
@@ -169,26 +185,24 @@ function startReviewSession() {
 
 window.startReviewSession = startReviewSession;
 
-// Flip card on click
+// Flip when card clicked
 document.getElementById("card-box").addEventListener("click", () => {
+  if (!reviewQueue[currentIndex]) return;
+
   const box = document.getElementById("card-box");
   const ratingButtons = document.getElementById("rating-buttons");
-
-  if (!reviewQueue[currentIndex]) return;
 
   box.classList.toggle("flip");
 
   if (box.classList.contains("flip")) {
-    setTimeout(() => {
-      ratingButtons.classList.remove("hidden");
-    }, 300);
+    setTimeout(() => ratingButtons.classList.remove("hidden"), 300);
   } else {
     ratingButtons.classList.add("hidden");
   }
 });
 
 // ============================================================
-// Handle Rating & SRS Updating
+// Handle Rating
 // ============================================================
 
 window.handleRating = async function (rating) {
@@ -214,14 +228,17 @@ window.handleRating = async function (rating) {
       ease += 0.15;
     }
     card_type = interval_days > 1 ? "review" : "learning";
-  } else if (card_type === "learning") {
-    if (rating === "again") {
-      interval_days = 1;
-    } else {
+  }
+
+  else if (card_type === "learning") {
+    if (rating === "again") interval_days = 1;
+    else {
       interval_days = 3;
       card_type = "review";
     }
-  } else {
+  }
+
+  else {
     if (rating === "again") {
       lapses++;
       ease = Math.max(1.3, ease - 0.2);
@@ -229,13 +246,14 @@ window.handleRating = async function (rating) {
       card_type = "learning";
     } else if (rating === "hard") {
       ease = Math.max(1.3, ease - 0.15);
-      interval_days = Math.max(1, Math.round(interval_days * 1.2));
+      interval_days = Math.round(interval_days * 1.2);
     } else if (rating === "good") {
-      interval_days = Math.max(1, Math.round(interval_days * ease));
+      interval_days = Math.round(interval_days * ease);
     } else if (rating === "easy") {
       ease += 0.15;
-      interval_days = Math.max(1, Math.round(interval_days * ease * 1.3));
+      interval_days = Math.round(interval_days * ease * 1.3);
     }
+    interval_days = Math.max(1, interval_days);
   }
 
   const dueDate = addDays(today, interval_days);
@@ -250,7 +268,7 @@ window.handleRating = async function (rating) {
       lapses,
       last_reviewed: today,
       due_date: dueDate,
-      first_seen: card.first_seen || today, // first-seen marking for daily limit
+      first_seen: card.first_seen || today,
     })
     .eq("id", card.id);
 
@@ -272,7 +290,7 @@ window.handleRating = async function (rating) {
 };
 
 // ============================================================
-// WORD REVIEW TABLE
+// WORD REVIEW
 // ============================================================
 
 let currentSortCol = null;
@@ -288,7 +306,7 @@ function buildWordTable(rows) {
   const tbody = document.getElementById("word-tbody");
   tbody.innerHTML = "";
 
-  for (const row of rows) {
+  rows.forEach(row => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${row.dutch}</td>
@@ -297,7 +315,7 @@ function buildWordTable(rows) {
       <td>${row.due_date || "-"}</td>
     `;
     tbody.appendChild(tr);
-  }
+  });
 }
 
 document.addEventListener("click", e => {
@@ -326,7 +344,7 @@ window.resetLearningData = async function () {
   const { data: cards, error: fetchErr } =
     await supabaseClient.from("cards").select("id");
 
-  if (fetchErr || !cards) {
+  if (fetchErr) {
     showToast("Error fetching cards");
     return;
   }
@@ -358,14 +376,14 @@ window.resetLearningData = async function () {
 };
 
 // ============================================================
-// Init
+// INIT
 // ============================================================
 
 async function init() {
   const version = document.getElementById("app-version");
   if (version) version.textContent = "Version: " + APP_VERSION;
 
-  // Set up settings dropdown
+  // Dropdown for max-new-cards-per-day
   const maxNewSelect = document.getElementById("max-new-cards-select");
   if (maxNewSelect) {
     const current = getMaxNewCardsPerDay();
@@ -373,10 +391,8 @@ async function init() {
 
     maxNewSelect.addEventListener("change", () => {
       const val = parseInt(maxNewSelect.value, 10);
-      if (!Number.isNaN(val)) {
-        setMaxNewCardsPerDay(val);
-        showToast("Max new cards per day set to " + val);
-      }
+      setMaxNewCardsPerDay(val);
+      showToast("Max new cards set to " + val);
     });
   }
 
