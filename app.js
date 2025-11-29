@@ -7,7 +7,6 @@ let allCards = [];
 let reviewQueue = [];
 let currentIndex = 0;
 
-// ---------- UTIL ----------
 function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
@@ -26,8 +25,8 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove("show"), 2500);
 }
 
-// ---------- SETTINGS ----------
 const MAX_NEW_KEY = "maxNewCardsPerDay";
+
 function getMaxNewCardsPerDay() {
   return parseInt(localStorage.getItem(MAX_NEW_KEY) || "10", 10);
 }
@@ -35,23 +34,22 @@ function setMaxNewCardsPerDay(v) {
   localStorage.setItem(MAX_NEW_KEY, String(v));
 }
 
-// ---------- SCREENS ----------
-window.openScreen = function(name) {
+window.openScreen = function (name) {
   document.querySelectorAll(".screen").forEach(s => {
-    s.classList.remove("visible"); s.classList.add("hidden");
+    s.classList.add("hidden");
+    s.classList.remove("visible");
   });
-  const tgt = document.getElementById(`${name}-screen`);
-  if (tgt) { tgt.classList.add("visible"); tgt.classList.remove("hidden"); }
+
+  const screen = document.getElementById(`${name}-screen`);
+  screen.classList.add("visible");
+  screen.classList.remove("hidden");
 };
 
-// ---------- LOAD CARDS ----------
 async function loadCards() {
-  const { data, error } = await supabaseClient.from("cards").select("*").order("id");
-  if (error) { console.error(error); showToast("Error loading cards"); }
+  const { data } = await supabaseClient.from("cards").select("*").order("id");
   allCards = data || [];
 }
 
-// ---------- QUEUE ----------
 function buildReviewQueue() {
   const today = todayStr();
   const maxNew = getMaxNewCardsPerDay();
@@ -61,17 +59,21 @@ function buildReviewQueue() {
 
   for (const c of allCards) {
     if (c.suspended) continue;
-    if (c.card_type !== "new" && c.due_date && c.due_date <= today) due.push(c);
-    else if (c.card_type === "new") newCards.push(c);
+
+    if (c.card_type !== "new" && c.due_date && c.due_date <= today)
+      due.push(c);
+
+    else if (c.card_type === "new")
+      newCards.push(c);
   }
 
   const introducedToday = allCards.filter(c => c.first_seen === today).length;
   const remaining = Math.max(0, maxNew - introducedToday);
 
-  const shuffle = arr => {
-    for (let i = arr.length - 1; i > 0; i--) {
+  const shuffle = a => {
+    for (let i = a.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+      [a[i], a[j]] = [a[j], a[i]];
     }
   };
 
@@ -81,7 +83,6 @@ function buildReviewQueue() {
   reviewQueue = [...due, ...newCards.slice(0, remaining)];
 }
 
-// ---------- RENDER ----------
 function updateCounter() {
   const c = document.getElementById("review-counter");
   if (reviewQueue.length === 0) c.textContent = "No cards";
@@ -104,30 +105,44 @@ function renderCurrentCard() {
     return;
   }
 
-  // IMPORTANT: reset flip BEFORE updating content
+  // ------------------------------
+  // FLASH-PROOF LOGIC
+  // ------------------------------
   box.classList.remove("flip");
   void box.offsetWidth;
 
+  // Set Dutch only
   frontText.textContent = card.dutch;
-  backText.textContent  = card.english;
+
+  // Leave English EMPTY until flip
+  backText.textContent = "";
 
   ratingButtons.classList.add("hidden");
   updateCounter();
 }
 
-window.startReviewSession = function() {
+window.startReviewSession = function () {
   buildReviewQueue();
-  if (reviewQueue.length === 0) { showToast("No cards available to review."); return; }
+
+  if (reviewQueue.length === 0) {
+    showToast("No cards available to review.");
+    return;
+  }
+
   currentIndex = 0;
   renderCurrentCard();
   openScreen("review");
 };
 
-// ---------- FLIP ----------
 document.getElementById("card-box").addEventListener("click", () => {
   if (!reviewQueue[currentIndex]) return;
+
   const box = document.getElementById("card-box");
+  const backText = document.getElementById("card-back-text");
   const ratingButtons = document.getElementById("rating-buttons");
+
+  // Fill English ONLY AFTER flip is requested
+  backText.textContent = reviewQueue[currentIndex].english;
 
   box.classList.toggle("flip");
 
@@ -138,8 +153,7 @@ document.getElementById("card-box").addEventListener("click", () => {
   }
 });
 
-// ---------- HANDLE RATING ----------
-window.handleRating = async function(rating) {
+window.handleRating = async function (rating) {
   const card = reviewQueue[currentIndex];
   if (!card) return;
 
@@ -158,7 +172,6 @@ window.handleRating = async function(rating) {
     else if (rating === "hard") interval_days = 1;
     else if (rating === "good") interval_days = 3;
     else if (rating === "easy") { interval_days = 4; ease += 0.15; }
-
     card_type = interval_days > 1 ? "review" : "learning";
   }
   else if (card_type === "learning") {
@@ -169,12 +182,15 @@ window.handleRating = async function(rating) {
     if (rating === "again") {
       lapses++; ease = Math.max(1.3, ease - 0.2);
       interval_days = 1; card_type = "learning";
-    } else if (rating === "hard") {
+    }
+    else if (rating === "hard") {
       ease = Math.max(1.3, ease - 0.15);
       interval_days = Math.round(interval_days * 1.2);
-    } else if (rating === "good") {
+    }
+    else if (rating === "good") {
       interval_days = Math.round(interval_days * ease);
-    } else if (rating === "easy") {
+    }
+    else if (rating === "easy") {
       ease += 0.15;
       interval_days = Math.round(interval_days * ease * 1.3);
     }
@@ -195,14 +211,10 @@ window.handleRating = async function(rating) {
     suspended: false
   };
 
-  const { error } = await supabaseClient
-    .from("cards")
-    .update(updatePayload)
-    .eq("id", card.id);
-
-  if (error) { console.error(error); showToast("Failed to save review"); return; }
+  await supabaseClient.from("cards").update(updatePayload).eq("id", card.id);
 
   currentIndex++;
+
   if (currentIndex >= reviewQueue.length) {
     showToast("Session complete");
     openScreen("menu");
@@ -212,33 +224,26 @@ window.handleRating = async function(rating) {
   renderCurrentCard();
 };
 
-// ---------- WORD REVIEW ----------
-window.openWordReview = function() {
-  buildWordTable(allCards);
-  openScreen("wordreview");
-};
-
-function buildWordTable(rows) {
+window.openWordReview = function () {
   const tbody = document.getElementById("word-tbody");
   tbody.innerHTML = "";
-  rows.forEach(r => {
+  allCards.forEach(r => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${r.dutch}</td>
       <td>${r.english}</td>
       <td>${r.last_reviewed ?? "-"}</td>
-      <td>${r.due_date ?? "-"}</td>
-    `;
+      <td>${r.due_date ?? "-"}</td>`;
     tbody.appendChild(tr);
   });
-}
+  openScreen("wordreview");
+};
 
-// ---------- RESET ----------
-window.resetLearningData = async function() {
+window.resetLearningData = async function () {
   const { data: rows } = await supabaseClient.from("cards").select("id");
   const ids = rows.map(r => r.id);
 
-  const { error } = await supabaseClient
+  await supabaseClient
     .from("cards")
     .update({
       card_type: "new",
@@ -253,13 +258,10 @@ window.resetLearningData = async function() {
     })
     .in("id", ids);
 
-  if (error) { showToast("Reset failed"); return; }
-
   showToast("All learning data reset");
   await loadCards();
 };
 
-// ---------- INIT ----------
 window.addEventListener("load", async () => {
   document.getElementById("app-version").textContent = "Version: " + APP_VERSION;
 
@@ -267,7 +269,7 @@ window.addEventListener("load", async () => {
   sel.value = getMaxNewCardsPerDay();
   sel.addEventListener("change", () => {
     setMaxNewCardsPerDay(parseInt(sel.value, 10));
-    showToast("Max new cards set");
+    showToast("Max new cards updated");
   });
 
   await loadCards();
