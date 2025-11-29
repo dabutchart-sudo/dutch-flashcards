@@ -1,4 +1,4 @@
-ximport { SUPABASE_URL, SUPABASE_ANON_KEY, APP_VERSION } from "./config.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, APP_VERSION } from "./config.js";
 
 const { createClient } = window.supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -409,4 +409,3 @@ window.addEventListener("load", async () => {
   await loadCards();
   openScreen("menu");
 });
-
