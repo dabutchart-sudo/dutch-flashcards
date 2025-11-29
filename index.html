@@ -21,7 +21,7 @@
 
     <div id="app-version" class="version"></div>
 
-    <button onclick="startReviewSession()">Start Learning</button>
+    <button onclick="startReviewSession()">Review Cards</button>
     <button onclick="openWordReview()">Word Review</button>
     <button onclick="openScreen('settings')">Settings</button>
   </div>
@@ -30,12 +30,13 @@
   <!--        REVIEW          -->
   <!-- ====================== -->
   <div id="review-screen" class="screen hidden">
-    <h2>Learning Session</h2>
+    <h2>Review Cards</h2>
 
-    <div id="card-box">
-      <div id="card-text"></div>
-      <button id="show-answer-btn">Show Answer</button>
-      <div id="answer-box" class="hidden"></div>
+    <div id="card-box" class="flip-container">
+      <div class="flipper" id="card-flipper">
+        <div class="front" id="card-front"></div>
+        <div class="back" id="card-back"></div>
+      </div>
     </div>
 
     <div id="rating-buttons" class="hidden">
@@ -63,8 +64,7 @@
           <th data-col="due_date">Next Review Date</th>
         </tr>
       </thead>
-      <tbody id="word-tbody">
-      </tbody>
+      <tbody id="word-tbody"></tbody>
     </table>
 
     <button onclick="openScreen('menu')">Back to Menu</button>
@@ -83,11 +83,16 @@
     <button onclick="openScreen('menu')">Back to Menu</button>
   </div>
 
+  <!-- ====================== -->
+  <!--         TOAST          -->
+  <!-- ====================== -->
   <div id="toast" class="toast hidden"></div>
 
+  <!-- Dependencies -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
   <script type="module" src="config.js"></script>
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=6"></script>
 
 </body>
 </html>
