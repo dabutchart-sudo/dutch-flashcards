@@ -7,11 +7,11 @@ let allCards = [];
 let reviewQueue = [];
 let currentIndex = 0;
 
-// For table sorting
+// Sorting
 let wordSortColumn = null;
 let wordSortAsc = true;
 
-// ----------------- Utility -----------------
+// -------------- Utility --------------
 function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
@@ -29,18 +29,48 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove("show"), 2500);
 }
 
-// ----------------- Settings -----------------
+// -------------- TTS for Dutch side --------------
+function speakDutch(text) {
+  if (!window.speechSynthesis) {
+    showToast("TTS not supported");
+    return;
+  }
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "nl-NL";
+
+  const voices = speechSynthesis.getVoices();
+  const dutchVoice = voices.find(v => v.lang === "nl-NL");
+
+  if (dutchVoice) utter.voice = dutchVoice;
+
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+}
+
+document.addEventListener("voiceschanged", () => {
+  // Preload voices on Safari/iOS
+});
+
+// When TTS button pressed:
+document.getElementById("tts-btn").addEventListener("click", (e) => {
+  e.stopPropagation(); // prevent flipping card
+  const card = reviewQueue[currentIndex];
+  if (card) speakDutch(card.dutch);
+});
+
+// -------------- Settings --------------
 const MAX_NEW_KEY = "maxNewCardsPerDay";
 
 function getMaxNewCardsPerDay() {
   return parseInt(localStorage.getItem(MAX_NEW_KEY) || "10", 10);
 }
 
-function setMaxNewCardsPerDay(val) {
-  localStorage.setItem(MAX_NEW_KEY, String(val));
+function setMaxNewCardsPerDay(v) {
+  localStorage.setItem(MAX_NEW_KEY, String(v));
 }
 
-// ----------------- Navigation -----------------
+// -------------- Navigation --------------
 window.openScreen = function (name) {
   document.querySelectorAll(".screen").forEach((s) => {
     s.classList.remove("visible");
@@ -53,101 +83,70 @@ window.openScreen = function (name) {
     screen.classList.remove("hidden");
   }
 
-  // When returning to menu, refresh summary from latest allCards
-  if (name === "menu") {
-    updateSummary();
-  }
+  if (name === "menu") updateSummary();
 };
 
-// ----------------- Summary (Today & Tomorrow) -----------------
+// -------------- Summary Panel --------------
 function updateSummary() {
   const panel = document.getElementById("summary-panel");
-  if (!panel) return;
-
   const today = todayStr();
   const tomorrow = addDays(today, 1);
   const maxNew = getMaxNewCardsPerDay();
 
-  let dueReviewToday = 0;
-  let dueReviewTomorrow = 0;
-  let trulyNew = 0;
+  let dueToday = 0;
+  let dueTomorrow = 0;
+  let newCards = 0;
   let introducedToday = 0;
 
   for (const c of allCards) {
     if (c.suspended) continue;
 
-    const isReview = c.card_type !== "new";
-
-    if (isReview && c.due_date) {
-      if (c.due_date <= today) dueReviewToday++;
-      if (c.due_date === tomorrow) dueReviewTomorrow++;
+    if (c.card_type !== "new" && c.due_date) {
+      if (c.due_date <= today) dueToday++;
+      if (c.due_date === tomorrow) dueTomorrow++;
     }
 
-    const isNew =
-      c.card_type === "new" &&
-      (c.first_seen === null || c.first_seen === undefined);
-
-    if (isNew) trulyNew++;
-
+    if (c.card_type === "new" && !c.first_seen) newCards++;
     if (c.first_seen === today) introducedToday++;
   }
 
-  let newToday = Math.max(0, Math.min(maxNew - introducedToday, trulyNew));
-  let newTomorrow = Math.min(maxNew, trulyNew);
+  const newToday = Math.max(0, Math.min(maxNew - introducedToday, newCards));
+  const newTomorrow = Math.min(maxNew, newCards);
 
   panel.innerHTML = `
     <h2>Study Summary</h2>
-    <div class="summary-row"><strong>Today:</strong> ${dueReviewToday} review, ${newToday} new</div>
-    <div class="summary-row"><strong>Tomorrow:</strong> ${dueReviewTomorrow} review, ${newTomorrow} new</div>
+    <div class="summary-row"><strong>Today:</strong> ${dueToday} review, ${newToday} new</div>
+    <div class="summary-row"><strong>Tomorrow:</strong> ${dueTomorrow} review, ${newTomorrow} new</div>
   `;
 }
 
-// ----------------- Data Loading -----------------
+// -------------- Load Cards --------------
 async function loadCards() {
-  const { data, error } = await supabaseClient
-    .from("cards")
-    .select("*")
-    .order("id");
-
-  if (error) {
-    showToast("Error loading cards");
-    console.error(error);
-    allCards = [];
-  } else {
-    allCards = data || [];
-  }
-
+  const { data } = await supabaseClient.from("cards").select("*").order("id");
+  allCards = data || [];
   updateSummary();
 }
 
-// ----------------- Build Review Queue -----------------
+// -------------- Build Review Queue --------------
 function buildReviewQueue() {
   const today = todayStr();
   const maxNew = getMaxNewCardsPerDay();
 
   const due = [];
-  const newCards = [];
+  const newList = [];
 
   for (const c of allCards) {
     if (c.suspended) continue;
 
     if (c.card_type !== "new" && c.due_date && c.due_date <= today) {
       due.push(c);
-      continue;
-    }
-
-    if (
-      c.card_type === "new" &&
-      (c.first_seen === null || c.first_seen === undefined)
-    ) {
-      newCards.push(c);
+    } else if (c.card_type === "new" && !c.first_seen) {
+      newList.push(c);
     }
   }
 
-  const introducedToday = allCards.filter((c) => c.first_seen === today).length;
-
-  let remainingNew = maxNew - introducedToday;
-  if (remainingNew < 0) remainingNew = 0;
+  const introducedToday = allCards.filter(c => c.first_seen === today).length;
+  let remainingNew = Math.max(0, maxNew - introducedToday);
 
   const shuffle = (a) => {
     for (let i = a.length - 1; i > 0; i--) {
@@ -157,34 +156,26 @@ function buildReviewQueue() {
   };
 
   shuffle(due);
-  shuffle(newCards);
+  shuffle(newList);
 
-  reviewQueue = [...due, ...newCards.slice(0, remainingNew)];
+  reviewQueue = [...due, ...newList.slice(0, remainingNew)];
 }
 
-// ----------------- Rendering: Counter + Progress + Status -----------------
-function updateCounterAndProgress() {
-  const counterEl = document.getElementById("review-counter");
-  const progressEl = document.getElementById("review-progress-bar");
+// -------------- Review Progress + Counter --------------
+function updateProgress() {
+  const bar = document.getElementById("review-progress-bar");
+  const counter = document.getElementById("review-counter");
 
   const total = reviewQueue.length;
-  const answered = Math.min(currentIndex, total); // cards finished
+  const done = Math.min(currentIndex, total);
 
-  if (!total) {
-    counterEl.textContent = "0 / 0";
-    progressEl.style.width = "0%";
-    return;
-  }
-
-  counterEl.textContent = `${answered} / ${total}`;
-
-  const pct = (answered / total) * 100;
-  progressEl.style.width = `${pct}%`;
+  counter.textContent = `${done} / ${total}`;
+  bar.style.width = total ? `${(done / total) * 100}%` : "0%";
 }
 
+// -------------- Render Card --------------
 function renderCardStatus(card) {
   const el = document.getElementById("card-status");
-  if (!el) return;
 
   if (!card) {
     el.textContent = "";
@@ -206,32 +197,31 @@ function renderCardStatus(card) {
 function renderCurrentCard() {
   const card = reviewQueue[currentIndex];
 
-  const frontText = document.getElementById("card-front-text");
-  const backText = document.getElementById("card-back-text");
+  const front = document.getElementById("card-front-text");
+  const back = document.getElementById("card-back-text");
   const box = document.getElementById("card-box");
-  const ratingButtons = document.getElementById("rating-buttons");
+  const rating = document.getElementById("rating-buttons");
 
   if (!card) {
-    frontText.textContent = "No cards to review.";
-    backText.textContent = "";
-    ratingButtons.classList.add("hidden");
-    renderCardStatus(null);
-    updateCounterAndProgress();
+    front.textContent = "No cards.";
+    back.textContent = "";
+    rating.classList.add("hidden");
+    updateProgress();
     return;
   }
 
   box.classList.remove("flip");
   void box.offsetWidth;
 
-  frontText.textContent = card.dutch;
-  backText.textContent = "";
+  front.textContent = card.dutch;
+  back.textContent = "";
 
-  ratingButtons.classList.add("hidden");
+  rating.classList.add("hidden");
   renderCardStatus(card);
-  updateCounterAndProgress();
+  updateProgress();
 }
 
-// ----------------- Start Review Session -----------------
+// -------------- Start Review Session --------------
 window.startReviewSession = async function () {
   await loadCards();
   buildReviewQueue();
@@ -246,26 +236,27 @@ window.startReviewSession = async function () {
   openScreen("review");
 };
 
-// ----------------- Flip Card -----------------
+// -------------- Flip Card --------------
 document.getElementById("card-box").addEventListener("click", () => {
   const card = reviewQueue[currentIndex];
   if (!card) return;
 
-  const backText = document.getElementById("card-back-text");
+  const back = document.getElementById("card-back-text");
   const box = document.getElementById("card-box");
-  const ratingButtons = document.getElementById("rating-buttons");
+  const rating = document.getElementById("rating-buttons");
 
-  backText.textContent = card.english;
+  back.textContent = card.english;
+
   box.classList.toggle("flip");
 
   if (box.classList.contains("flip")) {
-    setTimeout(() => ratingButtons.classList.remove("hidden"), 300);
+    setTimeout(() => rating.classList.remove("hidden"), 300);
   } else {
-    ratingButtons.classList.add("hidden");
+    rating.classList.add("hidden");
   }
 });
 
-// ----------------- Handle Rating -----------------
+// -------------- Handle Rating --------------
 window.handleRating = async function (rating) {
   const card = reviewQueue[currentIndex];
   if (!card) return;
@@ -285,17 +276,13 @@ window.handleRating = async function (rating) {
     if (rating === "again") interval_days = 1;
     else if (rating === "hard") interval_days = 1;
     else if (rating === "good") interval_days = 3;
-    else if (rating === "easy") {
-      interval_days = 4;
-      ease += 0.15;
-    }
+    else if (rating === "easy") { interval_days = 4; ease += 0.15; }
     card_type = interval_days > 1 ? "review" : "learning";
+
   } else if (card_type === "learning") {
     if (rating === "again") interval_days = 1;
-    else {
-      interval_days = 3;
-      card_type = "review";
-    }
+    else { interval_days = 3; card_type = "review"; }
+
   } else {
     if (rating === "again") {
       lapses++;
@@ -316,7 +303,7 @@ window.handleRating = async function (rating) {
   interval_days = Math.max(1, interval_days);
   const due_date = addDays(today, interval_days);
 
-  const updatePayload = {
+  const update = {
     card_type,
     interval_days,
     ease,
@@ -328,18 +315,8 @@ window.handleRating = async function (rating) {
     suspended: false,
   };
 
-  const { error } = await supabaseClient
-    .from("cards")
-    .update(updatePayload)
-    .eq("id", card.id);
+  await supabaseClient.from("cards").update(update).eq("id", card.id);
 
-  if (error) {
-    showToast("Save failed");
-    console.error(error);
-    return;
-  }
-
-  // Move to next card, one more answered
   currentIndex++;
 
   if (currentIndex >= reviewQueue.length) {
@@ -352,11 +329,10 @@ window.handleRating = async function (rating) {
   renderCurrentCard();
 }
 
-// ----------------- Word Review + Sorting -----------------
+// -------------- Word Review Sorting --------------
 function buildWordTable(rows) {
   const tbody = document.getElementById("word-tbody");
   tbody.innerHTML = "";
-
   rows.forEach((r) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -379,25 +355,14 @@ function sortWordData() {
 
   sorted.sort((a, b) => {
     const col = wordSortColumn;
-    let av = a[col];
-    let bv = b[col];
+    const av = a[col];
+    const bv = b[col];
 
-    // Handle nulls: push them to the end on ascending, start on descending
-    if (av == null && bv == null) return 0;
-    if (av == null) return wordSortAsc ? 1 : -1;
-    if (bv == null) return wordSortAsc ? -1 : 1;
+    if (av == null && bv != null) return wordSortAsc ? 1 : -1;
+    if (bv == null && av != null) return wordSortAsc ? -1 : 1;
+    if (av == bv) return 0;
 
-    // Date columns (string ISO dates)
-    if (col === "last_reviewed" || col === "due_date") {
-      if (av < bv) return wordSortAsc ? -1 : 1;
-      if (av > bv) return wordSortAsc ? 1 : -1;
-      return 0;
-    }
-
-    // String compare
-    av = String(av);
-    bv = String(bv);
-    const cmp = av.localeCompare(bv, "nl", { sensitivity: "base" });
+    const cmp = String(av).localeCompare(String(bv), "nl");
     return wordSortAsc ? cmp : -cmp;
   });
 
@@ -409,12 +374,9 @@ window.openWordReview = function () {
   openScreen("wordreview");
 };
 
-// ----------------- Reset Learning -----------------
+// -------------- Reset Learning --------------
 window.resetLearningData = async function () {
-  const { data } = await supabaseClient.from("cards").select("id");
-  const ids = (data || []).map((r) => r.id);
-
-  const { error } = await supabaseClient
+  await supabaseClient
     .from("cards")
     .update({
       card_type: "new",
@@ -426,46 +388,31 @@ window.resetLearningData = async function () {
       last_reviewed: null,
       due_date: null,
       suspended: false,
-    })
-    .in("id", ids);
-
-  if (error) {
-    showToast("Reset failed");
-    console.error(error);
-    return;
-  }
+    });
 
   showToast("All learning reset");
   await loadCards();
 };
 
-// ----------------- Init -----------------
+// -------------- Init --------------
 window.addEventListener("load", async () => {
-  const ver = document.getElementById("app-version");
-  if (ver) ver.textContent = "Version: " + APP_VERSION;
+  document.getElementById("app-version").textContent = "Version: " + APP_VERSION;
 
   const sel = document.getElementById("max-new-cards-select");
   sel.value = String(getMaxNewCardsPerDay());
   sel.addEventListener("change", () => {
-    const v = parseInt(sel.value, 10);
-    setMaxNewCardsPerDay(v);
-    showToast("Max new cards updated");
+    setMaxNewCardsPerDay(parseInt(sel.value, 10));
     updateSummary();
   });
 
-  // Set up Word Review sorting
   document.querySelectorAll("#word-table th").forEach((th) => {
     th.addEventListener("click", () => {
       const col = th.getAttribute("data-col");
-      if (!col) return;
-
-      if (wordSortColumn === col) {
-        wordSortAsc = !wordSortAsc;
-      } else {
+      if (col === wordSortColumn) wordSortAsc = !wordSortAsc;
+      else {
         wordSortColumn = col;
         wordSortAsc = true;
       }
-
       sortWordData();
     });
   });
