@@ -19,7 +19,9 @@
   <div id="menu-screen" class="screen visible">
     <h1>Dutch Flashcards</h1>
 
-    <button onclick="openScreen('review')">Start Learning</button>
+    <div id="app-version" class="version"></div>
+
+    <button onclick="startReviewSession()">Start Learning</button>
     <button onclick="openScreen('add')">Add New Card</button>
     <button onclick="openScreen('settings')">Settings</button>
   </div>
@@ -80,9 +82,9 @@
   <!-- Supabase library -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- Config and app (modules) -->
+  <!-- Config and Main App -->
   <script type="module" src="config.js"></script>
-  <script type="module" src="app.js?v=2"></script>
+  <script type="module" src="app.js?v=3"></script>
 
 </body>
 </html>
