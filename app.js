@@ -7,13 +7,8 @@ let allCards = [];
 let reviewQueue = [];
 let currentIndex = 0;
 
-// ============================================================
-// Utility
-// ============================================================
-
 function todayStr() {
-  const d = new Date();
-  return d.toISOString().split("T")[0];
+  return new Date().toISOString().split("T")[0];
 }
 
 function addDays(dateStr, days) {
@@ -34,34 +29,21 @@ function showToast(msg) {
   }, 2500);
 }
 
-// ============================================================
-// Navigation
-// ============================================================
-
 function openScreen(name) {
-  document.querySelectorAll(".screen").forEach((s) => {
+  document.querySelectorAll(".screen").forEach(s => {
     s.classList.remove("visible");
     s.classList.add("hidden");
   });
 
   const screen = document.getElementById(`${name}-screen`);
-  if (screen) {
-    screen.classList.add("visible");
-    screen.classList.remove("hidden");
-  }
+  screen.classList.remove("hidden");
+  screen.classList.add("visible");
 }
 
 window.openScreen = openScreen;
 
-// ============================================================
-// Load Cards
-// ============================================================
-
 async function loadCards() {
-  const { data, error } = await supabaseClient
-    .from("cards")
-    .select("*")
-    .order("id");
+  const { data, error } = await supabaseClient.from("cards").select("*").order("id");
 
   if (error) {
     console.error(error);
@@ -72,17 +54,15 @@ async function loadCards() {
   allCards = data || [];
 }
 
-// ============================================================
-// Review Session
-// ============================================================
-
 function buildReviewQueue() {
   const today = todayStr();
+
   const due = [];
   const fresh = [];
 
   for (const c of allCards) {
     if (c.suspended) continue;
+
     if (c.card_type !== "new" && c.due_date && c.due_date <= today) {
       due.push(c);
     } else if (c.card_type === "new") {
@@ -90,12 +70,12 @@ function buildReviewQueue() {
     }
   }
 
-  function shuffle(arr) {
+  const shuffle = arr => {
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-  }
+  };
 
   shuffle(due);
   shuffle(fresh);
@@ -106,25 +86,24 @@ function buildReviewQueue() {
 function renderCurrentCard() {
   const card = reviewQueue[currentIndex];
 
-  const cardText = document.getElementById("card-text");
-  const answerBox = document.getElementById("answer-box");
-  const showBtn = document.getElementById("show-answer-btn");
+  const front = document.getElementById("card-front");
+  const back = document.getElementById("card-back");
   const ratingButtons = document.getElementById("rating-buttons");
+  const container = document.getElementById("card-box");
 
   if (!card) {
-    cardText.textContent = "No cards to review.";
-    answerBox.classList.add("hidden");
+    front.textContent = "No cards to review.";
+    back.textContent = "";
     ratingButtons.classList.add("hidden");
-    showBtn.style.display = "none";
     return;
   }
 
-  cardText.textContent = card.dutch;
-  answerBox.textContent = card.english;
+  container.classList.remove("flip");
 
-  answerBox.classList.add("hidden");
+  front.textContent = card.dutch;
+  back.textContent = card.english;
+
   ratingButtons.classList.add("hidden");
-  showBtn.style.display = "inline-block";
 }
 
 function startReviewSession() {
@@ -142,55 +121,76 @@ function startReviewSession() {
 
 window.startReviewSession = startReviewSession;
 
-window.showAnswer = function () {
-  document.getElementById("answer-box").classList.remove("hidden");
-  document.getElementById("show-answer-btn").style.display = "none";
-  document.getElementById("rating-buttons").classList.remove("hidden");
-};
+document.getElementById("card-box").addEventListener("click", () => {
+  const box = document.getElementById("card-box");
+  const ratingButtons = document.getElementById("rating-buttons");
+
+  if (!reviewQueue[currentIndex]) return;
+
+  box.classList.toggle("flip");
+
+  if (box.classList.contains("flip")) {
+    setTimeout(() => {
+      ratingButtons.classList.remove("hidden");
+    }, 300);
+  } else {
+    ratingButtons.classList.add("hidden");
+  }
+});
 
 window.handleRating = async function (rating) {
   const card = reviewQueue[currentIndex];
   if (!card) return;
 
   const today = todayStr();
-  let type = card.card_type || "new";
-  let interval = card.interval_days ?? 0;
-  let ease = Number(card.ease ?? 2.5);
-  let reps = card.reps ?? 0;
-  let lapses = card.lapses ?? 0;
+  let { card_type, interval_days, ease, reps, lapses } = card;
+
+  ease = Number(ease ?? 2.5);
+  reps = reps ?? 0;
+  lapses = lapses ?? 0;
+  interval_days = interval_days ?? 0;
 
   reps++;
 
-  if (type === "new") {
-    if (rating === "again") { interval = 1; type = "learning"; }
-    else if (rating === "hard") { interval = 1; type = "learning"; }
-    else if (rating === "good") { interval = 3; type = "review"; }
-    else if (rating === "easy") { interval = 4; ease += 0.15; type = "review"; }
-  } else if (type === "learning") {
-    interval = rating === "again" ? 1 : 3;
-    if (rating !== "again") type = "review";
+  if (card_type === "new") {
+    if (rating === "again") interval_days = 1;
+    else if (rating === "hard") interval_days = 1;
+    else if (rating === "good") interval_days = 3;
+    else if (rating === "easy") {
+      interval_days = 4;
+      ease += 0.15;
+    }
+    card_type = interval_days > 1 ? "review" : "learning";
+  } else if (card_type === "learning") {
+    if (rating === "again") interval_days = 1;
+    else {
+      interval_days = 3;
+      card_type = "review";
+    }
   } else {
     if (rating === "again") {
-      lapses++; ease = Math.max(1.3, ease - 0.2);
-      interval = 1; type = "learning";
+      lapses++;
+      ease = Math.max(1.3, ease - 0.2);
+      interval_days = 1;
+      card_type = "learning";
     } else if (rating === "hard") {
       ease = Math.max(1.3, ease - 0.15);
-      interval = Math.max(1, Math.round(interval * 1.2));
+      interval_days = Math.max(1, Math.round(interval_days * 1.2));
     } else if (rating === "good") {
-      interval = Math.max(1, Math.round(interval * ease));
+      interval_days = Math.max(1, Math.round(interval_days * ease));
     } else if (rating === "easy") {
       ease += 0.15;
-      interval = Math.max(1, Math.round(interval * ease * 1.3));
+      interval_days = Math.max(1, Math.round(interval_days * ease * 1.3));
     }
   }
 
-  const dueDate = addDays(today, interval);
+  const dueDate = addDays(today, interval_days);
 
   const { error } = await supabaseClient
     .from("cards")
     .update({
-      card_type: type,
-      interval_days: interval,
+      card_type,
+      interval_days,
       ease,
       reps,
       lapses,
@@ -201,25 +201,20 @@ window.handleRating = async function (rating) {
     .eq("id", card.id);
 
   if (error) {
-    console.error(error);
-    showToast("Error saving review.");
+    showToast("Error saving review");
     return;
   }
 
   currentIndex++;
 
   if (currentIndex >= reviewQueue.length) {
-    showToast("Session complete.");
+    showToast("Session complete");
     openScreen("menu");
     return;
   }
 
   renderCurrentCard();
 };
-
-// ============================================================
-// WORD REVIEW TABLE
-// ============================================================
 
 let currentSortCol = null;
 let sortAsc = true;
@@ -228,7 +223,6 @@ function openWordReview() {
   buildWordTable(allCards);
   openScreen("wordreview");
 }
-
 window.openWordReview = openWordReview;
 
 function buildWordTable(rows) {
@@ -247,43 +241,34 @@ function buildWordTable(rows) {
   }
 }
 
-// Sort handler
-document.addEventListener("click", (e) => {
+document.addEventListener("click", e => {
   if (e.target.tagName !== "TH") return;
 
   const col = e.target.dataset.col;
   if (!col) return;
 
-  // Toggle direction if clicking same column
   if (currentSortCol === col) sortAsc = !sortAsc;
   else { currentSortCol = col; sortAsc = true; }
 
   const sorted = [...allCards].sort((a, b) => {
-    const valA = a[col] || "";
-    const valB = b[col] || "";
-    return sortAsc
-      ? String(valA).localeCompare(String(valB))
-      : String(valB).localeCompare(String(valA));
+    const A = a[col] || "";
+    const B = b[col] || "";
+    return sortAsc ? A.localeCompare(B) : B.localeCompare(A);
   });
 
   buildWordTable(sorted);
 });
 
-// ============================================================
-// RESET LEARNING
-// ============================================================
-
 window.resetLearningData = async function () {
-  const { data: cards, error: fetchErr } = await supabaseClient
-    .from("cards")
-    .select("id");
+  const { data: cards, error: fetchErr } =
+    await supabaseClient.from("cards").select("id");
 
   if (fetchErr || !cards) {
-    showToast("Error fetching cards.");
+    showToast("Error fetching cards");
     return;
   }
 
-  const ids = cards.map((c) => c.id);
+  const ids = cards.map(c => c.id);
 
   const { error } = await supabaseClient
     .from("cards")
@@ -301,24 +286,17 @@ window.resetLearningData = async function () {
     .in("id", ids);
 
   if (error) {
-    showToast("Reset failed.");
+    showToast("Reset failed");
     return;
   }
 
-  showToast("All learning data reset.");
+  showToast("All learning data reset");
   await loadCards();
 };
 
-// ============================================================
-// Init
-// ============================================================
-
 async function init() {
-  const versionBox = document.getElementById("app-version");
-  if (versionBox) versionBox.textContent = "Version: " + APP_VERSION;
-
-  document.getElementById("show-answer-btn")
-    .addEventListener("click", showAnswer);
+  const version = document.getElementById("app-version");
+  version.textContent = "Version: " + APP_VERSION;
 
   await loadCards();
   openScreen("menu");
