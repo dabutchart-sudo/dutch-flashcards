@@ -34,6 +34,29 @@ body {
   cursor: pointer;
 }
 
+/* Small secondary button */
+.small-secondary-btn {
+  display: inline-block;
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: none;
+  background: #dddddd;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Primary button (for Save) */
+.primary-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: #ff8800;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
 /* Menu buttons */
 .menu-buttons button {
   display: block;
@@ -138,13 +161,24 @@ body {
   font-size: 22px;
 }
 
+/* TTS & Hint buttons */
 .tts-btn {
   position: absolute;
   top: 10px;
   right: 10px;
   background: transparent;
-  font-size: 22px;
   border: none;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.hint-btn {
+  position: absolute;
+  top: 10px;
+  right: 45px;
+  background: transparent;
+  border: none;
+  font-size: 20px;
   cursor: pointer;
 }
 
@@ -170,6 +204,7 @@ body {
   border: none;
   color: white;
   font-size: 15px;
+  cursor: pointer;
 }
 
 /* Word table */
@@ -187,9 +222,20 @@ body {
   cursor: pointer;
 }
 
-#word-table td, #word-table th {
+#word-table td,
+#word-table th {
   padding: 10px;
   border-bottom: 1px solid #ddd;
+}
+
+/* Edit button in Word Review */
+.word-edit-btn {
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: none;
+  background: #dddddd;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 /* Report */
@@ -218,6 +264,120 @@ body {
   margin: 0 auto;
 }
 
+/* Modals (Hint, Session Summary, Edit Card) */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 16px 20px;
+  border-radius: 10px;
+  max-width: 90%;
+  max-height: 80%;
+  overflow-y: auto;
+  text-align: left;
+}
+
+/* Hint image */
+#hint-image {
+  max-width: 100%;
+  max-height: 220px;
+  display: block;
+  margin: 10px auto 16px;
+}
+
+/* Session summary */
+#session-summary-text p {
+  margin: 4px 0;
+}
+
+#session-summary-list {
+  margin-top: 8px;
+  padding-left: 20px;
+}
+
+#session-summary-list li {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+/* Edit card modal */
+#edit-modal label {
+  display: block;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  font-size: 14px;
+}
+
+#edit-modal input[type="text"] {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.edit-image-section {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+#edit-current-image {
+  max-width: 100%;
+  max-height: 160px;
+  display: block;
+  margin: 5px 0 10px 0;
+}
+
+#edit-no-image-text {
+  font-size: 13px;
+  color: #666;
+}
+
+/* Image grid for search results */
+.image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.image-option {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.image-option img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-option.selected {
+  border-color: #ff8800;
+}
+
+/* Edit modal actions */
+.edit-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 /* Toast */
 .toast {
   position: fixed;
@@ -234,4 +394,27 @@ body {
 
 .toast.show {
   opacity: 1;
+}
+
+/* Version text */
+.version {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+/* Settings row */
+.settings-row {
+  margin: 10px 0 20px 0;
+}
+
+.settings-row label {
+  margin-right: 8px;
+}
+
+.settings-row select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
