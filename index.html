@@ -37,7 +37,14 @@
     <h2>Review Cards</h2>
 
     <div id="card-status" class="card-status"></div>
-    <div id="review-counter" class="review-counter">Card 0 of 0</div>
+
+    <!-- Progress bar + counter -->
+    <div class="progress-wrapper">
+      <div class="progress-container">
+        <div id="review-progress-bar" class="progress-bar"></div>
+      </div>
+      <div id="review-counter" class="review-counter">0 / 0</div>
+    </div>
 
     <div id="card-box" class="flip-container">
       <div id="card-flipper" class="flipper">
@@ -73,10 +80,10 @@
     <table id="word-table">
       <thead>
         <tr>
-          <th>Dutch</th>
-          <th>English</th>
-          <th>Last Reviewed</th>
-          <th>Next Review Date</th>
+          <th data-col="dutch">Dutch</th>
+          <th data-col="english">English</th>
+          <th data-col="last_reviewed">Last Reviewed</th>
+          <th data-col="due_date">Next Review Date</th>
         </tr>
       </thead>
       <tbody id="word-tbody"></tbody>
@@ -109,7 +116,7 @@
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script type="module" src="config.js"></script>
-  <script type="module" src="app.js?v=25"></script>
+  <script type="module" src="app.js?v=26"></script>
 
 </body>
 </html>
