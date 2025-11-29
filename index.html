@@ -1,1 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dutch Flashcards</title>
+  <link rel="stylesheet" href="styles.css" />
 
+  <meta http-equiv="cache-control" content="no-cache" />
+  <meta http-equiv="pragma" content="no-cache" />
+  <meta http-equiv="expires" content="0" />
+</head>
+
+<body>
+
+  <!-- MAIN MENU -->
+  <div id="menu-screen" class="screen visible">
+    <h1>Dutch Flashcards</h1>
+    <div id="app-version" class="version"></div>
+
+    <div id="summary-panel" class="summary-panel">
+      <h2>Study Summary</h2>
+      <div class="summary-row"><strong>Today:</strong> —</div>
+      <div class="summary-row"><strong>Tomorrow:</strong> —</div>
+    </div>
+
+    <div class="menu-buttons">
+      <button onclick="startReviewSession()">Review Cards</button>
+      <button onclick="openWordReview()">Word Review</button>
+      <button onclick="openScreen('settings')">Settings</button>
+    </div>
+  </div>
+
+  <!-- REVIEW SCREEN -->
+  <div id="review-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
+    <h2>Review Cards</h2>
+
+    <div id="review-counter" class="review-counter">Card 0 of 0</div>
+
+    <div id="card-box" class="flip-container">
+      <div id="card-flipper" class="flipper">
+
+        <!-- FRONT -->
+        <div class="front card-face">
+          <div class="flag">🇳🇱</div>
+          <div class="card-text" id="card-front-text"></div>
+        </div>
+
+        <!-- BACK -->
+        <div class="back card-face">
+          <div class="flag">🇬🇧</div>
+          <div class="card-text" id="card-back-text"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="rating-buttons" class="hidden">
+      <button onclick="handleRating('again')" class="rating again">Again</button>
+      <button onclick="handleRating('hard')" class="rating hard">Hard</button>
+      <button onclick="handleRating('good')" class="rating good">Good</button>
+      <button onclick="handleRating('easy')" class="rating easy">Easy</button>
+    </div>
+  </div>
+
+  <!-- WORD REVIEW -->
+  <div id="wordreview-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
+    <h2>Word Review</h2>
+
+    <table id="word-table">
+      <thead>
+        <tr>
+          <th>Dutch</th>
+          <th>English</th>
+          <th>Last Reviewed</th>
+          <th>Next Review Date</th>
+        </tr>
+      </thead>
+      <tbody id="word-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settings-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
+    <h2>Settings</h2>
+
+    <div class="settings-row">
+      <label for="max-new-cards-select">Max new cards per day:</label>
+      <select id="max-new-cards-select">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+        <option value="25">25</option>
+        <option value="30">30</option>
+      </select>
+    </div>
+
+    <button id="reset-btn" onclick="resetLearningData()">Reset ALL Learning Data</button>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script type="module" src="config.js"></script>
+  <script type="module" src="app.js?v=21"></script>
+
+</body>
+</html>
