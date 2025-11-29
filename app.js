@@ -10,10 +10,8 @@ let currentIndex = 0;
 // Browse mode
 let browseList = [];
 let browseIndex = 0;
-
-// Word review sorting
-let sortColumn = null;
-let sortDirection = 1;
+let browseSortColumn = "due_date";
+let browseSortDirection = 1;
 
 // Report
 let reportChart = null;
@@ -401,41 +399,89 @@ window.handleRating = async function (rating) {
   currentIndex++;
 
   if (currentIndex >= reviewQueue.length) {
-    await loadCards();
-    updateSummary();
-    showSessionSummaryModal();
+    // Final card: fill progress bar and wait for animations to finish
+    const bar = document.getElementById("review-progress-bar");
+    if (bar) bar.style.width = "100%";
+
+    setTimeout(async () => {
+      await loadCards();
+      updateSummary();
+      showSessionSummaryModal();
+    }, 500);
+
     return;
   }
 
   renderCurrentCard();
 };
 
-/* ------------------------- Browse Mode ------------------------- */
+/* ------------------------- Browse (combined) ------------------------- */
 window.openBrowse = async function () {
   await loadCards();
   updateSummary();
 
-  // Build browse list sorted by due_date (oldest first, nulls last)
+  // Default order: due_date ascending (nulls last)
+  browseSortColumn = "due_date";
+  browseSortDirection = 1;
+
+  buildBrowseList();
+  renderBrowseTable();
+  browseIndex = 0;
+  renderBrowseCard();
+
+  setBrowseView("table");
+  openScreen("browse");
+};
+
+function buildBrowseList() {
   browseList = allCards
     .filter((c) => !c.suspended)
     .slice()
     .sort((a, b) => {
-      const da = a.due_date ? a.due_date : "9999-12-31";
-      const db = b.due_date ? b.due_date : "9999-12-31";
-      if (da < db) return -1;
-      if (da > db) return 1;
-      return 0;
+      const col = browseSortColumn;
+      let A = a[col];
+      let B = b[col];
+
+      if (col === "due_date") {
+        A = A || "9999-12-31";
+        B = B || "9999-12-31";
+        if (A < B) return -1 * browseSortDirection;
+        if (A > B) return 1 * browseSortDirection;
+        return 0;
+      } else if (col === "last_reviewed") {
+        A = A || "0000-00-00";
+        B = B || "0000-00-00";
+        if (A < B) return -1 * browseSortDirection;
+        if (A > B) return 1 * browseSortDirection;
+        return 0;
+      } else {
+        // Strings
+        A = (A || "").toString().toLowerCase();
+        B = (B || "").toString().toLowerCase();
+        if (A < B) return -1 * browseSortDirection;
+        if (A > B) return 1 * browseSortDirection;
+        return 0;
+      }
     });
+}
 
-  if (!browseList.length) {
-    showToast("No cards to browse.");
-    return;
-  }
+function renderBrowseTable() {
+  const tbody = document.getElementById("browse-table-body");
+  tbody.innerHTML = "";
 
-  browseIndex = 0;
-  renderBrowseCard();
-  openScreen("browse");
-};
+  browseList.forEach((c, idx) => {
+    const tr = document.createElement("tr");
+    tr.dataset.index = String(idx);
+    tr.innerHTML = `
+      <td>${c.dutch}</td>
+      <td>${c.english}</td>
+      <td>${c.last_reviewed ?? "-"}</td>
+      <td>${c.due_date ?? "-"}</td>
+      <td>${c.image_url ? "✔️" : ""}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
 function renderBrowseCard() {
   const card = browseList[browseIndex];
@@ -482,6 +528,67 @@ function renderBrowseCard() {
   bar.style.width = `${progress}%`;
   counter.textContent = `${browseIndex + 1} / ${browseList.length}`;
 }
+
+function setBrowseView(mode) {
+  const tableView = document.getElementById("browse-table-view");
+  const cardView = document.getElementById("browse-card-view");
+  const tableBtn = document.getElementById("browse-view-table-btn");
+  const cardBtn = document.getElementById("browse-view-card-btn");
+
+  if (mode === "table") {
+    tableView.classList.remove("hidden");
+    cardView.classList.add("hidden");
+    tableBtn.classList.add("active");
+    cardBtn.classList.remove("active");
+  } else {
+    tableView.classList.add("hidden");
+    cardView.classList.remove("hidden");
+    tableBtn.classList.remove("active");
+    cardBtn.classList.add("active");
+  }
+}
+
+// Toggle buttons
+document
+  .getElementById("browse-view-table-btn")
+  .addEventListener("click", () => setBrowseView("table"));
+document
+  .getElementById("browse-view-card-btn")
+  .addEventListener("click", () => setBrowseView("flashcard"));
+
+// Table header sorting
+document
+  .querySelectorAll("#browse-table thead th[data-col]")
+  .forEach((th) => {
+    th.addEventListener("click", () => {
+      const col = th.dataset.col;
+      if (!col) return;
+
+      if (browseSortColumn === col) browseSortDirection *= -1;
+      else {
+        browseSortColumn = col;
+        browseSortDirection = 1;
+      }
+
+      buildBrowseList();
+      renderBrowseTable();
+      browseIndex = 0;
+      renderBrowseCard();
+    });
+  });
+
+// Table row click -> open flashcard
+document
+  .getElementById("browse-table-body")
+  .addEventListener("click", (e) => {
+    const row = e.target.closest("tr");
+    if (!row) return;
+    const idx = Number(row.dataset.index);
+    if (Number.isNaN(idx)) return;
+    browseIndex = idx;
+    renderBrowseCard();
+    setBrowseView("flashcard");
+  });
 
 // Flip for browse
 document.getElementById("browse-card-box").addEventListener("click", () => {
@@ -534,53 +641,6 @@ document.getElementById("browse-next-btn").addEventListener("click", () => {
   if (!browseList.length) return;
   browseIndex = (browseIndex + 1) % browseList.length;
   renderBrowseCard();
-});
-
-/* ------------------------- Word Review ------------------------- */
-window.openWordReview = function () {
-  const tbody = document.getElementById("word-tbody");
-  tbody.innerHTML = "";
-
-  let rows = [...allCards];
-
-  if (sortColumn) {
-    rows.sort((a, b) => {
-      const A = a[sortColumn] ?? "";
-      const B = b[sortColumn] ?? "";
-      if (A < B) return -1 * sortDirection;
-      if (A > B) return 1 * sortDirection;
-      return 0;
-    });
-  }
-
-  rows.forEach((c) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${c.dutch}</td>
-      <td>${c.english}</td>
-      <td>${c.last_reviewed ?? "-"}</td>
-      <td>${c.due_date ?? "-"}</td>
-      <td><button class="word-edit-btn" onclick="openEditFromList(${c.id})">Edit</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  openScreen("wordreview");
-};
-
-document.querySelectorAll("#word-table th").forEach((th) => {
-  th.addEventListener("click", () => {
-    const col = th.dataset.col;
-    if (!col) return;
-
-    if (sortColumn === col) sortDirection *= -1;
-    else {
-      sortColumn = col;
-      sortDirection = 1;
-    }
-
-    openWordReview();
-  });
 });
 
 /* ------------------------- Reset Learning ------------------------- */
@@ -903,15 +963,17 @@ document.getElementById("edit-save-btn").addEventListener("click", async () => {
     }
   });
 
-  // Refresh UI if needed
-  if (document.getElementById("review-screen").classList.contains("visible")) {
-    renderCurrentCard();
-  }
+  // Refresh browse table and card
   if (document.getElementById("browse-screen").classList.contains("visible")) {
+    buildBrowseList();
+    renderBrowseTable();
+    if (browseIndex >= browseList.length) browseIndex = 0;
     renderBrowseCard();
   }
-  if (document.getElementById("wordreview-screen").classList.contains("visible")) {
-    openWordReview();
+
+  // Refresh review card if visible
+  if (document.getElementById("review-screen").classList.contains("visible")) {
+    renderCurrentCard();
   }
 
   document.getElementById("edit-modal").classList.add("hidden");
