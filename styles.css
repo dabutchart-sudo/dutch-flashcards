@@ -152,7 +152,7 @@ button:hover {
 }
 
 /* ===================== */
-/*        TOAST          */
+/*        TOAST           */
 /* ===================== */
 
 .toast {
@@ -180,4 +180,23 @@ button:hover {
   font-size: 14px;
   color: #555;
   margin-bottom: 10px;
+}
+
+/* ===================== */
+/*      SETTINGS ROW      */
+/* ===================== */
+
+.settings-row {
+  margin: 10px 0 20px 0;
+}
+
+.settings-row label {
+  margin-right: 8px;
+}
+
+.settings-row select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
