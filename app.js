@@ -1,17 +1,20 @@
-// app.js
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, APP_VERSION } from "./config.js";
 
 // Supabase v2 CDN global
 const { createClient } = window.supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// =============== Global State ==================
+// ============================================================
+// Global State
+// ============================================================
 
 let allCards = [];
 let reviewQueue = [];
 let currentIndex = 0;
 
-// =============== Utilities =====================
+// ============================================================
+// Utility Functions
+// ============================================================
 
 function todayStr() {
   const d = new Date();
@@ -24,23 +27,24 @@ function addDays(dateStr, days) {
   return d.toISOString().split("T")[0];
 }
 
-function showToast(message, duration = 2500) {
+function showToast(msg, duration = 2500) {
   const toast = document.getElementById("toast");
-  if (!toast) return;
-  toast.textContent = message;
+  toast.textContent = msg;
   toast.classList.remove("hidden");
   toast.classList.add("show");
+
   setTimeout(() => {
     toast.classList.remove("show");
     toast.classList.add("hidden");
   }, duration);
 }
 
-// =============== Screen Navigation =============
+// ============================================================
+// Navigation
+// ============================================================
 
 function openScreen(name) {
-  const screens = document.querySelectorAll(".screen");
-  screens.forEach((s) => {
+  document.querySelectorAll(".screen").forEach((s) => {
     s.classList.remove("visible");
     s.classList.add("hidden");
   });
@@ -54,7 +58,9 @@ function openScreen(name) {
 
 window.openScreen = openScreen;
 
-// =============== Load Cards =====================
+// ============================================================
+// Load Cards
+// ============================================================
 
 async function loadCards() {
   const { data, error } = await supabaseClient
@@ -73,15 +79,19 @@ async function loadCards() {
   console.log("Loaded cards:", allCards.length);
 }
 
-// =============== Review Session =================
+// ============================================================
+// Review Session Logic
+// ============================================================
 
 function buildReviewQueue() {
   const today = todayStr();
+
   const due = [];
   const fresh = [];
 
   for (const c of allCards) {
     if (c.suspended) continue;
+
     if (c.card_type !== "new" && c.due_date && c.due_date <= today) {
       due.push(c);
     } else if (c.card_type === "new") {
@@ -89,7 +99,6 @@ function buildReviewQueue() {
     }
   }
 
-  // Shuffle
   function shuffle(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -120,6 +129,7 @@ function renderCurrentCard() {
 
   cardText.textContent = card.dutch;
   answerBox.textContent = card.english;
+
   answerBox.classList.add("hidden");
   ratingButtons.classList.add("hidden");
   showAnswerBtn.style.display = "inline-block";
@@ -130,7 +140,6 @@ function startReviewSession() {
 
   if (reviewQueue.length === 0) {
     showToast("No cards available to review.");
-    openScreen("menu");
     return;
   }
 
@@ -139,21 +148,23 @@ function startReviewSession() {
   openScreen("review");
 }
 
-// =============== Show Answer ====================
+window.startReviewSession = startReviewSession;
+
+// ============================================================
+// Show Answer
+// ============================================================
 
 function showAnswer() {
-  const answerBox = document.getElementById("answer-box");
-  const showAnswerBtn = document.getElementById("show-answer-btn");
-  const ratingButtons = document.getElementById("rating-buttons");
-
-  answerBox.classList.remove("hidden");
-  showAnswerBtn.style.display = "none";
-  ratingButtons.classList.remove("hidden");
+  document.getElementById("answer-box").classList.remove("hidden");
+  document.getElementById("show-answer-btn").style.display = "none";
+  document.getElementById("rating-buttons").classList.remove("hidden");
 }
 
 window.showAnswer = showAnswer;
 
-// =============== Handle Rating ==================
+// ============================================================
+// Handle Rating & SRS Updating
+// ============================================================
 
 async function handleRating(rating) {
   const card = reviewQueue[currentIndex];
@@ -161,14 +172,13 @@ async function handleRating(rating) {
 
   const today = todayStr();
   let type = card.card_type || "new";
-  let interval = card.interval_days || 0;
-  let ease = Number(card.ease || 2.5);
-  let reps = card.reps || 0;
-  let lapses = card.lapses || 0;
+  let interval = card.interval_days ?? 0;
+  let ease = Number(card.ease ?? 2.5);
+  let reps = card.reps ?? 0;
+  let lapses = card.lapses ?? 0;
 
-  reps += 1;
+  reps++;
 
-  // Very simple SRS logic
   if (type === "new") {
     if (rating === "again") {
       interval = 1;
@@ -191,9 +201,9 @@ async function handleRating(rating) {
       interval = 3;
       type = "review";
     }
-  } else { // review
+  } else {
     if (rating === "again") {
-      lapses += 1;
+      lapses++;
       ease = Math.max(1.3, ease - 0.2);
       interval = 1;
       type = "learning";
@@ -220,17 +230,18 @@ async function handleRating(rating) {
       lapses,
       last_reviewed: today,
       due_date: dueDate,
-      first_seen: card.first_seen || today
+      first_seen: card.first_seen || today,
     })
     .eq("id", card.id);
 
   if (error) {
-    console.error("handleRating update error:", error);
+    console.error("Rating update error:", error);
     showToast("Error saving review.");
     return;
   }
 
-  currentIndex += 1;
+  currentIndex++;
+
   if (currentIndex >= reviewQueue.length) {
     showToast("Session complete.");
     openScreen("menu");
@@ -242,17 +253,16 @@ async function handleRating(rating) {
 
 window.handleRating = handleRating;
 
-// =============== Add New Card ===================
+// ============================================================
+// Add New Card
+// ============================================================
 
 async function addNewCard() {
-  const dutchInput = document.getElementById("new-dutch");
-  const englishInput = document.getElementById("new-english");
-
-  const dutch = dutchInput.value.trim();
-  const english = englishInput.value.trim();
+  const dutch = document.getElementById("new-dutch").value.trim();
+  const english = document.getElementById("new-english").value.trim();
 
   if (!dutch || !english) {
-    showToast("Please fill in both fields.");
+    showToast("Please fill both fields.");
     return;
   }
 
@@ -267,24 +277,27 @@ async function addNewCard() {
     suspended: false,
     first_seen: null,
     last_reviewed: null,
-    due_date: null
+    due_date: null,
   });
 
   if (error) {
-    console.error("addNewCard error:", error);
+    console.error("Insert error:", error);
     showToast("Error adding card.");
     return;
   }
 
-  dutchInput.value = "";
-  englishInput.value = "";
+  document.getElementById("new-dutch").value = "";
+  document.getElementById("new-english").value = "";
+
   showToast("Card added.");
   await loadCards();
 }
 
 window.addNewCard = addNewCard;
 
-// =============== Reset Learning Data ============
+// ============================================================
+// Reset Learning Data
+// ============================================================
 
 async function resetLearningData() {
   console.log("RESET CALLED");
@@ -294,7 +307,7 @@ async function resetLearningData() {
     .select("id");
 
   if (fetchErr) {
-    console.error("reset fetch error:", fetchErr);
+    console.error(fetchErr);
     showToast("Error fetching cards.");
     return;
   }
@@ -306,7 +319,7 @@ async function resetLearningData() {
 
   const ids = cards.map((c) => c.id);
 
-  const { error: updateErr } = await supabaseClient
+  const { error } = await supabaseClient
     .from("cards")
     .update({
       card_type: "new",
@@ -317,12 +330,12 @@ async function resetLearningData() {
       first_seen: null,
       last_reviewed: null,
       due_date: null,
-      suspended: false
+      suspended: false,
     })
     .in("id", ids);
 
-  if (updateErr) {
-    console.error("reset update error:", updateErr);
+  if (error) {
+    console.error(error);
     showToast("Reset failed.");
     return;
   }
@@ -333,10 +346,16 @@ async function resetLearningData() {
 
 window.resetLearningData = resetLearningData;
 
-// =============== Init ===========================
+// ============================================================
+// Init
+// ============================================================
 
 async function init() {
   console.log("App init");
+
+  const versionBox = document.getElementById("app-version");
+  if (versionBox) versionBox.textContent = "Version: " + APP_VERSION;
+
   const showBtn = document.getElementById("show-answer-btn");
   if (showBtn) {
     showBtn.addEventListener("click", showAnswer);
