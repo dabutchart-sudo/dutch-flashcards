@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dutch Flashcards</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css" />
 
-  <!-- Prevent caching (IMPORTANT) -->
-  <meta http-equiv="cache-control" content="no-cache">
-  <meta http-equiv="pragma" content="no-cache">
-  <meta http-equiv="expires" content="0">
+  <!-- Prevent caching while developing -->
+  <meta http-equiv="cache-control" content="no-cache" />
+  <meta http-equiv="pragma" content="no-cache" />
+  <meta http-equiv="expires" content="0" />
 </head>
 
 <body>
 
-  <!-- ===================== -->
-  <!--       MAIN MENU       -->
-  <!-- ===================== -->
-  <div id="menu-screen" class="screen visible">
+  <!-- ====================== -->
+  <!--        MENU            -->
+  <!-- ====================== -->
+  <div id="menu-screen" style="display: block;">
     <h1>Dutch Flashcards</h1>
 
     <button onclick="openScreen('review')">Start Learning</button>
@@ -25,16 +25,15 @@
     <button onclick="openScreen('settings')">Settings</button>
   </div>
 
-
-  <!-- ===================== -->
-  <!--     REVIEW SCREEN     -->
-  <!-- ===================== -->
-  <div id="review-screen" class="screen hidden">
+  <!-- ====================== -->
+  <!--       REVIEW           -->
+  <!-- ====================== -->
+  <div id="review-screen" style="display: none;">
     <h2>Learning Session</h2>
 
     <div id="card-box">
       <div id="card-text"></div>
-      <button id="show-answer-btn" onclick="showAnswer()">Show Answer</button>
+      <button id="show-answer-btn">Show Answer</button>
       <div id="answer-box" class="hidden"></div>
     </div>
 
@@ -48,48 +47,45 @@
     <button onclick="openScreen('menu')">Back to Menu</button>
   </div>
 
-
-  <!-- ===================== -->
-  <!--     ADD CARD SCREEN   -->
-  <!-- ===================== -->
-  <div id="add-screen" class="screen hidden">
+  <!-- ====================== -->
+  <!--        ADD CARD        -->
+  <!-- ====================== -->
+  <div id="add-screen" style="display: none;">
     <h2>Add New Card</h2>
 
-    <input id="new-dutch" type="text" placeholder="Dutch word...">
-    <input id="new-english" type="text" placeholder="English meaning...">
+    <input id="new-dutch" type="text" placeholder="Dutch word..." />
+    <input id="new-english" type="text" placeholder="English meaning..." />
 
     <button onclick="addNewCard()">Add Card</button>
     <button onclick="openScreen('menu')">Back to Menu</button>
   </div>
 
-
-  <!-- ===================== -->
-  <!--     SETTINGS SCREEN   -->
-  <!-- ===================== -->
-  <div id="settings-screen" class="screen hidden">
+  <!-- ====================== -->
+  <!--       SETTINGS         -->
+  <!-- ====================== -->
+  <div id="settings-screen" style="display: none;">
     <h2>Settings</h2>
 
-    <p><strong>Danger Zone:</strong></p>
-
-    <label class="setting-row">
-      <input type="checkbox" id="reset-confirm">
-      Confirm reset of ALL learning data
-    </label>
-
-    <button id="reset-btn" onclick="resetLearningData()" disabled>
-      Reset All Learning Data
+    <button id="reset-btn" onclick="resetLearningData()">
+      Reset ALL Learning Data
     </button>
 
     <button onclick="openScreen('menu')">Back to Menu</button>
   </div>
 
-
-  <!-- ===================== -->
-  <!--        TOAST          -->
-  <!-- ===================== -->
+  <!-- ====================== -->
+  <!--         TOAST          -->
+  <!-- ====================== -->
   <div id="toast" class="toast hidden"></div>
 
-  <!-- Load the JS file (with cache-breaker) -->
+  <!-- ===================================================== -->
+  <!-- Load Supabase BEFORE app.js (THIS IS REQUIRED!)       -->
+  <!-- ===================================================== -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- ===================================================== -->
+  <!-- Your App JS (cache-busted during testing)             -->
+  <!-- ===================================================== -->
   <script type="module" src="app.js?v=999"></script>
 
 </body>
