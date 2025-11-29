@@ -1,7 +1,4 @@
-/* ===================== */
-/*        GENERAL         */
-/* ===================== */
-
+/* GENERAL */
 body {
   font-family: Arial, sans-serif;
   background: #f4f4f4;
@@ -9,25 +6,9 @@ body {
   text-align: center;
 }
 
-h1, h2 {
-  margin-bottom: 20px;
-}
-
-.screen {
-  display: none;
-}
-
-.screen.visible {
-  display: block;
-}
-
-.hidden {
-  display: none !important;
-}
-
-/* ===================== */
-/*        BUTTONS         */
-/* ===================== */
+.screen { display: none; }
+.screen.visible { display: block; }
+.hidden { display: none !important; }
 
 button {
   padding: 12px 22px;
@@ -38,42 +19,22 @@ button {
   background: #ff8800;
   color: white;
   cursor: pointer;
-  transition: background 0.2s;
 }
+button:hover { background: #e07000; }
 
-button:hover {
-  background: #e07000;
-}
-
-/* ===================== */
-/*     RATING BUTTONS     */
-/* ===================== */
-
-.rating {
-  width: 120px;
-}
-
+/* RATING BUTTONS */
+.rating { width: 120px; }
 .rating.again { background: #d9534f; }
-.rating.again:hover { background: #c9302c; }
+.rating.hard  { background: #f0ad4e; }
+.rating.good  { background: #5cb85c; }
+.rating.easy  { background: #5bc0de; }
 
-.rating.hard { background: #f0ad4e; }
-.rating.hard:hover { background: #ec971f; }
-
-.rating.good { background: #5cb85c; }
-.rating.good:hover { background: #449d44; }
-
-.rating.easy { background: #5bc0de; }
-.rating.easy:hover { background: #31b0d5; }
-
-/* ===================== */
-/*       FLIP CARD        */
-/* ===================== */
-
+/* FLASHCARD + SPACING FIX */
 .flip-container {
   perspective: 1000px;
   width: 360px;
   margin: 0 auto;
-  margin-bottom: 80px;   /* <<< FIXED: prevents overlap */
+  margin-bottom: 90px; /* <<< ensures no overlap */
 }
 
 .flipper {
@@ -88,6 +49,7 @@ button:hover {
   transform: rotateY(180deg);
 }
 
+/* CARD FACE */
 .card-face {
   backface-visibility: hidden;
   position: absolute;
@@ -95,35 +57,37 @@ button:hover {
   width: 100%; height: 260px;
   border-radius: 16px;
   background: white;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 
-  padding: 30px 20px;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.back { transform: rotateY(180deg); }
+
+.flag {
+  position: absolute;
+  top: 10px; left: 10px;
+  font-size: 28px;
+}
+
+.card-text {
   font-size: 26px;
   line-height: 1.35;
-  display: flex;
   text-align: center;
-  justify-content: center;
-  align-items: center;
+  white-space: pre-wrap;
 }
 
-.back {
-  transform: rotateY(180deg);
-}
-
-/* ===================== */
-/*   REVIEW COUNTER       */
-/* ===================== */
-
+/* COUNTER */
 .review-counter {
-  font-size: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 15px;
   color: #333;
 }
 
-/* ===================== */
-/*  WORD REVIEW TABLE     */
-/* ===================== */
-
+/* WORD REVIEW TABLE */
 #word-table {
   margin: 0 auto 20px;
   border-collapse: collapse;
@@ -133,26 +97,17 @@ button:hover {
   border-radius: 8px;
   overflow: hidden;
 }
-
 #word-table th, #word-table td {
   padding: 10px;
   border-bottom: 1px solid #ddd;
 }
-
 #word-table th {
   background: #ff8800;
   color: white;
   cursor: pointer;
 }
 
-#word-table tr:hover {
-  background: #f7f7f7;
-}
-
-/* ===================== */
-/*        TOAST           */
-/* ===================== */
-
+/* TOAST */
 .toast {
   position: fixed;
   bottom: 20px;
@@ -166,35 +121,11 @@ button:hover {
   opacity: 0;
   transition: opacity 0.25s ease;
 }
-.toast.show {
-  opacity: 1;
-}
+.toast.show { opacity: 1; }
 
-/* ===================== */
-/*      VERSION TEXT      */
-/* ===================== */
-
+/* VERSION */
 .version {
   font-size: 14px;
   color: #555;
   margin-bottom: 10px;
-}
-
-/* ===================== */
-/*      SETTINGS ROW      */
-/* ===================== */
-
-.settings-row {
-  margin: 10px 0 20px 0;
-}
-
-.settings-row label {
-  margin-right: 8px;
-}
-
-.settings-row select {
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
 }
