@@ -2,214 +2,237 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dutch Flashcards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="styles.css?v=109" />
-
-  <!-- REQUIRED: Supabase library -->
-  <script src="https://unpkg.com/@supabase/supabase-js"></script>
-
-  <!-- Chart.js (for reports) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Config (APP_VERSION, keys) -->
-  <script src="config.js?v=109"></script>
+  <meta http-equiv="cache-control" content="no-cache" />
+  <meta http-equiv="pragma" content="no-cache" />
+  <meta http-equiv="expires" content="0" />
 </head>
 
 <body>
 
-<!-- MAIN MENU -->
-<div id="menu-screen" class="screen visible">
-
-  <div class="menu-title">
-    <div class="menu-flags">🇳🇱 🇬🇧</div>
+  <!-- MAIN MENU -->
+  <div id="menu-screen" class="screen visible">
     <h1>Dutch Flashcards</h1>
-  </div>
+    <div id="app-version" class="version"></div>
 
-  <div class="summary-panel">
-    <div id="summary-today"></div>
-    <div id="summary-tomorrow"></div>
-  </div>
-
-  <div class="menu-buttons">
-    <button onclick="startReviewSession()">Start Review</button>
-    <button onclick="openBrowse()">Browse Cards</button>
-    <button onclick="openReport()">Progress Report</button>
-    <button onclick="openScreen('settings')">Settings</button>
-  </div>
-
-  <div id="app-version" class="version"></div>
-</div>
-
-<!-- REVIEW SCREEN -->
-<div id="review-screen" class="screen hidden">
-
-  <div class="screen-header">
-    <div class="screen-title">Review</div>
-    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
-  </div>
-
-  <div class="progress-wrapper">
-    <div class="progress-container">
-      <div id="review-progress-bar" class="progress-bar"></div>
+    <div id="summary-panel" class="summary-panel">
+      <h2>Study Summary</h2>
+      <div class="summary-row"><strong>Today:</strong> —</div>
+      <div class="summary-row"><strong>Tomorrow:</strong> —</div>
     </div>
-    <div id="review-counter" class="review-counter"></div>
-  </div>
 
-  <div class="flip-container">
-    <div id="card-flipper" class="flipper">
-
-      <div class="card-face front">
-        <span class="flag">🇳🇱</span>
-        <button class="tts-btn" onclick="tts()">🔊</button>
-        <button class="hint-btn hidden" id="review-hint-btn" onclick="openHintModal()">💡</button>
-        <div id="card-front-text" class="card-text centered"></div>
-      </div>
-
-      <div class="card-face back">
-        <span class="flag">🇬🇧</span>
-        <div id="card-back-text" class="card-text centered"></div>
-      </div>
-
+    <div class="menu-buttons">
+      <button onclick="startReviewSession()">Review Cards</button>
+      <button onclick="openBrowse()">Browse</button>
+      <button onclick="openReport()">Report</button>
+      <button onclick="openScreen('settings')">Settings</button>
     </div>
   </div>
 
-  <div id="rating-buttons" class="rating-row hidden">
-    <button class="rating-btn again" onclick="handleRating('again')">Again</button>
-    <button class="rating-btn hard" onclick="handleRating('hard')">Hard</button>
-    <button class="rating-btn good" onclick="handleRating('good')">Good</button>
-    <button class="rating-btn easy" onclick="handleRating('easy')">Easy</button>
-  </div>
-</div>
+  <!-- REVIEW SCREEN -->
+  <div id="review-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
+    <h2>Review Cards</h2>
 
-<!-- BROWSE SCREEN -->
-<div id="browse-screen" class="screen hidden">
+    <button id="review-edit-btn" class="small-secondary-btn">Edit This Card</button>
 
-  <div class="screen-header">
-    <div class="screen-title">Browse Cards</div>
-    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
-  </div>
+    <div id="card-status" class="card-status"></div>
 
-  <!-- Alphabet Scroll Bar -->
-  <div class="alphabet-scroll">
-    <div id="alphabet-picker" class="alphabet-row"></div>
-  </div>
+    <div class="progress-wrapper">
+      <div class="progress-container">
+        <div id="review-progress-bar" class="progress-bar"></div>
+      </div>
+      <div id="review-counter" class="review-counter">0 / 0</div>
+    </div>
 
-  <!-- Table -->
-  <div class="table-scroll">
-    <table id="word-table">
-      <thead>
-        <tr>
-          <th onclick="sortBrowse('dutch')">Dutch</th>
-          <th onclick="sortBrowse('english')">English</th>
-          <th onclick="sortBrowse('last_reviewed')">Last Reviewed</th>
-          <th onclick="sortBrowse('due_date')">Due Date</th>
-          <th onclick="sortBrowse('image_url')">Image</th>
-          <th>View</th>
-        </tr>
-      </thead>
-      <tbody id="word-tbody"></tbody>
-    </table>
-  </div>
-
-  <!-- FLASHCARD VIEW -->
-  <div id="browse-flashcard-view" class="hidden">
-    <div class="flip-container">
-      <div id="browse-flipper" class="flipper" onclick="toggleBrowseFlip()">
-
-        <div class="card-face front">
-          <button class="tts-btn" onclick="browseTTS()">🔊</button>
-          <button class="hint-btn hidden" id="browse-hint-btn" onclick="openHintModal()">💡</button>
-          <div id="browse-front-text" class="card-text centered"></div>
+    <div id="card-box" class="flip-container">
+      <div id="card-flipper" class="flipper">
+        <!-- FRONT (Dutch) -->
+        <div class="front card-face">
+          <div class="flag">🇳🇱</div>
+          <button id="tts-btn" class="tts-btn">🔊</button>
+          <button id="hint-btn" class="hint-btn">💡</button>
+          <div class="card-text centered" id="card-front-text"></div>
         </div>
 
-        <div class="card-face back">
-          <div id="browse-back-text" class="card-text centered"></div>
+        <!-- BACK (English) -->
+        <div class="back card-face">
+          <div class="flag">🇬🇧</div>
+          <div class="card-text centered" id="card-back-text"></div>
         </div>
-
       </div>
     </div>
 
-    <div class="rating-row">
-      <button class="secondary-btn" onclick="browsePrev()">Prev</button>
-      <button class="primary-btn" onclick="openImagePicker()">Pick Image</button>
-      <button class="secondary-btn" onclick="browseNext()">Next</button>
+    <div id="rating-buttons" class="rating-row hidden">
+      <button onclick="handleRating('again')" class="rating-btn again">Again</button>
+      <button onclick="handleRating('hard')" class="rating-btn hard">Hard</button>
+      <button onclick="handleRating('good')" class="rating-btn good">Good</button>
+      <button onclick="handleRating('easy')" class="rating-btn easy">Easy</button>
+    </div>
+  </div>
+
+  <!-- BROWSE SCREEN (combined Table + Flashcard) -->
+  <div id="browse-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
+    <h2>Browse</h2>
+
+    <div class="browse-view-toggle">
+      <span>View:</span>
+      <button id="browse-view-table-btn" class="browse-view-btn active">Table</button>
+      <button id="browse-view-card-btn" class="browse-view-btn">Flashcard</button>
     </div>
 
-    <button class="secondary-btn" onclick="returnToBrowseTable()">Back to Table</button>
-  </div>
-</div>
-
-<!-- REPORT SCREEN -->
-<div id="report-screen" class="screen hidden">
-
-  <div class="screen-header">
-    <div class="screen-title">Progress</div>
-    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
-  </div>
-
-  <div class="report-modes">
-    <button class="report-group-btn" onclick="setReportMode('day')">Day</button>
-    <button class="report-group-btn" onclick="setReportMode('month')">Month</button>
-    <button class="report-group-btn" onclick="setReportMode('year')">Year</button>
-  </div>
-
-  <canvas id="report-chart"></canvas>
-</div>
-
-<!-- SETTINGS SCREEN -->
-<div id="settings-screen" class="screen hidden">
-  <div class="screen-header">
-    <div class="screen-title">Settings</div>
-    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
-  </div>
-
-  <div class="settings-row">
-    <label>Max new cards per day:</label>
-    <select id="max-new-cards-select">
-      <option>5</option>
-      <option>10</option>
-      <option>15</option>
-      <option>20</option>
-    </select>
-  </div>
-</div>
-
-<!-- HINT MODAL -->
-<div id="hint-modal" class="modal hidden">
-  <div class="hint-content">
-    <img id="hint-image" />
-    <button onclick="closeHintModal()">Close</button>
-  </div>
-</div>
-
-<!-- IMAGE PICKER MODAL -->
-<div id="image-picker-modal" class="modal hidden">
-  <div class="image-picker-content">
-    <h2>Select an Image</h2>
-
-    <div class="search-row">
-      <input id="image-search-input" type="text" />
-      <button class="primary-btn search-btn" onclick="runImageSearch()">Search</button>
+    <!-- TABLE VIEW -->
+    <div id="browse-table-view">
+      <table id="browse-table">
+        <thead>
+          <tr>
+            <th data-col="dutch">Dutch</th>
+            <th data-col="english">English</th>
+            <th data-col="last_reviewed">Last Reviewed</th>
+            <th data-col="due_date">Next Review Date</th>
+            <th>Image</th>
+          </tr>
+        </thead>
+        <tbody id="browse-table-body"></tbody>
+      </table>
+      <p class="browse-hint-text">Tip: Tap a row to view the flashcard.</p>
     </div>
 
-    <div id="image-picker-grid" class="image-picker-grid"></div>
+    <!-- FLASHCARD VIEW -->
+    <div id="browse-card-view" class="hidden">
+      <button id="browse-edit-btn" class="small-secondary-btn">Edit This Card</button>
 
-    <div id="image-picker-preview" class="image-picker-preview hidden">
-      <img id="selected-image-preview" />
-      <button class="primary-btn" onclick="confirmImageSelection()">Use this image</button>
-      <button class="secondary-btn" onclick="cancelImagePreview()">Cancel</button>
+      <div id="browse-status" class="card-status"></div>
+
+      <div class="progress-wrapper">
+        <div class="progress-container">
+          <div id="browse-progress-bar" class="progress-bar"></div>
+        </div>
+        <div id="browse-counter" class="review-counter">0 / 0</div>
+      </div>
+
+      <div id="browse-card-box" class="flip-container">
+        <div id="browse-card-flipper" class="flipper">
+          <!-- FRONT (Dutch) -->
+          <div class="front card-face">
+            <div class="flag">🇳🇱</div>
+            <button id="browse-tts-btn" class="tts-btn">🔊</button>
+            <button id="browse-hint-btn" class="hint-btn">💡</button>
+            <div class="card-text centered" id="browse-front-text"></div>
+          </div>
+
+          <!-- BACK (English) -->
+          <div class="back card-face">
+            <div class="flag">🇬🇧</div>
+            <div class="card-text centered" id="browse-back-text"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="browse-nav-row">
+        <button id="browse-prev-btn" class="small-secondary-btn">⬅ Prev</button>
+        <button id="browse-next-btn" class="small-secondary-btn">Next ➡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT -->
+  <div id="report-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
+    <h2>Report</h2>
+
+    <div class="report-controls">
+      <button class="report-group-btn active" data-mode="day">Day</button>
+      <button class="report-group-btn" data-mode="month">Month</button>
+      <button class="report-group-btn" data-mode="year">Year</button>
     </div>
 
-    <button class="close-btn" onclick="closeImagePicker()">Close</button>
+    <div class="chart-container">
+      <canvas id="report-chart"></canvas>
+    </div>
   </div>
-</div>
 
-<div id="toast" class="toast"></div>
+  <!-- SETTINGS -->
+  <div id="settings-screen" class="screen hidden">
+    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
+    <h2>Settings</h2>
 
-<script src="app.js?v=109"></script>
+    <div class="settings-row">
+      <label for="max-new-cards-select">Max new cards per day:</label>
+      <select id="max-new-cards-select">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+        <option value="25">25</option>
+        <option value="30">30</option>
+      </select>
+    </div>
+
+    <button id="reset-btn" onclick="resetLearningData()">Reset ALL Learning Data</button>
+  </div>
+
+  <!-- HINT MODAL -->
+  <div id="hint-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Hint</h3>
+      <img id="hint-image" alt="Hint image" />
+      <button id="hint-close-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- SESSION SUMMARY MODAL -->
+  <div id="session-summary-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Session Summary</h3>
+      <div id="session-summary-text"></div>
+      <ul id="session-summary-list"></ul>
+      <button id="session-summary-close-btn">OK</button>
+    </div>
+  </div>
+
+  <!-- EDIT CARD MODAL -->
+  <div id="edit-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Edit Card</h3>
+
+      <label for="edit-dutch">Dutch</label>
+      <input id="edit-dutch" type="text" />
+
+      <label for="edit-english">English</label>
+      <input id="edit-english" type="text" />
+
+      <div class="edit-image-section">
+        <p>Current image:</p>
+        <img id="edit-current-image" alt="Current" class="hidden" />
+        <p id="edit-no-image-text">No image set.</p>
+      </div>
+
+      <label for="edit-image-search">Image search (English)</label>
+      <input id="edit-image-search" type="text" />
+
+      <button id="edit-search-btn" class="small-secondary-btn">Search Images</button>
+
+      <div id="edit-image-results" class="image-grid"></div>
+
+      <div class="edit-modal-actions">
+        <button id="edit-save-btn" class="primary-btn">Save</button>
+        <button id="edit-cancel-btn" class="small-secondary-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="config.js"></script>
+  <script type="module" src="app.js?v=40"></script>
 
 </body>
 </html>
