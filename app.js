@@ -378,6 +378,7 @@ window.handleRating = async function (rating) {
     suspended: false,
   };
 
+  // Update card scheduling info
   const { error } = await supabase
     .from("cards")
     .update(update)
@@ -387,6 +388,20 @@ window.handleRating = async function (rating) {
     console.error(error);
     showToast("Save failed");
     return;
+  }
+
+  // Log review event
+  const { error: reviewLogError } = await supabase
+    .from("reviews")
+    .insert({
+      card_id: card.id,
+      rating: rating,
+      event_date: todayStr(),
+    });
+
+  if (reviewLogError) {
+    console.error("Review log failed:", reviewLogError);
+    showToast("Warning: review not logged");
   }
 
   sessionResults.push({
@@ -714,31 +729,39 @@ document.querySelectorAll(".report-group-btn").forEach((btn) => {
   });
 });
 
-function buildReportChart(mode) {
+async function buildReportChart(mode) {
   if (reportChart) {
     reportChart.destroy();
     reportChart = null;
   }
 
-  const ctx = document.getElementById("report-chart");
+  // 1. Fetch all review logs
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("event_date, rating");
+
+  if (error) {
+    console.error("Report load error:", error);
+    return;
+  }
+
+  // Aggregate counts
   const daily = {};
   const monthly = {};
   const yearly = {};
 
-  for (const c of allCards) {
-    if (!c.first_seen) continue;
-
-    const d = c.first_seen;
-    const m = d.slice(0, 7);
-    const y = d.slice(0, 4);
+  data.forEach((r) => {
+    const d = r.event_date;
+    const m = d.slice(0, 7); // YYYY-MM
+    const y = d.slice(0, 4); // YYYY
 
     daily[d] = (daily[d] || 0) + 1;
     monthly[m] = (monthly[m] || 0) + 1;
     yearly[y] = (yearly[y] || 0) + 1;
-  }
+  });
 
   let labels = [];
-  let data = [];
+  let dataset = [];
 
   if (mode === "day") {
     const now = new Date();
@@ -749,24 +772,25 @@ function buildReportChart(mode) {
     for (let d = 1; d <= daysInMonth; d++) {
       const iso = new Date(yr, mo, d).toISOString().slice(0, 10);
       labels.push(iso);
-      data.push(daily[iso] || 0);
+      dataset.push(daily[iso] || 0);
     }
   } else if (mode === "month") {
     labels = Object.keys(monthly).sort();
-    data = labels.map((k) => monthly[k]);
+    dataset = labels.map((k) => monthly[k]);
   } else {
     labels = Object.keys(yearly).sort();
-    data = labels.map((k) => yearly[k]);
+    dataset = labels.map((k) => yearly[k]);
   }
 
+  const ctx = document.getElementById("report-chart");
   reportChart = new Chart(ctx, {
     type: "bar",
     data: {
       labels,
       datasets: [
         {
-          label: "New learned",
-          data,
+          label: "Total Reviews",
+          data: dataset,
           backgroundColor: "#ff8800",
         },
       ],
