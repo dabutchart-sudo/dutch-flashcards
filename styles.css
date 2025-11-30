@@ -11,7 +11,7 @@ body {
   max-width: 480px;
   margin: 0 auto;
   position: relative;
-  padding-top: 70px; /* extra space now BELOW fixed header */
+  padding-top: 70px; /* space for fixed header */
 }
 
 .screen.visible {
@@ -23,53 +23,55 @@ body {
 }
 
 /* ------------------------------------------------------ */
-/*                FIXED HEADER BAR (NEW)                  */
+/* FIXED HEADER BAR – TITLE CENTERED, HOME ON RIGHT        */
 /* ------------------------------------------------------ */
 .screen-header {
-  position: fixed;          /* always at top */
+  position: fixed;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  height: 60px;
 
+  height: 60px;
   display: flex;
-  justify-content: space-between;
+
+  justify-content: center;      /* center title */
   align-items: center;
 
   padding: 0 16px;
   background: #f4f4f4;
-
-  z-index: 50;
-  box-sizing: border-box;
   border-bottom: 1px solid #ddd;
+
+  z-index: 100;
+  box-sizing: border-box;
 }
 
 .screen-title {
   font-size: 24px;
   font-weight: bold;
-  text-align: left;
+  text-align: center;
+  flex: 1; /* allows perfect centering */
 }
 
-/* BIG HOME BUTTON */
+/* Home button aligned RIGHT */
 .home-btn {
-  font-size: 40px;    /* larger icon for mobile */
+  position: absolute;
+  right: 16px;
+  font-size: 40px;
   background: none;
   border: none;
   cursor: pointer;
   line-height: 1;
-  padding: 0;
-  margin: 0;
 }
 
-/* Remove old back button */
+/* Remove old back buttons */
 .back-btn {
   display: none !important;
 }
 
 /* ------------------------------------------------------ */
-/*                     MENU TITLE                         */
+/* MENU TITLE + FLAGS                                      */
 /* ------------------------------------------------------ */
 .menu-title {
   margin-top: 20px;
@@ -82,12 +84,12 @@ body {
   font-weight: bold;
 }
 
-/* 3× larger emoji flags */
+/* 3× flags */
 .menu-flags {
   font-size: 96px;
 }
 
-/* Version moved to bottom */
+/* Version at bottom */
 .version {
   position: fixed;
   bottom: 10px;
@@ -154,14 +156,7 @@ body {
   color: #555;
 }
 
-/* Card status */
-.card-status {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-/* Flashcard */
+/* Flashcards */
 .flip-container {
   perspective: 1000px;
   width: 360px;
@@ -199,7 +194,6 @@ body {
   transform: rotateY(180deg);
 }
 
-/* Flags on flashcards */
 .flag {
   position: absolute;
   top: 10px;
@@ -207,14 +201,13 @@ body {
   font-size: 22px;
 }
 
-/* TTS & Hint buttons */
 .tts-btn {
   position: absolute;
   top: 10px;
   right: 10px;
+  font-size: 22px;
   background: transparent;
   border: none;
-  font-size: 22px;
   cursor: pointer;
 }
 
@@ -222,16 +215,16 @@ body {
   position: absolute;
   top: 10px;
   right: 45px;
+  font-size: 20px;
   background: transparent;
   border: none;
-  font-size: 20px;
   cursor: pointer;
 }
 
 .card-text.centered {
   font-size: 22px;
-  white-space: pre-wrap;
   text-align: center;
+  white-space: pre-wrap;
 }
 
 /* Rating buttons */
@@ -256,14 +249,3 @@ body {
 .rating-btn.hard  { background: #f0ad4e; }
 .rating-btn.good  { background: #5cb85c; }
 .rating-btn.easy  { background: #5bc0de; }
-
-/* Browse table */
-#browse-table {
-  width: 100%;
-  background: white;
-  border-collapse: collapse;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* You may keep the remaining CSS exactly as before */
