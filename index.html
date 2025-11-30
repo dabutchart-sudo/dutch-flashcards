@@ -13,14 +13,12 @@
 
 <!-- MENU SCREEN -->
 <div id="menu-screen" class="screen visible">
-  <div class="version" id="app-version"></div>
 
-  <!-- ⭐ NEW TITLE HEADER ⭐ -->
+  <!-- Title -->
   <div class="menu-title">
     <div class="menu-flags">🇳🇱 🇬🇧</div>
     <h1>Dutch Flashcards</h1>
   </div>
-  <!-- ⭐ END TITLE HEADER ⭐ -->
 
   <div class="summary-panel" id="summary-panel">
     <div class="summary-row" id="summary-today"></div>
@@ -33,11 +31,18 @@
     <button onclick="openReport()">Report</button>
     <button onclick="openScreen('settings')">Settings</button>
   </div>
+
+  <!-- Version now at bottom -->
+  <div class="version" id="app-version"></div>
 </div>
 
 <!-- REVIEW SCREEN -->
 <div id="review-screen" class="screen hidden">
-  <button class="back-btn" onclick="openScreen('menu')">Back</button>
+
+  <div class="screen-header">
+    <div class="screen-title">Review</div>
+    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
+  </div>
 
   <div class="progress-wrapper">
     <div class="progress-container">
@@ -74,14 +79,17 @@
 
 <!-- BROWSE SCREEN -->
 <div id="browse-screen" class="screen hidden">
-  <button class="back-btn" onclick="openScreen('menu')">Back</button>
+
+  <div class="screen-header">
+    <div class="screen-title">Browse</div>
+    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
+  </div>
 
   <div style="margin-bottom:20px;">
     <button id="browse-table-btn" class="primary-btn" onclick="showBrowseTable()">Table View</button>
     <button id="browse-flashcard-btn" class="primary-btn" onclick="startBrowseFlashcard()">Flashcard View</button>
   </div>
 
-  <!-- TABLE VIEW -->
   <div id="browse-table-view">
     <table id="word-table">
       <thead>
@@ -96,7 +104,6 @@
     </table>
   </div>
 
-  <!-- FLASHCARD VIEW -->
   <div id="browse-flashcard-view" class="hidden">
     <div class="flip-container">
       <div id="browse-flipper" class="flipper">
@@ -123,7 +130,11 @@
 
 <!-- REPORT SCREEN -->
 <div id="report-screen" class="screen hidden">
-  <button class="back-btn" onclick="openScreen('menu')">Back</button>
+
+  <div class="screen-header">
+    <div class="screen-title">Report</div>
+    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
+  </div>
 
   <div class="report-controls">
     <button class="report-group-btn" onclick="setReportMode('day')">Day</button>
@@ -138,7 +149,11 @@
 
 <!-- SETTINGS -->
 <div id="settings-screen" class="screen hidden">
-  <button class="back-btn" onclick="openScreen('menu')">Back</button>
+
+  <div class="screen-header">
+    <div class="screen-title">Settings</div>
+    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
+  </div>
 
   <div class="settings-row">
     <label for="max-new-cards-select">Max new cards per day:</label>
