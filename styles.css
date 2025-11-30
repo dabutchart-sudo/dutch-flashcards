@@ -13,7 +13,7 @@ body {
   max-width: 480px;
   margin: 0 auto;
   position: relative;
-  padding-top: 70px; /* Accounts for fixed header */
+  padding-top: 70px;
 }
 
 .screen.visible {
@@ -37,7 +37,7 @@ body {
   height: 60px;
 
   display: flex;
-  justify-content: center; /* center title */
+  justify-content: center;
   align-items: center;
 
   padding: 0 16px;
@@ -64,7 +64,7 @@ body {
 }
 
 /* ---------------------------------------------------------
-   MENU TITLE + FLAGS
+   MENU TITLE
 --------------------------------------------------------- */
 .menu-title {
   margin-top: 20px;
@@ -289,7 +289,7 @@ body {
 }
 
 /* ---------------------------------------------------------
-   BROWSE BUTTONS
+   GENERAL BUTTONS
 --------------------------------------------------------- */
 .primary-btn {
   background: #ff8800;
@@ -338,6 +338,27 @@ body {
   text-align: center;
 }
 
+/* Search bar row (horizontal layout) */
+.search-row {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.search-row input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.search-btn {
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+
 .close-btn {
   margin-top: 15px;
   padding: 10px 16px;
@@ -365,14 +386,14 @@ body {
   border-color: #ff8800;
 }
 
+.image-picker-preview {
+  margin-top: 20px;
+}
+
 .image-picker-preview img {
   width: 100%;
   border-radius: 10px;
   margin-bottom: 10px;
-}
-
-.image-picker-preview {
-  margin-top: 20px;
 }
 
 /* ---------------------------------------------------------
