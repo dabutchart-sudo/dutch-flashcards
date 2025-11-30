@@ -1,18 +1,32 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Dutch Flashcards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Styles -->
   <link rel="stylesheet" href="styles.css?v=108" />
+
+  <!-- REQUIRED: Supabase Library (this was missing) -->
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+
+  <!-- Reports -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Your config (contains APP_VERSION, keys, etc.) -->
   <script src="config.js?v=108"></script>
 </head>
+
 <body>
 
-<!-- MAIN MENU -->
+<!-- ==========================================================
+     MAIN MENU
+========================================================== -->
 <div id="menu-screen" class="screen visible">
+
   <div class="menu-title">
-    <div class="menu-flags">🇳🇱🇬🇧</div>
+    <div class="menu-flags">🇳🇱 🇬🇧</div>
     <h1>Dutch Flashcards</h1>
   </div>
 
@@ -25,19 +39,17 @@
     <button onclick="startReviewSession()">Start Review</button>
     <button onclick="openBrowse()">Browse Cards</button>
     <button onclick="openReport()">Progress Report</button>
-
-    <label>Max new cards per day:</label>
-    <select id="max-new-cards-select">
-      <option>5</option><option>10</option>
-      <option>15</option><option>20</option>
-    </select>
+    <button onclick="openScreen('settings')">Settings</button>
   </div>
 
-  <div id="app-version" class="version">Version: </div>
+  <div id="app-version" class="version"></div>
 </div>
 
-<!-- REVIEW SCREEN -->
+<!-- ==========================================================
+     REVIEW SCREEN
+========================================================== -->
 <div id="review-screen" class="screen hidden">
+
   <div class="screen-header">
     <div class="screen-title">Review</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
@@ -52,21 +64,23 @@
 
   <div class="flip-container">
     <div id="card-flipper" class="flipper">
+
       <div class="card-face front">
-        <div class="flag">🇳🇱</div>
+        <span class="flag">🇳🇱</span>
         <button class="tts-btn" onclick="tts()">🔊</button>
-        <button id="review-hint-btn" class="hint-btn hidden" onclick="openHintModal()">💡</button>
+        <button class="hint-btn hidden" id="review-hint-btn" onclick="openHintModal()">💡</button>
         <div id="card-front-text" class="card-text centered"></div>
       </div>
 
       <div class="card-face back">
-        <div class="flag">🇬🇧</div>
+        <span class="flag">🇬🇧</span>
         <div id="card-back-text" class="card-text centered"></div>
       </div>
+
     </div>
   </div>
 
-  <div class="rating-row" id="rating-buttons">
+  <div id="rating-buttons" class="rating-row hidden">
     <button class="rating-btn again" onclick="handleRating('again')">Again</button>
     <button class="rating-btn hard" onclick="handleRating('hard')">Hard</button>
     <button class="rating-btn good" onclick="handleRating('good')">Good</button>
@@ -74,21 +88,22 @@
   </div>
 </div>
 
-<!-- BROWSE SCREEN -->
+<!-- ==========================================================
+     BROWSE SCREEN
+========================================================== -->
 <div id="browse-screen" class="screen hidden">
+
   <div class="screen-header">
     <div class="screen-title">Browse Cards</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
   </div>
 
-  <!-- A–Z Picker -->
+  <!-- Alphabet Scroll Bar -->
   <div class="alphabet-scroll">
-    <div id="alphabet-picker" class="alphabet-row">
-      <!-- Generated in JS -->
-    </div>
+    <div id="alphabet-picker" class="alphabet-row"></div>
   </div>
 
-  <!-- Scrollable table wrapper -->
+  <!-- Horizontal Scroll Table -->
   <div class="table-scroll">
     <table id="word-table">
       <thead>
@@ -105,18 +120,21 @@
     </table>
   </div>
 
+  <!-- Flashcard View -->
   <div id="browse-flashcard-view" class="hidden">
     <div class="flip-container">
       <div id="browse-flipper" class="flipper" onclick="toggleBrowseFlip()">
+
         <div class="card-face front">
           <button class="tts-btn" onclick="browseTTS()">🔊</button>
-          <button id="browse-hint-btn" class="hint-btn hidden" onclick="openHintModal()">💡</button>
+          <button class="hint-btn hidden" id="browse-hint-btn" onclick="openHintModal()">💡</button>
           <div id="browse-front-text" class="card-text centered"></div>
         </div>
 
         <div class="card-face back">
           <div id="browse-back-text" class="card-text centered"></div>
         </div>
+
       </div>
     </div>
 
@@ -128,8 +146,11 @@
   </div>
 </div>
 
-<!-- REPORT SCREEN -->
+<!-- ==========================================================
+     REPORT SCREEN
+========================================================== -->
 <div id="report-screen" class="screen hidden">
+
   <div class="screen-header">
     <div class="screen-title">Progress</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
@@ -144,21 +165,46 @@
   <canvas id="report-chart"></canvas>
 </div>
 
-<!-- HINT MODAL -->
+<!-- ==========================================================
+     SETTINGS SCREEN  (restored)
+========================================================== -->
+<div id="settings-screen" class="screen hidden">
+
+  <div class="screen-header">
+    <div class="screen-title">Settings</div>
+    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
+  </div>
+
+  <div class="settings-row">
+    <label for="max-new-cards-select">Max new cards per day:</label>
+    <select id="max-new-cards-select">
+      <option>5</option>
+      <option>10</option>
+      <option>15</option>
+      <option>20</option>
+    </select>
+  </div>
+</div>
+
+<!-- ==========================================================
+     HINT MODAL
+========================================================== -->
 <div id="hint-modal" class="modal hidden">
   <div class="hint-content">
-    <img id="hint-image" src="" />
+    <img id="hint-image" />
     <button onclick="closeHintModal()">Close</button>
   </div>
 </div>
 
-<!-- IMAGE PICKER MODAL -->
+<!-- ==========================================================
+     IMAGE PICKER MODAL
+========================================================== -->
 <div id="image-picker-modal" class="modal hidden">
   <div class="image-picker-content">
     <h2>Select an Image</h2>
 
     <div class="search-row">
-      <input id="image-search-input" type="text" />
+      <input id="image-search-input" type="text" placeholder="Search term…" />
       <button class="primary-btn search-btn" onclick="runImageSearch()">Search</button>
     </div>
 
@@ -174,8 +220,14 @@
   </div>
 </div>
 
-<div id="toast" class="toast">Toast</div>
+<!-- ==========================================================
+     TOAST
+========================================================== -->
+<div id="toast" class="toast"></div>
 
+<!-- ==========================================================
+     MAIN APP SCRIPT (must be last)
+========================================================== -->
 <script src="app.js?v=108"></script>
 
 </body>
