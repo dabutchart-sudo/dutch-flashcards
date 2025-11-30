@@ -662,7 +662,7 @@ async function buildReportChart() {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: true,
       animation: { duration: 500 },
       scales: {
         x: {
@@ -733,3 +733,4 @@ window.addEventListener("load", async () => {
     openScreen("menu");
   }
 });
+
