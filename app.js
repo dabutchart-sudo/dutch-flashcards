@@ -1,11 +1,12 @@
 /* =========================================================
-   app.js  —  Version 110  (Full, Updated)
+   app.js  —  Version 110 (Full, Cleaned - Option 2)
    Includes:
    - Openverse via Cloudflare Worker Proxy
    - Browse View Fixes
    - A–Z Picker
    - Sorting
    - Multi-load
+   - Review UI wired to current HTML
 ============================================================ */
 
 /* -------------------------------
@@ -205,7 +206,7 @@ async function recordReview(card, success) {
 }
 
 /* ============================================================\
-   REVIEW SESSION
+   REVIEW SESSION (cleaned & safe)
 ============================================================ */
 
 function getReviewQueue() {
@@ -241,11 +242,13 @@ window.startReviewSession = async function () {
   showReviewCard(reviewQueue[currentReviewIndex]);
 };
 
-openScreen("review");
-showReviewCard(reviewQueue[currentReviewIndex]);
-
+// NOTE: removed the accidental global calls:
+// openScreen("review");
+// showReviewCard(reviewQueue[currentReviewIndex]);
 
 function showReviewCard(card) {
+  if (!card) return;
+
   // Update card text
   document.getElementById("card-front-text").textContent = card.dutch;
   document.getElementById("card-back-text").textContent = card.english;
@@ -258,7 +261,7 @@ function showReviewCard(card) {
   const bar = document.getElementById("review-progress-bar");
   const counter = document.getElementById("review-counter");
 
-  const total = reviewQueue.length;
+  const total = reviewQueue.length || 1;
   const current = currentReviewIndex + 1;
 
   bar.style.width = `${(current / total) * 100}%`;
@@ -273,22 +276,20 @@ function showReviewCard(card) {
   else hintBtn.classList.add("hidden");
 }
 
-
 window.flipCard = function () {
   const flipper = document.getElementById("card-flipper");
   flipper.classList.toggle("flip");
 
-  // Show rating buttons ONLY when showing the back
   const showingBack = flipper.classList.contains("flip");
-  if (showingBack) {
-    document.getElementById("rating-buttons").classList.remove("hidden");
-  } else {
-    document.getElementById("rating-buttons").classList.add("hidden");
-  }
+  document
+    .getElementById("rating-buttons")
+    .classList.toggle("hidden", !showingBack);
 };
 
 window.answerReview = async function (success) {
   const card = reviewQueue[currentReviewIndex];
+  if (!card) return;
+
   await recordReview(card, success);
 
   currentReviewIndex++;
@@ -307,7 +308,7 @@ window.showHint = function () {
   const modal = document.getElementById("hint-modal");
   const imgElement = document.getElementById("hint-image");
 
-  if (card.image_url) {
+  if (card && card.image_url) {
     imgElement.src = card.image_url;
     imgElement.onerror = () => {
       imgElement.src = "https://placehold.co/400x300/CCCCCC/333333?text=Image+Failed";
@@ -609,8 +610,6 @@ function updateSummaryPanel() {
    REPORTS (Chart Logic)
 ============================================================ */
 
-// Functions provided by user start here.
-
 async function loadReviewHistory() {
   const { data, error } = await supabaseClient
     .from("reviews")
@@ -751,5 +750,3 @@ window.addEventListener("load", async () => {
     openScreen("menu");
   }
 });
-
-
