@@ -237,37 +237,54 @@ window.startReviewSession = async function () {
     return;
   }
 
-  document.getElementById("review-total").textContent = reviewQueue.length;
-  document.getElementById("review-remaining").textContent = reviewQueue.length;
-
   openScreen("review");
   showReviewCard(reviewQueue[currentReviewIndex]);
 };
 
+openScreen("review");
+showReviewCard(reviewQueue[currentReviewIndex]);
+
+
 function showReviewCard(card) {
-  const cardElement = document.getElementById("review-card");
-  const levelDisplay = document.getElementById("review-level");
+  // Update card text
+  document.getElementById("card-front-text").textContent = card.dutch;
+  document.getElementById("card-back-text").textContent = card.english;
 
-  // Reset state
-  cardElement.classList.remove("flip-to-back");
-  document.getElementById("review-front").textContent = card.dutch;
-  document.getElementById("review-back").textContent = card.english;
-  levelDisplay.textContent = `Lvl: ${card.leitner_level}`;
+  // Reset flip
+  const flipper = document.getElementById("card-flipper");
+  flipper.classList.remove("flip");
 
-  // Update progress
-  document.getElementById("review-current-index").textContent = currentReviewIndex + 1;
-  document.getElementById("review-remaining").textContent = reviewQueue.length - currentReviewIndex;
+  // Update progress bar & counter
+  const bar = document.getElementById("review-progress-bar");
+  const counter = document.getElementById("review-counter");
 
-  // Preload image for hint
-  if (card.image_url) {
-    const img = new Image();
-    img.src = card.image_url;
-  }
+  const total = reviewQueue.length;
+  const current = currentReviewIndex + 1;
+
+  bar.style.width = `${(current / total) * 100}%`;
+  counter.textContent = `${current} / ${total}`;
+
+  // Rating buttons hidden until flip
+  document.getElementById("rating-buttons").classList.add("hidden");
+
+  // Hint visibility
+  const hintBtn = document.getElementById("review-hint-btn");
+  if (card.image_url) hintBtn.classList.remove("hidden");
+  else hintBtn.classList.add("hidden");
 }
 
+
 window.flipCard = function () {
-  const cardElement = document.getElementById("review-card");
-  cardElement.classList.toggle("flip-to-back");
+  const flipper = document.getElementById("card-flipper");
+  flipper.classList.toggle("flip");
+
+  // Show rating buttons ONLY when showing the back
+  const showingBack = flipper.classList.contains("flip");
+  if (showingBack) {
+    document.getElementById("rating-buttons").classList.remove("hidden");
+  } else {
+    document.getElementById("rating-buttons").classList.add("hidden");
+  }
 };
 
 window.answerReview = async function (success) {
@@ -275,10 +292,11 @@ window.answerReview = async function (success) {
   await recordReview(card, success);
 
   currentReviewIndex++;
+
   if (currentReviewIndex < reviewQueue.length) {
     showReviewCard(reviewQueue[currentReviewIndex]);
   } else {
-    showToast("Session complete! Updating summary...");
+    showToast("Session complete!");
     updateSummaryPanel();
     openScreen("menu");
   }
@@ -733,4 +751,5 @@ window.addEventListener("load", async () => {
     openScreen("menu");
   }
 });
+
 
