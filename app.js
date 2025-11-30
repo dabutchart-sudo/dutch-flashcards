@@ -1,9 +1,5 @@
 // =========================================================
-// app.js v104 — Wikimedia Image Picker Edition
-// Includes:
-//  - Viewer mode
-//  - Image Picker modal
-//  - Wikimedia API search (no API key needed)
+// app.js v105 — Wikimedia Image Picker + Editable Search
 // =========================================================
 
 // ------------ SUPABASE INIT ------------
@@ -18,14 +14,12 @@ let currentReviewIndex = 0;
 let browseData = [];
 let browseIndex = 0;
 
+let selectedImageURL = null;
 let reportChart = null;
 let reportMode = "day";
 
-// Image picker (global selected URL)
-let selectedImageURL = null;
-
 // ---------------------------------------------------------
-// UTIL
+// UTILS
 // ---------------------------------------------------------
 function todayStr() {
   return new Date().toISOString().split("T")[0];
@@ -66,7 +60,7 @@ function setMaxNewCardsPerDay(v) {
 }
 
 // ---------------------------------------------------------
-// SCREENS
+// SCREEN HANDLING
 // ---------------------------------------------------------
 function openScreenInternal(name) {
   document.querySelectorAll(".screen").forEach((s) => {
@@ -86,7 +80,7 @@ function openScreenInternal(name) {
 window.openScreen = (n) => openScreenInternal(n);
 
 // ---------------------------------------------------------
-// LOAD CARDS
+// LOAD CARDS (UNCHANGED – obeys your "before range fix" request)
 // ---------------------------------------------------------
 async function loadCards() {
   const { data, error } = await supabaseClient
@@ -95,16 +89,17 @@ async function loadCards() {
     .order("id");
 
   if (error) {
-    console.error("loadCards:", error);
+    console.error("loadCards error:", error);
     showToast("Error loading cards");
     allCards = [];
     return;
   }
+
   allCards = data || [];
 }
 
 // ---------------------------------------------------------
-// REVIEW QUEUE
+// BUILD REVIEW QUEUE
 // ---------------------------------------------------------
 function buildReviewQueue() {
   const today = todayStr();
@@ -127,6 +122,7 @@ function buildReviewQueue() {
   shuffle(newList);
 
   const introducedToday = allCards.filter((c) => c.first_seen === today).length;
+
   let remaining = maxNew - introducedToday;
   if (remaining < 0) remaining = 0;
 
@@ -238,7 +234,7 @@ window.startReviewSession = async function () {
 };
 
 // ---------------------------------------------------------
-// FLIP REVIEW CARD
+// FLIP – REVIEW MODE
 // ---------------------------------------------------------
 (() => {
   const container = document.querySelector("#review-screen .flip-container");
@@ -267,7 +263,7 @@ window.startReviewSession = async function () {
 })();
 
 // ---------------------------------------------------------
-// TTS REVIEW
+// REVIEW TTS
 // ---------------------------------------------------------
 window.tts = function () {
   const card = reviewQueue[currentReviewIndex];
@@ -279,15 +275,15 @@ window.tts = function () {
 };
 
 // ---------------------------------------------------------
-// HINT / IMAGE MODAL (REVIEW OR BROWSE)
+// HINT MODAL (SHARED WITH BROWSE)
 // ---------------------------------------------------------
 window.openHintModal = function () {
-  const reviewVisible = document.getElementById("review-screen").classList.contains("visible");
-  const browseVisible = document.getElementById("browse-screen").classList.contains("visible");
+  const isReview = document.getElementById("review-screen").classList.contains("visible");
+  const isBrowse = document.getElementById("browse-screen").classList.contains("visible");
 
   let card = null;
-  if (reviewVisible) card = reviewQueue[currentReviewIndex];
-  else if (browseVisible) card = browseData[browseIndex];
+  if (isReview) card = reviewQueue[currentReviewIndex];
+  else if (isBrowse) card = browseData[browseIndex];
 
   if (!card || !card.image_url) {
     showToast("No hint image available");
@@ -305,8 +301,7 @@ window.closeHintModal = () => {
 };
 
 // ---------------------------------------------------------
-// REVIEW RATING
-// (unchanged from v103)
+// REVIEW RATING LOGIC (unchanged)
 // ---------------------------------------------------------
 window.handleRating = async function (rating) {
   const card = reviewQueue[currentReviewIndex];
@@ -355,32 +350,27 @@ window.handleRating = async function (rating) {
   const due_date = addDays(today, interval);
   const first_seen = card.first_seen || today;
 
-  const { error } = await supabaseClient.from("cards").update({
-    card_type: type,
-    interval_days: interval,
-    ease,
-    reps,
-    lapses,
-    first_seen,
-    last_reviewed: today,
-    due_date,
-    suspended: false
-  }).eq("id", card.id);
+  await supabaseClient.from("cards")
+    .update({
+      card_type: type,
+      interval_days: interval,
+      ease,
+      reps,
+      lapses,
+      first_seen,
+      last_reviewed: today,
+      due_date,
+      suspended: false
+    })
+    .eq("id", card.id);
 
-  if (error) {
-    console.error("Card update error:", error);
-    showToast("Failed to save review");
-    return;
-  }
-
-  const review_type = (first_seen === today ? "new" : "review");
-
-  await supabaseClient.from("reviews").insert({
-    card_id: card.id,
-    rating,
-    event_date: today,
-    review_type
-  });
+  await supabaseClient.from("reviews")
+    .insert({
+      card_id: card.id,
+      rating,
+      event_date: today,
+      review_type: (first_seen === today ? "new" : "review")
+    });
 
   currentReviewIndex++;
 
@@ -509,36 +499,53 @@ window.browseTTS = function () {
 };
 
 // ---------------------------------------------------------
-// IMAGE PICKER (WIKIMEDIA SEARCH)
+// IMAGE PICKER — OPEN
 // ---------------------------------------------------------
 window.openImagePicker = function () {
   const modal = document.getElementById("image-picker-modal");
   const grid = document.getElementById("image-picker-grid");
   const preview = document.getElementById("image-picker-preview");
+  const searchInput = document.getElementById("image-search-input");
 
   grid.innerHTML = "";
   preview.classList.add("hidden");
   selectedImageURL = null;
 
+  const card = browseData[browseIndex];
+
+  // Default search term = English word
+  searchInput.value = card.english || card.dutch;
+
   modal.classList.remove("hidden");
 
-  const card = browseData[browseIndex];
-  searchImagesFor(card.dutch);
+  runImageSearch();
 };
 
 window.closeImagePicker = function () {
   document.getElementById("image-picker-modal").classList.add("hidden");
 };
 
-function cancelImagePreview() {
-  selectedImageURL = null;
-  document.getElementById("image-picker-preview").classList.add("hidden");
-}
+// ---------------------------------------------------------
+// IMAGE PICKER — RUN SEARCH
+// ---------------------------------------------------------
+window.runImageSearch = async function () {
+  const grid = document.getElementById("image-picker-grid");
+  const preview = document.getElementById("image-picker-preview");
+  const searchInput = document.getElementById("image-search-input");
+  const query = searchInput.value.trim();
 
-async function searchImagesFor(term) {
+  if (!query) {
+    showToast("Please enter a search term");
+    return;
+  }
+
+  grid.innerHTML = "<p>Searching…</p>";
+  preview.classList.add("hidden");
+  selectedImageURL = null;
+
   const url =
     `https://commons.wikimedia.org/w/api.php?action=query&` +
-    `generator=search&gsrsearch=${encodeURIComponent(term)}&gsrlimit=12&` +
+    `generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=12&` +
     `prop=imageinfo&iiprop=url&format=json&origin=*`;
 
   try {
@@ -546,7 +553,6 @@ async function searchImagesFor(term) {
     const data = await res.json();
 
     const pages = data.query?.pages || {};
-    const grid = document.getElementById("image-picker-grid");
     grid.innerHTML = "";
 
     Object.values(pages).forEach((p) => {
@@ -560,7 +566,7 @@ async function searchImagesFor(term) {
       grid.appendChild(thumb);
     });
 
-    if (grid.innerHTML.trim() === "") {
+    if (!grid.innerHTML.trim()) {
       grid.innerHTML = "<p>No images found.</p>";
     }
 
@@ -568,8 +574,19 @@ async function searchImagesFor(term) {
     console.error(err);
     showToast("Image search failed");
   }
-}
+};
 
+// Press Enter to search
+document.addEventListener("keypress", (e) => {
+  const modalVisible = !document.getElementById("image-picker-modal").classList.contains("hidden");
+  if (modalVisible && e.key === "Enter") {
+    runImageSearch();
+  }
+});
+
+// ---------------------------------------------------------
+// SELECT IMAGE FOR PREVIEW
+// ---------------------------------------------------------
 function selectImageForPreview(url) {
   selectedImageURL = url;
 
@@ -581,7 +598,7 @@ function selectImageForPreview(url) {
 }
 
 // ---------------------------------------------------------
-// SAVE SELECTED IMAGE TO SUPABASE
+// CONFIRM IMAGE SELECTION — SAVE TO SUPABASE
 // ---------------------------------------------------------
 window.confirmImageSelection = async function () {
   if (!selectedImageURL) {
@@ -591,28 +608,28 @@ window.confirmImageSelection = async function () {
 
   const card = browseData[browseIndex];
 
-  // Save URL to DB
   const { error } = await supabaseClient
     .from("cards")
     .update({ image_url: selectedImageURL })
     .eq("id", card.id);
 
   if (error) {
-    console.error("Image save error:", error);
+    console.error(error);
     showToast("Failed to save image");
     return;
   }
 
-  // Update local cache
   card.image_url = selectedImageURL;
 
-  // Refresh viewer
   renderBrowseFlashcard();
-
-  // Close modal
   closeImagePicker();
 
   showToast("Image added!");
+};
+
+window.cancelImagePreview = function () {
+  selectedImageURL = null;
+  document.getElementById("image-picker-preview").classList.add("hidden");
 };
 
 // ---------------------------------------------------------
@@ -647,7 +664,7 @@ function updateSummaryPanel() {
 }
 
 // ---------------------------------------------------------
-// REPORTS (unchanged except formatting)
+// REPORTS (unchanged)
 // ---------------------------------------------------------
 window.openReport = async function () {
   await loadCards();
@@ -683,8 +700,8 @@ async function buildReportChart() {
   }
 
   const counts = {};
-  (data || []).forEach((row) => {
-    const date = row.event_date;
+  (data || []).forEach((r) => {
+    const date = r.event_date;
     if (!date) return;
 
     let key =
@@ -695,7 +712,7 @@ async function buildReportChart() {
         : date.slice(0, 4);
 
     if (!counts[key]) counts[key] = { new: 0, review: 0 };
-    counts[key][row.review_type] += 1;
+    counts[key][r.review_type]++;
   });
 
   const labels = Object.keys(counts).sort();
@@ -711,18 +728,8 @@ async function buildReportChart() {
     data: {
       labels,
       datasets: [
-        {
-          label: "New",
-          data: newData,
-          backgroundColor: "#ff8800",
-          stack: "stack"
-        },
-        {
-          label: "Review",
-          data: reviewData,
-          backgroundColor: "#4287f5",
-          stack: "stack"
-        }
+        { label: "New", data: newData, backgroundColor: "#ff8800", stack: "stack" },
+        { label: "Review", data: reviewData, backgroundColor: "#4287f5", stack: "stack" }
       ]
     },
     options: {
