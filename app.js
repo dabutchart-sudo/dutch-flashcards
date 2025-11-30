@@ -1,10 +1,16 @@
-// app.js v103 — Includes Browse Viewer Mode, Image Column, and Hint Fixes
+// =========================================================
+// app.js v104 — Wikimedia Image Picker Edition
+// Includes:
+//  - Viewer mode
+//  - Image Picker modal
+//  - Wikimedia API search (no API key needed)
+// =========================================================
 
-// ---- Supabase init ----
+// ------------ SUPABASE INIT ------------
 const { createClient } = window.supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ---- Global state ----
+// ------------ GLOBAL STATE ------------
 let allCards = [];
 let reviewQueue = [];
 let currentReviewIndex = 0;
@@ -15,7 +21,12 @@ let browseIndex = 0;
 let reportChart = null;
 let reportMode = "day";
 
-// ---- Utility helpers ----
+// Image picker (global selected URL)
+let selectedImageURL = null;
+
+// ---------------------------------------------------------
+// UTIL
+// ---------------------------------------------------------
 function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
@@ -41,40 +52,50 @@ function shuffle(arr) {
   }
 }
 
-// ---- Settings ----
+// ---------------------------------------------------------
+// SETTINGS
+// ---------------------------------------------------------
 const MAX_NEW_KEY = "maxNewCardsPerDay";
 
 function getMaxNewCardsPerDay() {
   return parseInt(localStorage.getItem(MAX_NEW_KEY) || "10", 10);
 }
 
-function setMaxNewCardsPerDay(val) {
-  localStorage.setItem(MAX_NEW_KEY, String(val));
+function setMaxNewCardsPerDay(v) {
+  localStorage.setItem(MAX_NEW_KEY, String(v));
 }
 
-// ---- Screen navigation ----
+// ---------------------------------------------------------
+// SCREENS
+// ---------------------------------------------------------
 function openScreenInternal(name) {
   document.querySelectorAll(".screen").forEach((s) => {
     s.classList.remove("visible");
     s.classList.add("hidden");
   });
 
-  const screen = document.getElementById(`${name}-screen`);
-  if (screen) {
-    screen.classList.add("visible");
-    screen.classList.remove("hidden");
+  const scr = document.getElementById(`${name}-screen`);
+  if (scr) {
+    scr.classList.add("visible");
+    scr.classList.remove("hidden");
   }
 
   if (name === "menu") updateSummaryPanel();
 }
 
-window.openScreen = (name) => openScreenInternal(name);
+window.openScreen = (n) => openScreenInternal(n);
 
-// ---- Load cards ----
+// ---------------------------------------------------------
+// LOAD CARDS
+// ---------------------------------------------------------
 async function loadCards() {
-  const { data, error } = await supabaseClient.from("cards").select("*").order("id");
+  const { data, error } = await supabaseClient
+    .from("cards")
+    .select("*")
+    .order("id");
+
   if (error) {
-    console.error("loadCards error:", error);
+    console.error("loadCards:", error);
     showToast("Error loading cards");
     allCards = [];
     return;
@@ -82,39 +103,41 @@ async function loadCards() {
   allCards = data || [];
 }
 
-// ---- Build review queue ----
+// ---------------------------------------------------------
+// REVIEW QUEUE
+// ---------------------------------------------------------
 function buildReviewQueue() {
   const today = todayStr();
   const maxNew = getMaxNewCardsPerDay();
 
   const due = [];
-  const newCandidates = [];
+  const newList = [];
 
   for (const c of allCards) {
     if (c.suspended) continue;
 
-    const isDue = c.card_type !== "new" && c.due_date && c.due_date <= today;
+    const dueNow = c.card_type !== "new" && c.due_date && c.due_date <= today;
+    const isNew = c.card_type === "new" && (!c.first_seen || c.first_seen === null);
 
-    const isTrulyNew =
-      c.card_type === "new" && (c.first_seen === null || c.first_seen === undefined);
-
-    if (isDue) due.push(c);
-    else if (isTrulyNew) newCandidates.push(c);
+    if (dueNow) due.push(c);
+    else if (isNew) newList.push(c);
   }
 
-  const introducedToday = allCards.filter((c) => c.first_seen === today).length;
-  let remainingNew = maxNew - introducedToday;
-  if (remainingNew < 0) remainingNew = 0;
-
   shuffle(due);
-  shuffle(newCandidates);
+  shuffle(newList);
 
-  const selectedNew = newCandidates.slice(0, remainingNew);
+  const introducedToday = allCards.filter((c) => c.first_seen === today).length;
+  let remaining = maxNew - introducedToday;
+  if (remaining < 0) remaining = 0;
+
+  const selectedNew = newList.slice(0, remaining);
 
   reviewQueue = [...due, ...selectedNew];
 }
 
-// ---- Review UI ----
+// ---------------------------------------------------------
+// REVIEW UI
+// ---------------------------------------------------------
 function updateReviewCounter() {
   const el = document.getElementById("review-counter");
   if (!el) return;
@@ -136,7 +159,8 @@ function updateReviewProgressBar() {
     return;
   }
 
-  bar.style.width = `${(currentReviewIndex / reviewQueue.length) * 100}%`;
+  bar.style.width =
+    (currentReviewIndex / reviewQueue.length) * 100 + "%";
 }
 
 function updateCardStatus(card) {
@@ -164,14 +188,14 @@ function renderCurrentReviewCard() {
   const card = reviewQueue[currentReviewIndex];
 
   const flipper = document.getElementById("card-flipper");
-  const frontText = document.getElementById("card-front-text");
-  const backText = document.getElementById("card-back-text");
+  const front = document.getElementById("card-front-text");
+  const back = document.getElementById("card-back-text");
   const ratingRow = document.getElementById("rating-buttons");
   const hintBtn = document.getElementById("review-hint-btn");
 
   if (!card) {
-    frontText.textContent = "";
-    backText.textContent = "";
+    front.textContent = "";
+    back.textContent = "";
     ratingRow.classList.add("hidden");
     hintBtn.classList.add("hidden");
     updateCardStatus(null);
@@ -183,8 +207,8 @@ function renderCurrentReviewCard() {
   flipper.classList.remove("flip");
   void flipper.offsetWidth;
 
-  frontText.textContent = card.dutch;
-  backText.textContent = "";
+  front.textContent = card.dutch;
+  back.textContent = "";
   ratingRow.classList.add("hidden");
 
   if (card.image_url) hintBtn.classList.remove("hidden");
@@ -195,8 +219,10 @@ function renderCurrentReviewCard() {
   updateReviewProgressBar();
 }
 
-// ---- Start Review Session ----
-window.startReviewSession = async () => {
+// ---------------------------------------------------------
+// START REVIEW
+// ---------------------------------------------------------
+window.startReviewSession = async function () {
   await loadCards();
   updateSummaryPanel();
   buildReviewQueue();
@@ -211,7 +237,9 @@ window.startReviewSession = async () => {
   openScreenInternal("review");
 };
 
-// ---- Flip (review) ----
+// ---------------------------------------------------------
+// FLIP REVIEW CARD
+// ---------------------------------------------------------
 (() => {
   const container = document.querySelector("#review-screen .flip-container");
   if (!container) return;
@@ -221,11 +249,11 @@ window.startReviewSession = async () => {
     if (!card) return;
 
     const flipper = document.getElementById("card-flipper");
-    const backText = document.getElementById("card-back-text");
+    const back = document.getElementById("card-back-text");
     const ratingRow = document.getElementById("rating-buttons");
 
     if (!flipper.classList.contains("flip")) {
-      backText.textContent = card.english;
+      back.textContent = card.english;
     }
 
     flipper.classList.toggle("flip");
@@ -238,7 +266,9 @@ window.startReviewSession = async () => {
   });
 })();
 
-// ---- TTS (review) ----
+// ---------------------------------------------------------
+// TTS REVIEW
+// ---------------------------------------------------------
 window.tts = function () {
   const card = reviewQueue[currentReviewIndex];
   if (!card) return;
@@ -248,7 +278,9 @@ window.tts = function () {
   speechSynthesis.speak(u);
 };
 
-// ---- Hint modal ----
+// ---------------------------------------------------------
+// HINT / IMAGE MODAL (REVIEW OR BROWSE)
+// ---------------------------------------------------------
 window.openHintModal = function () {
   const reviewVisible = document.getElementById("review-screen").classList.contains("visible");
   const browseVisible = document.getElementById("browse-screen").classList.contains("visible");
@@ -272,7 +304,10 @@ window.closeHintModal = () => {
   document.getElementById("hint-modal").classList.add("hidden");
 };
 
-// ---- Rating Handler (review mode) ----
+// ---------------------------------------------------------
+// REVIEW RATING
+// (unchanged from v103)
+// ---------------------------------------------------------
 window.handleRating = async function (rating) {
   const card = reviewQueue[currentReviewIndex];
   if (!card) return;
@@ -329,7 +364,7 @@ window.handleRating = async function (rating) {
     first_seen,
     last_reviewed: today,
     due_date,
-    suspended: false,
+    suspended: false
   }).eq("id", card.id);
 
   if (error) {
@@ -339,14 +374,13 @@ window.handleRating = async function (rating) {
   }
 
   const review_type = (first_seen === today ? "new" : "review");
-  const { error: logErr } = await supabaseClient.from("reviews").insert({
+
+  await supabaseClient.from("reviews").insert({
     card_id: card.id,
     rating,
     event_date: today,
-    review_type,
+    review_type
   });
-
-  if (logErr) console.error("Review log insert error:", logErr);
 
   currentReviewIndex++;
 
@@ -362,7 +396,9 @@ window.handleRating = async function (rating) {
   renderCurrentReviewCard();
 };
 
-// ---- Browse (NEW VERSION) ----
+// ---------------------------------------------------------
+// BROWSE MODE
+// ---------------------------------------------------------
 window.openBrowse = async function () {
   await loadCards();
   updateSummaryPanel();
@@ -404,7 +440,9 @@ function renderBrowseTable() {
   });
 }
 
-// ---- Viewer mode ----
+// ---------------------------------------------------------
+// BROWSE VIEWER MODE
+// ---------------------------------------------------------
 function startBrowseViewerMode() {
   renderBrowseFlashcard();
   document.getElementById("browse-table-view").classList.add("hidden");
@@ -415,13 +453,13 @@ function renderBrowseFlashcard() {
   const card = browseData[browseIndex];
 
   const flipper = document.getElementById("browse-flipper");
-  const frontText = document.getElementById("browse-front-text");
-  const backText = document.getElementById("browse-back-text");
+  const front = document.getElementById("browse-front-text");
+  const back = document.getElementById("browse-back-text");
   const hintBtn = document.getElementById("browse-hint-btn");
 
   if (!card) {
-    frontText.textContent = "";
-    backText.textContent = "";
+    front.textContent = "";
+    back.textContent = "";
     hintBtn.classList.add("hidden");
     return;
   }
@@ -429,8 +467,8 @@ function renderBrowseFlashcard() {
   flipper.classList.remove("flip");
   void flipper.offsetWidth;
 
-  frontText.textContent = card.dutch;
-  backText.textContent = "";
+  front.textContent = card.dutch;
+  back.textContent = "";
 
   if (card.image_url) hintBtn.classList.remove("hidden");
   else hintBtn.classList.add("hidden");
@@ -441,10 +479,10 @@ window.toggleBrowseFlip = function () {
   if (!card) return;
 
   const flipper = document.getElementById("browse-flipper");
-  const backText = document.getElementById("browse-back-text");
+  const back = document.getElementById("browse-back-text");
 
   if (!flipper.classList.contains("flip")) {
-    backText.textContent = card.english;
+    back.textContent = card.english;
   }
 
   flipper.classList.toggle("flip");
@@ -463,13 +501,123 @@ window.browseNext = function () {
 window.browseTTS = function () {
   const card = browseData[browseIndex];
   if (!card) return;
+
   const u = new SpeechSynthesisUtterance(card.dutch);
   u.lang = "nl-NL";
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
 };
 
-// ---- Summary panel ----
+// ---------------------------------------------------------
+// IMAGE PICKER (WIKIMEDIA SEARCH)
+// ---------------------------------------------------------
+window.openImagePicker = function () {
+  const modal = document.getElementById("image-picker-modal");
+  const grid = document.getElementById("image-picker-grid");
+  const preview = document.getElementById("image-picker-preview");
+
+  grid.innerHTML = "";
+  preview.classList.add("hidden");
+  selectedImageURL = null;
+
+  modal.classList.remove("hidden");
+
+  const card = browseData[browseIndex];
+  searchImagesFor(card.dutch);
+};
+
+window.closeImagePicker = function () {
+  document.getElementById("image-picker-modal").classList.add("hidden");
+};
+
+function cancelImagePreview() {
+  selectedImageURL = null;
+  document.getElementById("image-picker-preview").classList.add("hidden");
+}
+
+async function searchImagesFor(term) {
+  const url =
+    `https://commons.wikimedia.org/w/api.php?action=query&` +
+    `generator=search&gsrsearch=${encodeURIComponent(term)}&gsrlimit=12&` +
+    `prop=imageinfo&iiprop=url&format=json&origin=*`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const pages = data.query?.pages || {};
+    const grid = document.getElementById("image-picker-grid");
+    grid.innerHTML = "";
+
+    Object.values(pages).forEach((p) => {
+      const img = p.imageinfo?.[0]?.url;
+      if (!img) return;
+
+      const thumb = document.createElement("img");
+      thumb.src = img;
+      thumb.onclick = () => selectImageForPreview(img);
+
+      grid.appendChild(thumb);
+    });
+
+    if (grid.innerHTML.trim() === "") {
+      grid.innerHTML = "<p>No images found.</p>";
+    }
+
+  } catch (err) {
+    console.error(err);
+    showToast("Image search failed");
+  }
+}
+
+function selectImageForPreview(url) {
+  selectedImageURL = url;
+
+  const previewDiv = document.getElementById("image-picker-preview");
+  const img = document.getElementById("selected-image-preview");
+
+  img.src = url;
+  previewDiv.classList.remove("hidden");
+}
+
+// ---------------------------------------------------------
+// SAVE SELECTED IMAGE TO SUPABASE
+// ---------------------------------------------------------
+window.confirmImageSelection = async function () {
+  if (!selectedImageURL) {
+    showToast("No image selected");
+    return;
+  }
+
+  const card = browseData[browseIndex];
+
+  // Save URL to DB
+  const { error } = await supabaseClient
+    .from("cards")
+    .update({ image_url: selectedImageURL })
+    .eq("id", card.id);
+
+  if (error) {
+    console.error("Image save error:", error);
+    showToast("Failed to save image");
+    return;
+  }
+
+  // Update local cache
+  card.image_url = selectedImageURL;
+
+  // Refresh viewer
+  renderBrowseFlashcard();
+
+  // Close modal
+  closeImagePicker();
+
+  showToast("Image added!");
+};
+
+// ---------------------------------------------------------
+// SUMMARY PANEL
+// ---------------------------------------------------------
 function updateSummaryPanel() {
   const todayEl = document.getElementById("summary-today");
   const tomorrowEl = document.getElementById("summary-tomorrow");
@@ -498,7 +646,9 @@ function updateSummaryPanel() {
   tomorrowEl.textContent = `Tomorrow: New ${newTomorrow}, Review ${reviewTomorrow}`;
 }
 
-// ---- Reports ----
+// ---------------------------------------------------------
+// REPORTS (unchanged except formatting)
+// ---------------------------------------------------------
 window.openReport = async function () {
   await loadCards();
   updateSummaryPanel();
@@ -516,8 +666,8 @@ window.setReportMode = function (mode) {
 
 function updateReportButtons() {
   const modes = ["day", "month", "year"];
-  document.querySelectorAll(".report-group-btn").forEach((btn, idx) => {
-    if (modes[idx] === reportMode) btn.classList.add("active");
+  document.querySelectorAll(".report-group-btn").forEach((btn, i) => {
+    if (modes[i] === reportMode) btn.classList.add("active");
     else btn.classList.remove("active");
   });
 }
@@ -528,7 +678,7 @@ async function buildReportChart() {
     .select("event_date, review_type");
 
   if (error) {
-    console.error("Report load error:", error);
+    console.error(error);
     return;
   }
 
@@ -545,7 +695,7 @@ async function buildReportChart() {
         : date.slice(0, 4);
 
     if (!counts[key]) counts[key] = { new: 0, review: 0 };
-    counts[key][row.review_type === "new" ? "new" : "review"]++;
+    counts[key][row.review_type] += 1;
   });
 
   const labels = Object.keys(counts).sort();
@@ -553,6 +703,7 @@ async function buildReportChart() {
   const reviewData = labels.map((k) => counts[k].review);
 
   const ctx = document.getElementById("report-chart");
+
   if (reportChart) reportChart.destroy();
 
   reportChart = new Chart(ctx, {
@@ -560,34 +711,45 @@ async function buildReportChart() {
     data: {
       labels,
       datasets: [
-        { label: "New", data: newData, backgroundColor: "#ff8800", stack: "stack1" },
-        { label: "Review", data: reviewData, backgroundColor: "#4287f5", stack: "stack1" },
-      ],
+        {
+          label: "New",
+          data: newData,
+          backgroundColor: "#ff8800",
+          stack: "stack"
+        },
+        {
+          label: "Review",
+          data: reviewData,
+          backgroundColor: "#4287f5",
+          stack: "stack"
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
         x: { stacked: true },
-        y: { stacked: true, beginAtZero: true },
-      },
-    },
+        y: { stacked: true, beginAtZero: true }
+      }
+    }
   });
 }
 
-// ---- Init ----
+// ---------------------------------------------------------
+// INIT
+// ---------------------------------------------------------
 window.addEventListener("load", async () => {
-  const verEl = document.getElementById("app-version");
-  if (verEl) verEl.textContent = `Version: ${APP_VERSION}`;
+  const ver = document.getElementById("app-version");
+  if (ver) ver.textContent = `Version: ${APP_VERSION}`;
 
-  const maxNewSelect = document.getElementById("max-new-cards-select");
-  if (maxNewSelect) {
-    maxNewSelect.value = String(getMaxNewCardsPerDay());
-    maxNewSelect.addEventListener("change", () => {
-      const v = parseInt(maxNewSelect.value, 10);
-      setMaxNewCardsPerDay(v);
+  const maxNewSel = document.getElementById("max-new-cards-select");
+  if (maxNewSel) {
+    maxNewSel.value = String(getMaxNewCardsPerDay());
+    maxNewSel.addEventListener("change", () => {
+      setMaxNewCardsPerDay(parseInt(maxNewSel.value, 10));
       updateSummaryPanel();
-      showToast("Max new cards updated");
+      showToast("Max cards updated");
     });
   }
 
