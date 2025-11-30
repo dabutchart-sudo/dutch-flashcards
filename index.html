@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dutch Flashcards</title>
-  <link rel="stylesheet" href="styles.css?v=103"/>
+  <link rel="stylesheet" href="styles.css?v=104"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
 </head>
@@ -13,7 +13,6 @@
 
 <!-- MENU SCREEN -->
 <div id="menu-screen" class="screen visible">
-
   <div class="menu-title">
     <div class="menu-flags">🇳🇱 🇬🇧</div>
     <h1>Dutch Flashcards</h1>
@@ -82,7 +81,7 @@
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
   </div>
 
-  <!-- TABLE ONLY -->
+  <!-- TABLE VIEW -->
   <div id="browse-table-view">
     <table id="word-table">
       <thead>
@@ -97,14 +96,16 @@
     </table>
   </div>
 
-  <!-- FLASHCARD VIEW (Viewer Mode Only) -->
+  <!-- FLASHCARD VIEW (Viewer Mode) -->
   <div id="browse-flashcard-view" class="hidden">
+
     <div class="flip-container">
       <div id="browse-flipper" class="flipper">
         <div class="card-face front">
           <span class="flag">🇳🇱</span>
           <button class="tts-btn" onclick="browseTTS()">🔊</button>
           <button class="hint-btn hidden" id="browse-hint-btn" onclick="openHintModal()">💡</button>
+          <button class="edit-btn" onclick="openImagePicker()">🖼️</button>
           <div id="browse-front-text" class="card-text centered"></div>
         </div>
 
@@ -115,14 +116,13 @@
       </div>
     </div>
 
-    <!-- Viewer mode: No rating buttons -->
     <div class="browse-nav-row">
       <button class="primary-btn" onclick="browsePrev()">Prev</button>
       <button class="primary-btn" onclick="toggleBrowseFlip()">Flip</button>
       <button class="primary-btn" onclick="browseNext()">Next</button>
     </div>
-  </div>
 
+  </div>
 </div>
 
 <!-- REPORT SCREEN -->
@@ -143,9 +143,8 @@
   </div>
 </div>
 
-<!-- SETTINGS -->
+<!-- SETTINGS SCREEN -->
 <div id="settings-screen" class="screen hidden">
-
   <div class="screen-header">
     <div class="screen-title">Settings</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
@@ -160,7 +159,6 @@
       <option>20</option>
     </select>
   </div>
-
 </div>
 
 <!-- TOAST -->
@@ -174,7 +172,26 @@
   </div>
 </div>
 
-<script src="config.js?v=103"></script>
-<script src="app.js?v=103"></script>
+<!-- IMAGE PICKER MODAL -->
+<div id="image-picker-modal" class="modal hidden">
+  <div class="image-picker-content">
+
+    <h2>Select an Image</h2>
+
+    <div id="image-picker-grid" class="image-picker-grid"></div>
+
+    <div id="image-picker-preview" class="image-picker-preview hidden">
+      <img id="selected-image-preview" src="">
+      <button class="primary-btn" onclick="confirmImageSelection()">Use this image</button>
+      <button class="secondary-btn" onclick="cancelImagePreview()">Cancel</button>
+    </div>
+
+    <button class="close-btn" onclick="closeImagePicker()">Close</button>
+  </div>
+</div>
+
+<script src="config.js?v=104"></script>
+<script src="app.js?v=104"></script>
+
 </body>
 </html>
