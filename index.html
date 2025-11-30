@@ -3,26 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <title>Dutch Flashcards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="styles.css?v=108" />
+  <link rel="stylesheet" href="styles.css?v=109" />
 
-  <!-- REQUIRED: Supabase Library (this was missing) -->
+  <!-- REQUIRED: Supabase library -->
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
 
-  <!-- Reports -->
+  <!-- Chart.js (for reports) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Your config (contains APP_VERSION, keys, etc.) -->
-  <script src="config.js?v=108"></script>
+  <!-- Config (APP_VERSION, keys) -->
+  <script src="config.js?v=109"></script>
 </head>
 
 <body>
 
-<!-- ==========================================================
-     MAIN MENU
-========================================================== -->
+<!-- MAIN MENU -->
 <div id="menu-screen" class="screen visible">
 
   <div class="menu-title">
@@ -45,9 +43,7 @@
   <div id="app-version" class="version"></div>
 </div>
 
-<!-- ==========================================================
-     REVIEW SCREEN
-========================================================== -->
+<!-- REVIEW SCREEN -->
 <div id="review-screen" class="screen hidden">
 
   <div class="screen-header">
@@ -88,9 +84,7 @@
   </div>
 </div>
 
-<!-- ==========================================================
-     BROWSE SCREEN
-========================================================== -->
+<!-- BROWSE SCREEN -->
 <div id="browse-screen" class="screen hidden">
 
   <div class="screen-header">
@@ -103,7 +97,7 @@
     <div id="alphabet-picker" class="alphabet-row"></div>
   </div>
 
-  <!-- Horizontal Scroll Table -->
+  <!-- Table -->
   <div class="table-scroll">
     <table id="word-table">
       <thead>
@@ -120,7 +114,7 @@
     </table>
   </div>
 
-  <!-- Flashcard View -->
+  <!-- FLASHCARD VIEW -->
   <div id="browse-flashcard-view" class="hidden">
     <div class="flip-container">
       <div id="browse-flipper" class="flipper" onclick="toggleBrowseFlip()">
@@ -143,12 +137,12 @@
       <button class="primary-btn" onclick="openImagePicker()">Pick Image</button>
       <button class="secondary-btn" onclick="browseNext()">Next</button>
     </div>
+
+    <button class="secondary-btn" onclick="returnToBrowseTable()">Back to Table</button>
   </div>
 </div>
 
-<!-- ==========================================================
-     REPORT SCREEN
-========================================================== -->
+<!-- REPORT SCREEN -->
 <div id="report-screen" class="screen hidden">
 
   <div class="screen-header">
@@ -165,18 +159,15 @@
   <canvas id="report-chart"></canvas>
 </div>
 
-<!-- ==========================================================
-     SETTINGS SCREEN  (restored)
-========================================================== -->
+<!-- SETTINGS SCREEN -->
 <div id="settings-screen" class="screen hidden">
-
   <div class="screen-header">
     <div class="screen-title">Settings</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
   </div>
 
   <div class="settings-row">
-    <label for="max-new-cards-select">Max new cards per day:</label>
+    <label>Max new cards per day:</label>
     <select id="max-new-cards-select">
       <option>5</option>
       <option>10</option>
@@ -186,9 +177,7 @@
   </div>
 </div>
 
-<!-- ==========================================================
-     HINT MODAL
-========================================================== -->
+<!-- HINT MODAL -->
 <div id="hint-modal" class="modal hidden">
   <div class="hint-content">
     <img id="hint-image" />
@@ -196,15 +185,13 @@
   </div>
 </div>
 
-<!-- ==========================================================
-     IMAGE PICKER MODAL
-========================================================== -->
+<!-- IMAGE PICKER MODAL -->
 <div id="image-picker-modal" class="modal hidden">
   <div class="image-picker-content">
     <h2>Select an Image</h2>
 
     <div class="search-row">
-      <input id="image-search-input" type="text" placeholder="Search term…" />
+      <input id="image-search-input" type="text" />
       <button class="primary-btn search-btn" onclick="runImageSearch()">Search</button>
     </div>
 
@@ -220,15 +207,9 @@
   </div>
 </div>
 
-<!-- ==========================================================
-     TOAST
-========================================================== -->
 <div id="toast" class="toast"></div>
 
-<!-- ==========================================================
-     MAIN APP SCRIPT (must be last)
-========================================================== -->
-<script src="app.js?v=108"></script>
+<script src="app.js?v=109"></script>
 
 </body>
 </html>
