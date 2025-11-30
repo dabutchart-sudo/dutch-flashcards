@@ -1,46 +1,35 @@
-/* =========================================================
-   app.js  —  Version 110  (Full, Updated)
-   Includes:
-   - Openverse via Cloudflare Worker Proxy
-   - Browse View Fixes
-   - A–Z Picker
-   - Sorting
-   - Multi-load
-============================================================ */
+import { SUPABASE_URL, SUPABASE_ANON_KEY, APP_VERSION } from "./config.js";
 
-/* -------------------------------
-   SUPABASE INITIALIZATION
--------------------------------- */
 const { createClient } = window.supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* -------------------------------
-   GLOBAL STATE
--------------------------------- */
 let allCards = [];
 let reviewQueue = [];
-let currentReviewIndex = 0;
+let currentIndex = 0;
 
-let browseData = [];
+// Browse mode
+let browseList = [];
 let browseIndex = 0;
+let browseSortColumn = "due_date";
+let browseSortDirection = 1;
 
-let selectedImageURL = null;
+// Report
+let reportChart = null;
 
-let sortColumn = null;
-let sortDirection = null;
+// Session summary
+let sessionResults = [];
 
-let reportChart = null; // Initialized for Chart.js instance
-let reportMode = "day"; // Initialized for report grouping mode
+// Edit card
+let editCardId = null;
+let editSelectedImageUrl = null;
 
-/* ============================================================\
-   UTILITIES
-============================================================ */
+/* ------------------------- Utility ------------------------- */
 function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
 
-function addDays(dateStr, days) {
-  const d = new Date(dateStr);
+function addDays(isoDate, days) {
+  const d = new Date(isoDate);
   d.setDate(d.getDate() + days);
   return d.toISOString().split("T")[0];
 }
@@ -48,702 +37,963 @@ function addDays(dateStr, days) {
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
-  t.classList.remove("hidden");
-  setTimeout(() => {
-    t.classList.add("hidden");
-  }, 3000);
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2500);
 }
 
-function openScreen(id) {
-  document.querySelectorAll(".screen").forEach((s) => {
-    s.classList.add("hidden");
-    s.classList.remove("visible");
-  });
-  const screen = document.getElementById(`${id}-screen`);
-  if (screen) {
-    screen.classList.remove("hidden");
-    screen.classList.add("visible");
-    window.scrollTo(0, 0); // Reset scroll on screen change
-  }
-}
+/* ------------------------- Settings ------------------------- */
+const MAX_NEW_KEY = "maxNewCardsPerDay";
 
 function getMaxNewCardsPerDay() {
-  // Use localStorage, default to 10
-  const max = localStorage.getItem("maxNewCardsPerDay");
-  return max ? parseInt(max, 10) : 10;
+  return parseInt(localStorage.getItem(MAX_NEW_KEY) || "10", 10);
 }
 
-function setMaxNewCardsPerDay(value) {
-  localStorage.setItem("maxNewCardsPerDay", value);
+function setMaxNewCardsPerDay(val) {
+  localStorage.setItem(MAX_NEW_KEY, String(val));
 }
 
-/* ============================================================\
-   CRUD OPERATIONS (Supabase)
-============================================================ */
+/* ------------------------- Navigation ------------------------- */
+window.openScreen = function (screen) {
+  document.querySelectorAll(".screen").forEach((s) => {
+    s.classList.remove("visible");
+    s.classList.add("hidden");
+  });
 
-async function loadCards() {
-  const { data, error } = await supabaseClient.from("cards").select("*");
-
-  if (error) {
-    console.error("Card load error:", error);
-    showToast("Error loading cards.");
-    return;
-  }
-  allCards = data;
-}
-
-async function saveCard(card) {
-  if (card.id) {
-    // Update existing card
-    const { error } = await supabaseClient
-      .from("cards")
-      .update({
-        dutch: card.dutch,
-        english: card.english,
-        hint: card.hint,
-        image_url: card.image_url,
-      })
-      .eq("id", card.id);
-
-    if (error) {
-      console.error("Card update error:", error);
-      showToast("Error updating card.");
-      return;
-    }
-  } else {
-    // Insert new card
-    const { data, error } = await supabaseClient.from("cards").insert([
-      {
-        dutch: card.dutch,
-        english: card.english,
-        hint: card.hint,
-        image_url: card.image_url,
-        next_review_date: todayStr(), // New cards start reviewing today
-        leitner_level: 0,
-        last_review_date: null,
-      },
-    ]).select();
-
-    if (error) {
-      console.error("Card insert error:", error);
-      showToast("Error inserting card.");
-      return;
-    }
-    // Add the newly created card (with its new ID) to the local array
-    if (data && data.length > 0) {
-      allCards.push(data[0]);
-    }
-  }
-  // Reload and update all views
-  await loadCards();
-  showToast("Card saved successfully!");
-  openBrowse();
-}
-
-async function deleteCard(id) {
-  const { error } = await supabaseClient.from("cards").delete().eq("id", id);
-
-  if (error) {
-    console.error("Card delete error:", error);
-    showToast("Error deleting card.");
-    return;
-  }
-  showToast("Card deleted successfully!");
-  await loadCards(); // Reload all cards
-  openBrowse(); // Return to browse view
-}
-
-async function recordReview(card, success) {
-  const today = todayStr();
-
-  // 1. Calculate new Leitner level and next review date
-  let newLevel = card.leitner_level;
-  if (success) {
-    newLevel = Math.min(newLevel + 1, 7); // Max level 7
-  } else {
-    newLevel = Math.max(newLevel - 1, 0); // Min level 0
+  const el = document.getElementById(`${screen}-screen`);
+  if (el) {
+    el.classList.add("visible");
+    el.classList.remove("hidden");
   }
 
-  // Define review intervals in days (Leitner Box System)
-  const intervals = [0, 1, 3, 7, 14, 30, 90, 180];
-  const nextReviewDate = addDays(today, intervals[newLevel]);
-
-  // 2. Update card in database
-  const { error: updateError } = await supabaseClient
-    .from("cards")
-    .update({
-      leitner_level: newLevel,
-      next_review_date: nextReviewDate,
-      last_review_date: today,
-    })
-    .eq("id", card.id);
-
-  if (updateError) {
-    console.error("Card update error during review:", updateError);
-    return;
+  if (screen === "menu") {
+    updateSummary();
   }
-
-  // 3. Record the review event in the 'reviews' history table
-  const { error: reviewError } = await supabaseClient.from("reviews").insert([
-    {
-      card_id: card.id,
-      success: success,
-      event_date: today,
-      leitner_level: newLevel,
-    },
-  ]);
-
-  if (reviewError) {
-    console.error("Review history insert error:", reviewError);
-    // Continue even if history logging fails
-  }
-
-  // 4. Update local state
-  card.leitner_level = newLevel;
-  card.next_review_date = nextReviewDate;
-  card.last_review_date = today;
-}
-
-/* ============================================================\
-   REVIEW SESSION
-============================================================ */
-
-function getReviewQueue() {
-  const today = todayStr();
-  const maxNewCards = getMaxNewCardsPerDay();
-
-  // 1. Get cards that are due for review (level > 0)
-  const dueCards = allCards
-    .filter((c) => c.next_review_date <= today && c.leitner_level > 0)
-    .sort((a, b) => new Date(a.next_review_date) - new Date(b.next_review_date)); // oldest due first
-
-  // 2. Get unlearned cards (level 0) and limit them
-  const newCards = allCards
-    .filter((c) => c.leitner_level === 0)
-    .slice(0, maxNewCards); // Only take the max allowed for today
-
-  // 3. Combine and shuffle the queue
-  const queue = [...dueCards, ...newCards].sort(() => Math.random() - 0.5);
-  return queue;
-}
-
-window.startReviewSession = async function () {
-  await loadCards();
-  reviewQueue = getReviewQueue();
-  currentReviewIndex = 0;
-
-  if (reviewQueue.length === 0) {
-    showToast("🎉 All cards reviewed! Come back tomorrow.");
-    return;
-  }
-
 };
 
+/* ------------------------- Load Cards ------------------------- */
+async function loadCards() {
+  const { data, error } = await supabase.from("cards").select("*").order("id");
+  if (error) {
+    console.error(error);
+    showToast("Error loading cards");
+    allCards = [];
+    return;
+  }
+  allCards = data || [];
+}
 
+/* ------------------------- Review Queue ------------------------- */
+function buildReviewQueue() {
+  const today = todayStr();
+  const maxNew = getMaxNewCardsPerDay();
 
-function showReviewCard(card) {
-  // Update card text
-  document.getElementById("card-front-text").textContent = card.dutch;
-  document.getElementById("card-back-text").textContent = card.english;
+  const due = [];
+  const newList = [];
 
-  // Reset flip
-  const flipper = document.getElementById("card-flipper");
-  flipper.classList.remove("flip");
+  for (const c of allCards) {
+    if (c.suspended) continue;
 
-  // Update progress bar & counter
+    if (c.card_type !== "new" && c.due_date && c.due_date <= today) {
+      due.push(c);
+    } else if (c.card_type === "new" && !c.first_seen) {
+      newList.push(c);
+    }
+  }
+
+  const introducedToday = allCards.filter((c) => c.first_seen === today).length;
+  let remainingNew = maxNew - introducedToday;
+  if (remainingNew < 0) remainingNew = 0;
+
+  shuffle(due);
+  shuffle(newList);
+
+  reviewQueue = [...due, ...newList.slice(0, remainingNew)];
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+/* ------------------------- Review Rendering ------------------------- */
+function updateCounter() {
+  const el = document.getElementById("review-counter");
+  el.textContent = `${currentIndex} / ${reviewQueue.length}`;
+}
+
+function updateProgressBar() {
   const bar = document.getElementById("review-progress-bar");
-  const counter = document.getElementById("review-counter");
+  if (!reviewQueue.length) {
+    bar.style.width = "0%";
+    return;
+  }
+  bar.style.width = `${(currentIndex / reviewQueue.length) * 100}%`;
+}
 
-  const total = reviewQueue.length;
-  const current = currentReviewIndex + 1;
+function updateStatus(card) {
+  const el = document.getElementById("card-status");
+  if (!card) {
+    el.textContent = "";
+    return;
+  }
 
-  bar.style.width = `${(current / total) * 100}%`;
-  counter.textContent = `${current} / ${total}`;
+  if (card.card_type === "new") {
+    el.textContent = "NEW";
+    el.style.color = "#ff8800";
+  } else if (card.card_type === "learning") {
+    el.textContent = "LEARNING";
+    el.style.color = "#5bc0de";
+  } else {
+    el.textContent = "REVIEW";
+    el.style.color = "#5cb85c";
+  }
+}
 
-  // Rating buttons hidden until flip
-  document.getElementById("rating-buttons").classList.add("hidden");
+function renderCurrentCard() {
+  const card = reviewQueue[currentIndex];
 
-  // Hint visibility
-  const hintBtn = document.getElementById("review-hint-btn");
+  const front = document.getElementById("card-front-text");
+  const back = document.getElementById("card-back-text");
+  const flipper = document.getElementById("card-flipper");
+  const ratingRow = document.getElementById("rating-buttons");
+  const hintBtn = document.getElementById("hint-btn");
+
+  if (!card) {
+    front.textContent = "No cards to review.";
+    back.textContent = "";
+    ratingRow.classList.add("hidden");
+    if (hintBtn) hintBtn.classList.add("hidden");
+    updateStatus(null);
+    updateCounter();
+    updateProgressBar();
+    return;
+  }
+
+  flipper.classList.remove("flip");
+  void flipper.offsetWidth;
+
+  front.textContent = card.dutch;
+  back.textContent = "";
+
+  ratingRow.classList.add("hidden");
+
   if (card.image_url) hintBtn.classList.remove("hidden");
   else hintBtn.classList.add("hidden");
+
+  updateStatus(card);
+  updateCounter();
+  updateProgressBar();
 }
 
+/* ------------------------- Start Review Session ------------------------- */
+window.startReviewSession = async function () {
+  await loadCards();
+  updateSummary();
+  buildReviewQueue();
 
-window.flipCard = function () {
+  if (!reviewQueue.length) {
+    showToast("No cards to review.");
+    return;
+  }
+
+  sessionResults = [];
+  currentIndex = 0;
+  renderCurrentCard();
+  openScreen("review");
+};
+
+/* ------------------------- Card Flip (Review) ------------------------- */
+document.getElementById("card-box").addEventListener("click", () => {
+  const card = reviewQueue[currentIndex];
+  if (!card) return;
+
   const flipper = document.getElementById("card-flipper");
+  const back = document.getElementById("card-back-text");
+  const ratingRow = document.getElementById("rating-buttons");
+
+  if (!flipper.classList.contains("flip")) {
+    back.textContent = card.english;
+  }
+
   flipper.classList.toggle("flip");
 
-  // Show rating buttons ONLY when showing the back
-  const showingBack = flipper.classList.contains("flip");
-  if (showingBack) {
-    document.getElementById("rating-buttons").classList.remove("hidden");
+  if (flipper.classList.contains("flip")) {
+    setTimeout(() => ratingRow.classList.remove("hidden"), 300);
   } else {
-    document.getElementById("rating-buttons").classList.add("hidden");
+    ratingRow.classList.add("hidden");
   }
-};
+});
 
-window.answerReview = async function (success) {
-  const card = reviewQueue[currentReviewIndex];
-  await recordReview(card, success);
+/* ------------------------- TTS (Review) ------------------------- */
+document.getElementById("tts-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const card = reviewQueue[currentIndex];
+  if (!card) return;
 
-  currentReviewIndex++;
+  const utter = new SpeechSynthesisUtterance(card.dutch);
+  utter.lang = "nl-NL";
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+});
 
-  if (currentReviewIndex < reviewQueue.length) {
-  } else {
-    showToast("Session complete!");
-    updateSummaryPanel();
-    openScreen("menu");
-  }
-};
+/* ------------------------- Hint (Review) ------------------------- */
+document.getElementById("hint-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const card = reviewQueue[currentIndex];
+  if (!card || !card.image_url) return;
 
-window.showHint = function () {
-  const card = reviewQueue[currentReviewIndex];
+  const img = document.getElementById("hint-image");
+  img.src = card.image_url;
+
   const modal = document.getElementById("hint-modal");
-  const imgElement = document.getElementById("hint-image");
+  modal.classList.remove("hidden");
+});
 
-  if (card.image_url) {
-    imgElement.src = card.image_url;
-    imgElement.onerror = () => {
-      imgElement.src = "https://placehold.co/400x300/CCCCCC/333333?text=Image+Failed";
-    };
+document.getElementById("hint-close-btn").addEventListener("click", () => {
+  document.getElementById("hint-modal").classList.add("hidden");
+});
+
+/* ------------------------- Session Summary ------------------------- */
+function showSessionSummaryModal() {
+  const modal = document.getElementById("session-summary-modal");
+  const textDiv = document.getElementById("session-summary-text");
+  const listEl = document.getElementById("session-summary-list");
+
+  const total = sessionResults.length;
+  let again = 0,
+    hard = 0,
+    good = 0,
+    easy = 0;
+
+  const difficult = [];
+
+  sessionResults.forEach((r) => {
+    if (r.rating === "again") {
+      again++;
+      difficult.push(r);
+    } else if (r.rating === "hard") {
+      hard++;
+      difficult.push(r);
+    } else if (r.rating === "good") {
+      good++;
+    } else if (r.rating === "easy") {
+      easy++;
+    }
+  });
+
+  textDiv.innerHTML = `
+    <p>Total cards reviewed: <strong>${total}</strong></p>
+    <p>Again: <strong>${again}</strong>, Hard: <strong>${hard}</strong></p>
+    <p>Good: <strong>${good}</strong>, Easy: <strong>${easy}</strong></p>
+  `;
+
+  listEl.innerHTML = "";
+  if (difficult.length) {
+    difficult.forEach((r) => {
+      const li = document.createElement("li");
+      li.textContent = `${r.dutch} – ${r.english} (${r.rating})`;
+      listEl.appendChild(li);
+    });
   } else {
-    imgElement.src = "https://placehold.co/400x300/CCCCCC/333333?text=No+Image+Available";
+    const li = document.createElement("li");
+    li.textContent = "No difficult cards this session – nice!";
+    listEl.appendChild(li);
   }
 
   modal.classList.remove("hidden");
-};
-
-window.closeHintModal = function () {
-  document.getElementById("hint-modal").classList.add("hidden");
-};
-
-/* ============================================================\
-   CARD CREATION/EDITING
-============================================================ */
-
-window.openCreate = function () {
-  openScreen("create");
-  document.getElementById("card-form-title").textContent = "Create New Card";
-  document.getElementById("card-id").value = "";
-  document.getElementById("card-dutch").value = "";
-  document.getElementById("card-english").value = "";
-  document.getElementById("card-hint").value = "";
-  document.getElementById("selected-image-url").value = "";
-  updateSelectedImagePreview("");
-};
-
-window.editCard = function (cardId) {
-  const card = allCards.find((c) => c.id === cardId);
-  if (!card) return;
-
-  openScreen("create");
-  document.getElementById("card-form-title").textContent = "Edit Card";
-  document.getElementById("card-id").value = card.id;
-  document.getElementById("card-dutch").value = card.dutch;
-  document.getElementById("card-english").value = card.english;
-  document.getElementById("card-hint").value = card.hint;
-  document.getElementById("selected-image-url").value = card.image_url || "";
-  updateSelectedImagePreview(card.image_url || "");
-};
-
-window.submitCard = async function () {
-  const id = document.getElementById("card-id").value;
-  const dutch = document.getElementById("card-dutch").value.trim();
-  const english = document.getElementById("card-english").value.trim();
-  const hint = document.getElementById("card-hint").value.trim();
-  const imageUrl = document.getElementById("selected-image-url").value.trim();
-
-  if (!dutch || !english) {
-    showToast("Dutch and English fields are required.");
-    return;
-  }
-
-  await saveCard({
-    id: id ? parseInt(id, 10) : null,
-    dutch: dutch,
-    english: english,
-    hint: hint,
-    image_url: imageUrl,
-  });
-};
-
-/* ============================================================\
-   IMAGE SEARCH/PICKER (Openverse)
-============================================================ */
-
-window.openImagePicker = function () {
-  document.getElementById("image-picker-grid").innerHTML = "";
-  document.getElementById("image-picker-preview").classList.add("hidden");
-  document.getElementById("image-search-input").value = "";
-  document.getElementById("image-picker-modal").classList.remove("hidden");
-};
-
-window.closeImagePickerModal = function () {
-  document.getElementById("image-picker-modal").classList.add("hidden");
-};
-
-window.runImageSearch = async function () {
-  const query = document.getElementById("image-search-input").value.trim();
-  if (!query) {
-    showToast("Please enter a search term.");
-    return;
-  }
-
-  const grid = document.getElementById("image-picker-grid");
-  grid.innerHTML = "Searching...";
-
-  // Use a proxy URL to avoid CORS/API key issues, assumes a Cloudflare Worker is set up
-  const API_URL = `https://workers.flashcard-app-proxy.workers.dev/search?q=${encodeURIComponent(query)}`;
-
-  try {
-    const response = await fetch(API_URL);
-    if (!response.ok) throw new Error("Search failed.");
-
-    const data = await response.json();
-    const images = data.results || [];
-
-    grid.innerHTML = "";
-
-    if (images.length === 0) {
-      grid.innerHTML = "No images found. Try a different query.";
-      return;
-    }
-
-    images.slice(0, 15).forEach((item) => {
-      const img = document.createElement("img");
-      // Use the thumbnail or a small version for the grid
-      img.src = item.thumbnail || item.url;
-      img.alt = item.title;
-      img.onclick = () => selectImage(item.url); // Use the original URL for selection
-      grid.appendChild(img);
-    });
-  } catch (error) {
-    console.error("Image search error:", error);
-    grid.innerHTML = "Error during image search. (Is proxy configured?)";
-  }
-};
-
-function updateSelectedImagePreview(url) {
-  const preview = document.getElementById("selected-card-image");
-  if (url) {
-    preview.src = url;
-    preview.classList.remove("hidden");
-    preview.onerror = () => {
-      preview.src = "https://placehold.co/200x150/CCCCCC/333333?text=Image+Load+Fail";
-    };
-  } else {
-    preview.classList.add("hidden");
-    preview.src = "";
-  }
 }
 
-window.selectImage = function (url) {
-  selectedImageURL = url;
-  // Update the input field on the create screen
-  document.getElementById("selected-image-url").value = url;
-  updateSelectedImagePreview(url);
-  closeImagePickerModal();
+document
+  .getElementById("session-summary-close-btn")
+  .addEventListener("click", () => {
+    document
+      .getElementById("session-summary-modal")
+      .classList.add("hidden");
+    openScreen("menu");
+  });
+
+/* ------------------------- Handle Rating ------------------------- */
+window.handleRating = async function (rating) {
+  const card = reviewQueue[currentIndex];
+  if (!card) return;
+
+  const today = todayStr();
+
+  let type = card.card_type || "new";
+  let interval = card.interval_days || 0;
+  let ease = Number(card.ease || 2.5);
+  let reps = card.reps || 0;
+  let lapses = card.lapses || 0;
+
+  reps++;
+
+  if (type === "new") {
+    if (rating === "again") interval = 1;
+    else if (rating === "hard") interval = 1;
+    else if (rating === "good") interval = 3;
+    else if (rating === "easy") {
+      interval = 4;
+      ease += 0.15;
+    }
+    type = interval > 1 ? "review" : "learning";
+  } else if (type === "learning") {
+    if (rating === "again") {
+      interval = 1;
+    } else {
+      interval = 3;
+      type = "review";
+    }
+  } else {
+    if (rating === "again") {
+      lapses++;
+      ease = Math.max(1.3, ease - 0.2);
+      interval = 1;
+      type = "learning";
+    } else if (rating === "hard") {
+      ease = Math.max(1.3, ease - 0.15);
+      interval = Math.round(interval * 1.2);
+    } else if (rating === "good") {
+      interval = Math.round(interval * ease);
+    } else if (rating === "easy") {
+      ease += 0.15;
+      interval = Math.round(interval * ease * 1.3);
+    }
+  }
+
+  interval = Math.max(1, interval);
+  const due = addDays(today, interval);
+  const firstSeen = card.first_seen || today;
+
+  const update = {
+    card_type: type,
+    interval_days: interval,
+    ease,
+    reps,
+    lapses,
+    first_seen: firstSeen,
+    last_reviewed: today,
+    due_date: due,
+    suspended: false,
+  };
+
+  const { error } = await supabase
+    .from("cards")
+    .update(update)
+    .eq("id", card.id);
+
+  if (error) {
+    console.error(error);
+    showToast("Save failed");
+    return;
+  }
+
+  sessionResults.push({
+    id: card.id,
+    dutch: card.dutch,
+    english: card.english,
+    rating,
+  });
+
+  currentIndex++;
+
+  if (currentIndex >= reviewQueue.length) {
+    // Final card: fill progress bar and wait for animations to finish
+    const bar = document.getElementById("review-progress-bar");
+    if (bar) bar.style.width = "100%";
+
+    setTimeout(async () => {
+      await loadCards();
+      updateSummary();
+      showSessionSummaryModal();
+    }, 500);
+
+    return;
+  }
+
+  renderCurrentCard();
 };
 
-/* ============================================================\
-   BROWSE VIEW
-============================================================ */
-
+/* ------------------------- Browse (combined) ------------------------- */
 window.openBrowse = async function () {
   await loadCards();
-  browseData = allCards;
-  sortColumn = "dutch";
-  sortDirection = "asc";
-  applySortAndRenderBrowse();
+  updateSummary();
+
+  // Default order: due_date ascending (nulls last)
+  browseSortColumn = "due_date";
+  browseSortDirection = 1;
+
+  buildBrowseList();
+  renderBrowseTable();
+  browseIndex = 0;
+  renderBrowseCard();
+
+  setBrowseView("table");
   openScreen("browse");
 };
 
-function sortBrowseData() {
-  if (!sortColumn) return;
+function buildBrowseList() {
+  browseList = allCards
+    .filter((c) => !c.suspended)
+    .slice()
+    .sort((a, b) => {
+      const col = browseSortColumn;
+      let A = a[col];
+      let B = b[col];
 
-  browseData.sort((a, b) => {
-    let aVal = a[sortColumn];
-    let bVal = b[sortColumn];
-
-    if (sortColumn === "leitner_level") {
-      aVal = parseInt(aVal, 10);
-      bVal = parseInt(bVal, 10);
-    } else if (sortColumn.includes("date")) {
-      // Treat null dates as the oldest possible date for sorting
-      aVal = aVal || "0000-01-01";
-      bVal = bVal || "0000-01-01";
-    } else {
-      aVal = String(aVal).toLowerCase();
-      bVal = String(bVal).toLowerCase();
-    }
-
-    if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
-    if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
-    return 0;
-  });
-}
-
-function renderBrowseCards() {
-  const list = document.getElementById("browse-list");
-  list.innerHTML = "";
-
-  browseData.forEach((card) => {
-    const item = document.createElement("div");
-    item.className = "card-list-item";
-    item.dataset.id = card.id;
-
-    item.innerHTML = `
-      <div class="card-text">
-        <div class="card-dutch">${card.dutch}</div>
-        <div class="card-english">${card.english}</div>
-      </div>
-      <div class="card-meta">
-        <span class="card-level">Lvl: ${card.leitner_level}</span>
-        <span class="card-next-review">Next: ${card.next_review_date}</span>
-      </div>
-      <div class="card-actions">
-        <button class="edit-btn" onclick="editCard(${card.id})">✏️</button>
-        <button class="delete-btn" onclick="promptDelete(${card.id})">🗑️</button>
-      </div>
-    `;
-    list.appendChild(item);
-  });
-
-  document.getElementById("browse-count").textContent = `Showing ${browseData.length} cards`;
-}
-
-window.sortBy = function (column) {
-  if (sortColumn === column) {
-    sortDirection = sortDirection === "asc" ? "desc" : "asc";
-  } else {
-    sortColumn = column;
-    sortDirection = "asc";
-  }
-  applySortAndRenderBrowse();
-  updateSortIndicators();
-};
-
-function updateSortIndicators() {
-  document.querySelectorAll(".sort-header").forEach((th) => {
-    th.classList.remove("sort-asc", "sort-desc");
-    const col = th.dataset.sort;
-    if (col === sortColumn) {
-      th.classList.add(`sort-${sortDirection}`);
-    }
-  });
-}
-
-function applySortAndRenderBrowse() {
-  sortBrowseData();
-  renderBrowseCards();
-}
-
-window.promptDelete = function (cardId) {
-  const card = allCards.find((c) => c.id === cardId);
-  const confirmation = document.getElementById("delete-confirmation");
-  document.getElementById("delete-card-name").textContent = card.dutch;
-  document.getElementById("confirm-delete-btn").onclick = () => {
-    deleteCard(cardId);
-    confirmation.classList.add("hidden");
-  };
-  confirmation.classList.remove("hidden");
-};
-
-window.cancelDelete = function () {
-  document.getElementById("delete-confirmation").classList.add("hidden");
-};
-
-window.updateFilter = function () {
-  const levelFilter = document.getElementById("level-filter").value;
-  const searchInput = document.getElementById("search-input").value.toLowerCase();
-
-  browseData = allCards.filter((card) => {
-    // Level filter
-    if (levelFilter !== "all" && card.leitner_level !== parseInt(levelFilter, 10)) {
-      return false;
-    }
-
-    // Search filter
-    if (searchInput) {
-      const dutchMatch = card.dutch.toLowerCase().includes(searchInput);
-      const englishMatch = card.english.toLowerCase().includes(searchInput);
-      if (!dutchMatch && !englishMatch) {
-        return false;
+      if (col === "due_date") {
+        A = A || "9999-12-31";
+        B = B || "9999-12-31";
+        if (A < B) return -1 * browseSortDirection;
+        if (A > B) return 1 * browseSortDirection;
+        return 0;
+      } else if (col === "last_reviewed") {
+        A = A || "0000-00-00";
+        B = B || "0000-00-00";
+        if (A < B) return -1 * browseSortDirection;
+        if (A > B) return 1 * browseSortDirection;
+        return 0;
+      } else {
+        // Strings
+        A = (A || "").toString().toLowerCase();
+        B = (B || "").toString().toLowerCase();
+        if (A < B) return -1 * browseSortDirection;
+        if (A > B) return 1 * browseSortDirection;
+        return 0;
       }
-    }
-
-    return true;
-  });
-
-  applySortAndRenderBrowse();
-};
-
-/* ============================================================\
-   SUMMARY
-============================================================ */
-
-function updateSummaryPanel() {
-  const today = todayStr();
-  const tomorrow = addDays(today, 1);
-  const maxNewCards = getMaxNewCardsPerDay();
-
-  const ReviewToday = allCards.filter((c) => c.next_review_date <= today && c.leitner_level > 0).length;
-  const NewToday = allCards.filter((c) => c.leitner_level === 0).slice(0, maxNewCards).length;
-
-  // The total queue is reviews + new cards
-  const totalToday = ReviewToday + NewToday;
-  document.getElementById("summary-today").textContent = `Today: ${totalToday} cards ready (${ReviewToday} Review, ${NewToday} New)`;
-
-  // Tomorrow's review count only includes cards already learned (level > 0)
-  const ReviewTomorrow = allCards.filter((c) => c.next_review_date === tomorrow && c.leitner_level > 0).length;
-  document.getElementById("summary-tomorrow").textContent = `Tomorrow: Review ${ReviewTomorrow}`;
+    });
 }
 
-/* ============================================================\
-   REPORTS (Chart Logic)
-============================================================ */
+function renderBrowseTable() {
+  const tbody = document.getElementById("browse-table-body");
+  tbody.innerHTML = "";
 
-// Functions provided by user start here.
+  browseList.forEach((c, idx) => {
+    const tr = document.createElement("tr");
+    tr.dataset.index = String(idx);
+    tr.innerHTML = `
+      <td>${c.dutch}</td>
+      <td>${c.english}</td>
+      <td>${c.last_reviewed ?? "-"}</td>
+      <td>${c.due_date ?? "-"}</td>
+      <td>${c.image_url ? "✔️" : ""}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-async function loadReviewHistory() {
-  const { data, error } = await supabaseClient
-    .from("reviews")
-    .select("event_date")
-    .order("event_date");
+function renderBrowseCard() {
+  const card = browseList[browseIndex];
+
+  const front = document.getElementById("browse-front-text");
+  const back = document.getElementById("browse-back-text");
+  const flipper = document.getElementById("browse-card-flipper");
+  const status = document.getElementById("browse-status");
+  const bar = document.getElementById("browse-progress-bar");
+  const counter = document.getElementById("browse-counter");
+  const hintBtn = document.getElementById("browse-hint-btn");
+
+  if (!card) {
+    front.textContent = "No cards.";
+    back.textContent = "";
+    status.textContent = "";
+    if (hintBtn) hintBtn.classList.add("hidden");
+    bar.style.width = "0%";
+    counter.textContent = "0 / 0";
+    return;
+  }
+
+  flipper.classList.remove("flip");
+  void flipper.offsetWidth;
+
+  front.textContent = card.dutch;
+  back.textContent = "";
+
+  if (card.card_type === "new") {
+    status.textContent = "NEW";
+    status.style.color = "#ff8800";
+  } else if (card.card_type === "learning") {
+    status.textContent = "LEARNING";
+    status.style.color = "#5bc0de";
+  } else {
+    status.textContent = "REVIEW";
+    status.style.color = "#5cb85c";
+  }
+
+  if (card.image_url) hintBtn.classList.remove("hidden");
+  else hintBtn.classList.add("hidden");
+
+  const progress = ((browseIndex + 1) / browseList.length) * 100;
+  bar.style.width = `${progress}%`;
+  counter.textContent = `${browseIndex + 1} / ${browseList.length}`;
+}
+
+function setBrowseView(mode) {
+  const tableView = document.getElementById("browse-table-view");
+  const cardView = document.getElementById("browse-card-view");
+  const tableBtn = document.getElementById("browse-view-table-btn");
+  const cardBtn = document.getElementById("browse-view-card-btn");
+
+  if (mode === "table") {
+    tableView.classList.remove("hidden");
+    cardView.classList.add("hidden");
+    tableBtn.classList.add("active");
+    cardBtn.classList.remove("active");
+  } else {
+    tableView.classList.add("hidden");
+    cardView.classList.remove("hidden");
+    tableBtn.classList.remove("active");
+    cardBtn.classList.add("active");
+  }
+}
+
+// Toggle buttons
+document
+  .getElementById("browse-view-table-btn")
+  .addEventListener("click", () => setBrowseView("table"));
+document
+  .getElementById("browse-view-card-btn")
+  .addEventListener("click", () => setBrowseView("flashcard"));
+
+// Table header sorting
+document
+  .querySelectorAll("#browse-table thead th[data-col]")
+  .forEach((th) => {
+    th.addEventListener("click", () => {
+      const col = th.dataset.col;
+      if (!col) return;
+
+      if (browseSortColumn === col) browseSortDirection *= -1;
+      else {
+        browseSortColumn = col;
+        browseSortDirection = 1;
+      }
+
+      buildBrowseList();
+      renderBrowseTable();
+      browseIndex = 0;
+      renderBrowseCard();
+    });
+  });
+
+// Table row click -> open flashcard
+document
+  .getElementById("browse-table-body")
+  .addEventListener("click", (e) => {
+    const row = e.target.closest("tr");
+    if (!row) return;
+    const idx = Number(row.dataset.index);
+    if (Number.isNaN(idx)) return;
+    browseIndex = idx;
+    renderBrowseCard();
+    setBrowseView("flashcard");
+  });
+
+// Flip for browse
+document.getElementById("browse-card-box").addEventListener("click", () => {
+  const card = browseList[browseIndex];
+  if (!card) return;
+
+  const flipper = document.getElementById("browse-card-flipper");
+  const back = document.getElementById("browse-back-text");
+
+  if (!flipper.classList.contains("flip")) {
+    back.textContent = card.english;
+  }
+
+  flipper.classList.toggle("flip");
+});
+
+// TTS for browse
+document.getElementById("browse-tts-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const card = browseList[browseIndex];
+  if (!card) return;
+
+  const utter = new SpeechSynthesisUtterance(card.dutch);
+  utter.lang = "nl-NL";
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+});
+
+// Hint for browse
+document.getElementById("browse-hint-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const card = browseList[browseIndex];
+  if (!card || !card.image_url) return;
+
+  const img = document.getElementById("hint-image");
+  img.src = card.image_url;
+
+  const modal = document.getElementById("hint-modal");
+  modal.classList.remove("hidden");
+});
+
+// Browse nav
+document.getElementById("browse-prev-btn").addEventListener("click", () => {
+  if (!browseList.length) return;
+  browseIndex = (browseIndex - 1 + browseList.length) % browseList.length;
+  renderBrowseCard();
+});
+
+document.getElementById("browse-next-btn").addEventListener("click", () => {
+  if (!browseList.length) return;
+  browseIndex = (browseIndex + 1) % browseList.length;
+  renderBrowseCard();
+});
+
+/* ------------------------- Reset Learning ------------------------- */
+window.resetLearningData = async function () {
+  const { error } = await supabase.from("cards").update({
+    card_type: "new",
+    interval_days: 0,
+    ease: 2.5,
+    reps: 0,
+    lapses: 0,
+    first_seen: null,
+    last_reviewed: null,
+    due_date: null,
+    suspended: false,
+  });
 
   if (error) {
-    console.error("Review history load error:", error);
-    return [];
+    console.error(error);
+    showToast("Reset failed");
+    return;
   }
 
-  return data;
+  showToast("Learning data reset");
+  await loadCards();
+  updateSummary();
+};
+
+/* ------------------------- Summary Panel ------------------------- */
+function updateSummary() {
+  const rows = document.querySelectorAll(".summary-row");
+  if (!rows.length) return;
+
+  const maxNew = getMaxNewCardsPerDay();
+  const today = todayStr();
+  const tomorrow = addDays(today, 1);
+
+  const availableNew = allCards.filter(
+    (c) => c.card_type === "new" && !c.first_seen && !c.suspended
+  ).length;
+
+  const dueToday = allCards.filter(
+    (c) => !c.suspended && c.due_date && c.due_date <= today
+  ).length;
+
+  const dueTomorrow = allCards.filter(
+    (c) => !c.suspended && c.due_date === tomorrow
+  ).length;
+
+  const newToday = Math.min(maxNew, availableNew);
+  const newTomorrow = Math.min(maxNew, availableNew);
+
+  rows[0].innerHTML = `<strong>Today:</strong> New ${newToday}, Review ${dueToday}`;
+  rows[1].innerHTML = `<strong>Tomorrow:</strong> New ${newTomorrow}, Review ${dueTomorrow}`;
 }
 
-async function buildReportChart() {
-  const ctx = document.getElementById("report-chart").getContext("2d");
+/* ------------------------- Report Screen ------------------------- */
+window.openReport = async function () {
+  await loadCards();
+  updateSummary();
+  openScreen("report");
+  buildReportChart("day");
+};
 
-  // Destroy old chart if exists
+document.querySelectorAll(".report-group-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document
+      .querySelectorAll(".report-group-btn")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    buildReportChart(btn.dataset.mode);
+  });
+});
+
+function buildReportChart(mode) {
   if (reportChart) {
     reportChart.destroy();
     reportChart = null;
   }
 
-  // Load rows from Supabase
-  const rows = await loadReviewHistory();
-  if (!rows || rows.length === 0) {
-    console.warn("⚠ No review data found");
+  const ctx = document.getElementById("report-chart");
+  const daily = {};
+  const monthly = {};
+  const yearly = {};
+
+  for (const c of allCards) {
+    if (!c.first_seen) continue;
+
+    const d = c.first_seen;
+    const m = d.slice(0, 7);
+    const y = d.slice(0, 4);
+
+    daily[d] = (daily[d] || 0) + 1;
+    monthly[m] = (monthly[m] || 0) + 1;
+    yearly[y] = (yearly[y] || 0) + 1;
   }
 
-  // Group by day, month, or year
-  const buckets = {};
+  let labels = [];
+  let data = [];
 
-  rows.forEach(row => {
-    const d = new Date(row.event_date);
-    let key;
+  if (mode === "day") {
+    const now = new Date();
+    const yr = now.getFullYear();
+    const mo = now.getMonth();
+    const daysInMonth = new Date(yr, mo + 1, 0).getDate();
 
-    if (reportMode === "day") {
-      key = row.event_date; // YYYY-MM-DD
-
-    } else if (reportMode === "month") {
-      key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-
-    } else if (reportMode === "year") {
-      key = `${d.getFullYear()}`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = new Date(yr, mo, d).toISOString().slice(0, 10);
+      labels.push(iso);
+      data.push(daily[iso] || 0);
     }
+  } else if (mode === "month") {
+    labels = Object.keys(monthly).sort();
+    data = labels.map((k) => monthly[k]);
+  } else {
+    labels = Object.keys(yearly).sort();
+    data = labels.map((k) => yearly[k]);
+  }
 
-    if (!buckets[key]) buckets[key] = 0;
-    buckets[key]++;
-  });
-
-  const labels = Object.keys(buckets).sort();
-  const values = labels.map(k => buckets[k]);
-
-  // Build chart
   reportChart = new Chart(ctx, {
     type: "bar",
     data: {
       labels,
       datasets: [
         {
-          label: "Reviews Completed",
-          data: values,
-          borderWidth: 1,
-          backgroundColor: '#ff8800' // Use the app's accent color
-        }
-      ]
+          label: "New learned",
+          data,
+          backgroundColor: "#ff8800",
+        },
+      ],
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
-      animation: { duration: 500 },
+      maintainAspectRatio: false,
       scales: {
         x: {
-          grid: { display: false }
+          ticks: {
+            autoSkip: true,
+            maxTicksLimit: 6,
+            maxRotation: 45,
+          },
         },
         y: {
           beginAtZero: true,
-          ticks: {
-            stepSize: 1, // Ensure integer ticks for count data
-          }
-        }
+          ticks: { precision: 0 },
+        },
       },
-      plugins: {
-        legend: { display: false },
-        tooltip: { mode: 'index', intersect: false }
-      }
-    }
+    },
   });
 }
 
-/* ============================================================\
-   REPORTS (Screen Logic)
-============================================================ */
-window.openReport = async function () {
-  await loadCards(); // Ensure card data is current for summary panel
-  updateSummaryPanel();
-  openScreen("report");
-  reportMode = "day"; // Default to day view
-  updateReportButtons();
-  buildReportChart();
-};
+/* ------------------------- Edit Card Feature ------------------------- */
+function openEditModal(card) {
+  editCardId = card.id;
+  editSelectedImageUrl = card.image_url || null;
 
-window.setReportMode = function (mode) {
-  reportMode = mode;
-  updateReportButtons();
-  buildReportChart();
-};
+  const dutchInput = document.getElementById("edit-dutch");
+  const englishInput = document.getElementById("edit-english");
+  const searchInput = document.getElementById("edit-image-search");
+  const currentImg = document.getElementById("edit-current-image");
+  const noImageText = document.getElementById("edit-no-image-text");
+  const results = document.getElementById("edit-image-results");
 
-function updateReportButtons() {
-  const modes = ["day", "month", "year"];
-  document.querySelectorAll(".report-group-btn").forEach((btn, i) => {
-    if (modes[i] === reportMode) btn.classList.add("active");
-    else btn.classList.remove("active");
-  });
-}
+  dutchInput.value = card.dutch || "";
+  englishInput.value = card.english || "";
+  searchInput.value = card.english || card.dutch || "";
 
-/* ============================================================\
-   INITIALIZATION
-============================================================ */
-window.addEventListener("load", async () => {
-  const v = document.getElementById("app-version");
-  if (v) v.textContent = `Version: ${APP_VERSION}`;
-
-  const sel = document.getElementById("max-new-cards-select");
-  if (sel) {
-    sel.value = String(getMaxNewCardsPerDay());
-    sel.onchange = () => {
-      setMaxNewCardsPerDay(parseInt(sel.value, 10));
-      updateSummaryPanel();
-    };
+  if (card.image_url) {
+    currentImg.src = card.image_url;
+    currentImg.classList.remove("hidden");
+    noImageText.classList.add("hidden");
+  } else {
+    currentImg.src = "";
+    currentImg.classList.add("hidden");
+    noImageText.classList.remove("hidden");
   }
 
-  // Initial load
-  await loadCards();
-  updateSummaryPanel();
-  // Ensure we are on the menu screen when the app starts
-  if (document.querySelector(".screen.visible") === null) {
-    openScreen("menu");
+  results.innerHTML = "";
+  document.getElementById("edit-modal").classList.remove("hidden");
+}
+
+window.openEditFromList = function (id) {
+  const card = allCards.find((c) => c.id === id);
+  if (!card) return;
+  openEditModal(card);
+};
+
+document.getElementById("review-edit-btn").addEventListener("click", () => {
+  const card = reviewQueue[currentIndex];
+  if (!card) return;
+  openEditModal(card);
+});
+
+document.getElementById("browse-edit-btn").addEventListener("click", () => {
+  const card = browseList[browseIndex];
+  if (!card) return;
+  openEditModal(card);
+});
+
+document.getElementById("edit-cancel-btn").addEventListener("click", () => {
+  document.getElementById("edit-modal").classList.add("hidden");
+});
+
+/* Search images via Wikimedia Commons */
+document.getElementById("edit-search-btn").addEventListener("click", async () => {
+  const query = document.getElementById("edit-image-search").value.trim();
+  if (!query) {
+    showToast("Enter a search term");
+    return;
+  }
+
+  const url =
+    "https://commons.wikimedia.org/w/api.php" +
+    "?action=query&format=json&origin=*" +
+    "&prop=imageinfo&iiprop=url|mime|thumburl&generator=search" +
+    "&gsrnamespace=6" +
+    "&gsrlimit=12" +
+    "&gsrsearch=" +
+    encodeURIComponent(query);
+
+  const resultsContainer = document.getElementById("edit-image-results");
+  resultsContainer.innerHTML = "Searching...";
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const pages = data.query && data.query.pages ? data.query.pages : {};
+
+    const items = Object.values(pages).filter(
+      (p) => p.imageinfo && p.imageinfo.length > 0
+    );
+
+    if (!items.length) {
+      resultsContainer.innerHTML = "No images found.";
+      return;
+    }
+
+    resultsContainer.innerHTML = "";
+    items.forEach((p) => {
+      const info = p.imageinfo[0];
+      const thumb = info.thumburl || info.url;
+      const full = info.url;
+
+      const div = document.createElement("div");
+      div.className = "image-option";
+      const img = document.createElement("img");
+      img.src = thumb;
+      div.appendChild(img);
+
+      div.addEventListener("click", () => {
+        document
+          .querySelectorAll(".image-option.selected")
+          .forEach((el) => el.classList.remove("selected"));
+        div.classList.add("selected");
+        editSelectedImageUrl = full;
+
+        const currentImg = document.getElementById("edit-current-image");
+        const noImageText = document.getElementById("edit-no-image-text");
+        currentImg.src = full;
+        currentImg.classList.remove("hidden");
+        noImageText.classList.add("hidden");
+      });
+
+      resultsContainer.appendChild(div);
+    });
+  } catch (err) {
+    console.error(err);
+    resultsContainer.innerHTML = "Error searching images.";
   }
 });
 
+/* Save edited card */
+document.getElementById("edit-save-btn").addEventListener("click", async () => {
+  if (!editCardId) return;
+
+  const dutch = document.getElementById("edit-dutch").value.trim();
+  const english = document.getElementById("edit-english").value.trim();
+  const imageUrl = editSelectedImageUrl || null;
+
+  if (!dutch || !english) {
+    showToast("Dutch and English are required");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("cards")
+    .update({
+      dutch,
+      english,
+      image_url: imageUrl,
+    })
+    .eq("id", editCardId);
+
+  if (error) {
+    console.error(error);
+    showToast("Failed to save card");
+    return;
+  }
+
+  // Update in memory
+  const card = allCards.find((c) => c.id === editCardId);
+  if (card) {
+    card.dutch = dutch;
+    card.english = english;
+    card.image_url = imageUrl;
+  }
+
+  reviewQueue.forEach((c) => {
+    if (c.id === editCardId) {
+      c.dutch = dutch;
+      c.english = english;
+      c.image_url = imageUrl;
+    }
+  });
+
+  browseList.forEach((c) => {
+    if (c.id === editCardId) {
+      c.dutch = dutch;
+      c.english = english;
+      c.image_url = imageUrl;
+    }
+  });
+
+  // Refresh browse table and card
+  if (document.getElementById("browse-screen").classList.contains("visible")) {
+    buildBrowseList();
+    renderBrowseTable();
+    if (browseIndex >= browseList.length) browseIndex = 0;
+    renderBrowseCard();
+  }
+
+  // Refresh review card if visible
+  if (document.getElementById("review-screen").classList.contains("visible")) {
+    renderCurrentCard();
+  }
+
+  document.getElementById("edit-modal").classList.add("hidden");
+  showToast("Card updated");
+});
+
+/* ------------------------- Init ------------------------- */
+window.addEventListener("load", async () => {
+  const ver = document.getElementById("app-version");
+  if (ver) ver.textContent = "Version: " + APP_VERSION;
+
+  const sel = document.getElementById("max-new-cards-select");
+  sel.value = String(getMaxNewCardsPerDay());
+  sel.addEventListener("change", () => {
+    setMaxNewCardsPerDay(parseInt(sel.value, 10));
+    updateSummary();
+    showToast("Max new cards updated");
+  });
+
+  await loadCards();
+  updateSummary();
+  openScreen("menu");
+});
