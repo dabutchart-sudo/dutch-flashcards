@@ -1,3 +1,6 @@
+/* ---------------------------------------------------------
+   GLOBAL STYLES
+--------------------------------------------------------- */
 body {
   font-family: Arial, sans-serif;
   background: #f4f4f4;
@@ -5,13 +8,12 @@ body {
   text-align: center;
 }
 
-/* Screens */
 .screen {
   display: none;
   max-width: 480px;
   margin: 0 auto;
   position: relative;
-  padding-top: 70px; /* space for fixed header */
+  padding-top: 70px; /* Accounts for fixed header */
 }
 
 .screen.visible {
@@ -22,9 +24,9 @@ body {
   display: none !important;
 }
 
-/* ------------------------------------------------------ */
-/* FIXED HEADER BAR – TITLE CENTERED, HOME ON RIGHT        */
-/* ------------------------------------------------------ */
+/* ---------------------------------------------------------
+   FIXED HEADER
+--------------------------------------------------------- */
 .screen-header {
   position: fixed;
   top: 0;
@@ -32,17 +34,15 @@ body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-
   height: 60px;
-  display: flex;
 
-  justify-content: center;      /* center title */
+  display: flex;
+  justify-content: center; /* center title */
   align-items: center;
 
   padding: 0 16px;
   background: #f4f4f4;
   border-bottom: 1px solid #ddd;
-
   z-index: 100;
   box-sizing: border-box;
 }
@@ -50,11 +50,10 @@ body {
 .screen-title {
   font-size: 24px;
   font-weight: bold;
+  flex: 1;
   text-align: center;
-  flex: 1; /* allows perfect centering */
 }
 
-/* Home button aligned RIGHT */
 .home-btn {
   position: absolute;
   right: 16px;
@@ -62,17 +61,11 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  line-height: 1;
 }
 
-/* Remove old back buttons */
-.back-btn {
-  display: none !important;
-}
-
-/* ------------------------------------------------------ */
-/* MENU TITLE + FLAGS                                      */
-/* ------------------------------------------------------ */
+/* ---------------------------------------------------------
+   MENU TITLE + FLAGS
+--------------------------------------------------------- */
 .menu-title {
   margin-top: 20px;
   margin-bottom: 16px;
@@ -84,12 +77,13 @@ body {
   font-weight: bold;
 }
 
-/* 3× flags */
 .menu-flags {
   font-size: 96px;
 }
 
-/* Version at bottom */
+/* ---------------------------------------------------------
+   VERSION FOOTER
+--------------------------------------------------------- */
 .version {
   position: fixed;
   bottom: 10px;
@@ -99,7 +93,9 @@ body {
   color: #555;
 }
 
-/* Summary panel */
+/* ---------------------------------------------------------
+   SUMMARY PANEL
+--------------------------------------------------------- */
 .summary-panel {
   background: white;
   border-radius: 10px;
@@ -116,7 +112,9 @@ body {
   margin: 4px 0;
 }
 
-/* Menu buttons */
+/* ---------------------------------------------------------
+   MENU BUTTONS
+--------------------------------------------------------- */
 .menu-buttons button {
   display: block;
   width: 90%;
@@ -131,7 +129,9 @@ body {
   cursor: pointer;
 }
 
-/* Progress Bar */
+/* ---------------------------------------------------------
+   PROGRESS BAR
+--------------------------------------------------------- */
 .progress-wrapper {
   width: 360px;
   margin: 0 auto 10px auto;
@@ -156,7 +156,9 @@ body {
   color: #555;
 }
 
-/* Flashcards */
+/* ---------------------------------------------------------
+   FLASHCARDS
+--------------------------------------------------------- */
 .flip-container {
   perspective: 1000px;
   width: 360px;
@@ -214,8 +216,18 @@ body {
 .hint-btn {
   position: absolute;
   top: 10px;
-  right: 45px;
+  right: 50px;
   font-size: 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.edit-btn {
+  position: absolute;
+  top: 10px;
+  right: 85px;
+  font-size: 22px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -223,11 +235,13 @@ body {
 
 .card-text.centered {
   font-size: 22px;
-  text-align: center;
   white-space: pre-wrap;
+  text-align: center;
 }
 
-/* Rating buttons */
+/* ---------------------------------------------------------
+   RATING BUTTONS
+--------------------------------------------------------- */
 .rating-row {
   width: 360px;
   margin: 0 auto;
@@ -249,3 +263,136 @@ body {
 .rating-btn.hard  { background: #f0ad4e; }
 .rating-btn.good  { background: #5cb85c; }
 .rating-btn.easy  { background: #5bc0de; }
+
+/* ---------------------------------------------------------
+   BROWSE TABLE
+--------------------------------------------------------- */
+#word-table {
+  width: 96%;
+  margin: 20px auto;
+  background: white;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#word-table th,
+#word-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e6e6e6;
+  font-size: 16px;
+}
+
+#word-table th {
+  background: #fafafa;
+  border-bottom: 2px solid #ddd;
+}
+
+/* ---------------------------------------------------------
+   BROWSE BUTTONS
+--------------------------------------------------------- */
+.primary-btn {
+  background: #ff8800;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.secondary-btn {
+  background: #ccc;
+  color: black;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* ---------------------------------------------------------
+   IMAGE PICKER MODAL
+--------------------------------------------------------- */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.image-picker-content {
+  background: white;
+  padding: 20px;
+  width: 90%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.close-btn {
+  margin-top: 15px;
+  padding: 10px 16px;
+  background: #ddd;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.image-picker-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.image-picker-grid img {
+  width: 100%;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 3px solid transparent;
+}
+
+.image-picker-grid img:hover {
+  border-color: #ff8800;
+}
+
+.image-picker-preview img {
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.image-picker-preview {
+  margin-top: 20px;
+}
+
+/* ---------------------------------------------------------
+   TOAST
+--------------------------------------------------------- */
+.toast {
+  visibility: hidden;
+  min-width: 200px;
+  background: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  padding: 12px 20px;
+  position: fixed;
+  z-index: 300;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 40px;
+}
+
+.toast.show {
+  visibility: visible;
+}
