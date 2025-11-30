@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dutch Flashcards</title>
-  <link rel="stylesheet" href="styles.css?v=104"/>
+  <link rel="stylesheet" href="styles.css?v=105"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
 </head>
@@ -75,13 +75,11 @@
 
 <!-- BROWSE SCREEN -->
 <div id="browse-screen" class="screen hidden">
-
   <div class="screen-header">
     <div class="screen-title">Browse Cards</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
   </div>
 
-  <!-- TABLE VIEW -->
   <div id="browse-table-view">
     <table id="word-table">
       <thead>
@@ -96,7 +94,6 @@
     </table>
   </div>
 
-  <!-- FLASHCARD VIEW (Viewer Mode) -->
   <div id="browse-flashcard-view" class="hidden">
 
     <div class="flip-container">
@@ -143,7 +140,7 @@
   </div>
 </div>
 
-<!-- SETTINGS SCREEN -->
+<!-- SETTINGS -->
 <div id="settings-screen" class="screen hidden">
   <div class="screen-header">
     <div class="screen-title">Settings</div>
@@ -172,14 +169,24 @@
   </div>
 </div>
 
-<!-- IMAGE PICKER MODAL -->
+<!-- ======================================================
+     IMAGE PICKER MODAL (new search bar + button)
+====================================================== -->
 <div id="image-picker-modal" class="modal hidden">
   <div class="image-picker-content">
 
     <h2>Select an Image</h2>
 
+    <!-- SEARCH BAR ROW -->
+    <div class="search-row">
+      <input id="image-search-input" type="text" placeholder="Search term">
+      <button class="primary-btn search-btn" onclick="runImageSearch()">Search</button>
+    </div>
+
+    <!-- IMAGE GRID -->
     <div id="image-picker-grid" class="image-picker-grid"></div>
 
+    <!-- PREVIEW (hidden until selected) -->
     <div id="image-picker-preview" class="image-picker-preview hidden">
       <img id="selected-image-preview" src="">
       <button class="primary-btn" onclick="confirmImageSelection()">Use this image</button>
@@ -190,8 +197,8 @@
   </div>
 </div>
 
-<script src="config.js?v=104"></script>
-<script src="app.js?v=104"></script>
+<script src="config.js?v=105"></script>
+<script src="app.js?v=105"></script>
 
 </body>
 </html>
