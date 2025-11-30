@@ -1,36 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dutch Flashcards</title>
-  <link rel="stylesheet" href="styles.css?v=105"/>
+  <link rel="stylesheet" href="styles.css?v=108" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+  <script src="config.js?v=108"></script>
 </head>
-
 <body>
 
-<!-- MENU SCREEN -->
+<!-- MAIN MENU -->
 <div id="menu-screen" class="screen visible">
   <div class="menu-title">
-    <div class="menu-flags">🇳🇱 🇬🇧</div>
+    <div class="menu-flags">🇳🇱🇬🇧</div>
     <h1>Dutch Flashcards</h1>
   </div>
 
-  <div class="summary-panel" id="summary-panel">
-    <div class="summary-row" id="summary-today"></div>
-    <div class="summary-row" id="summary-tomorrow"></div>
+  <div class="summary-panel">
+    <div id="summary-today"></div>
+    <div id="summary-tomorrow"></div>
   </div>
 
   <div class="menu-buttons">
-    <button onclick="startReviewSession()">Review Cards</button>
+    <button onclick="startReviewSession()">Start Review</button>
     <button onclick="openBrowse()">Browse Cards</button>
-    <button onclick="openReport()">Report</button>
-    <button onclick="openScreen('settings')">Settings</button>
+    <button onclick="openReport()">Progress Report</button>
+
+    <label>Max new cards per day:</label>
+    <select id="max-new-cards-select">
+      <option>5</option><option>10</option>
+      <option>15</option><option>20</option>
+    </select>
   </div>
 
-  <div class="version" id="app-version"></div>
+  <div id="app-version" class="version">Version: </div>
 </div>
 
 <!-- REVIEW SCREEN -->
@@ -47,25 +50,23 @@
     <div id="review-counter" class="review-counter"></div>
   </div>
 
-  <div id="card-status" class="card-status"></div>
-
   <div class="flip-container">
     <div id="card-flipper" class="flipper">
       <div class="card-face front">
-        <span class="flag">🇳🇱</span>
+        <div class="flag">🇳🇱</div>
         <button class="tts-btn" onclick="tts()">🔊</button>
-        <button class="hint-btn hidden" id="review-hint-btn" onclick="openHintModal()">💡</button>
+        <button id="review-hint-btn" class="hint-btn hidden" onclick="openHintModal()">💡</button>
         <div id="card-front-text" class="card-text centered"></div>
       </div>
 
       <div class="card-face back">
-        <span class="flag">🇬🇧</span>
+        <div class="flag">🇬🇧</div>
         <div id="card-back-text" class="card-text centered"></div>
       </div>
     </div>
   </div>
 
-  <div id="rating-buttons" class="rating-row hidden">
+  <div class="rating-row" id="rating-buttons">
     <button class="rating-btn again" onclick="handleRating('again')">Again</button>
     <button class="rating-btn hard" onclick="handleRating('hard')">Hard</button>
     <button class="rating-btn good" onclick="handleRating('good')">Good</button>
@@ -80,13 +81,23 @@
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
   </div>
 
-  <div id="browse-table-view">
+  <!-- A–Z Picker -->
+  <div class="alphabet-scroll">
+    <div id="alphabet-picker" class="alphabet-row">
+      <!-- Generated in JS -->
+    </div>
+  </div>
+
+  <!-- Scrollable table wrapper -->
+  <div class="table-scroll">
     <table id="word-table">
       <thead>
         <tr>
-          <th>Dutch</th>
-          <th>English</th>
-          <th>Image</th>
+          <th onclick="sortBrowse('dutch')">Dutch</th>
+          <th onclick="sortBrowse('english')">English</th>
+          <th onclick="sortBrowse('last_reviewed')">Last Reviewed</th>
+          <th onclick="sortBrowse('due_date')">Due Date</th>
+          <th onclick="sortBrowse('image_url')">Image</th>
           <th>View</th>
         </tr>
       </thead>
@@ -95,100 +106,66 @@
   </div>
 
   <div id="browse-flashcard-view" class="hidden">
-
     <div class="flip-container">
-      <div id="browse-flipper" class="flipper">
+      <div id="browse-flipper" class="flipper" onclick="toggleBrowseFlip()">
         <div class="card-face front">
-          <span class="flag">🇳🇱</span>
           <button class="tts-btn" onclick="browseTTS()">🔊</button>
-          <button class="hint-btn hidden" id="browse-hint-btn" onclick="openHintModal()">💡</button>
-          <button class="edit-btn" onclick="openImagePicker()">🖼️</button>
+          <button id="browse-hint-btn" class="hint-btn hidden" onclick="openHintModal()">💡</button>
           <div id="browse-front-text" class="card-text centered"></div>
         </div>
 
         <div class="card-face back">
-          <span class="flag">🇬🇧</span>
           <div id="browse-back-text" class="card-text centered"></div>
         </div>
       </div>
     </div>
 
-    <div class="browse-nav-row">
-      <button class="primary-btn" onclick="browsePrev()">Prev</button>
-      <button class="primary-btn" onclick="toggleBrowseFlip()">Flip</button>
-      <button class="primary-btn" onclick="browseNext()">Next</button>
+    <div class="rating-row">
+      <button class="secondary-btn" onclick="browsePrev()">Prev</button>
+      <button class="primary-btn" onclick="openImagePicker()">Pick Image</button>
+      <button class="secondary-btn" onclick="browseNext()">Next</button>
     </div>
-
   </div>
 </div>
 
 <!-- REPORT SCREEN -->
 <div id="report-screen" class="screen hidden">
   <div class="screen-header">
-    <div class="screen-title">Report</div>
+    <div class="screen-title">Progress</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
   </div>
 
-  <div class="report-controls">
+  <div class="report-modes">
     <button class="report-group-btn" onclick="setReportMode('day')">Day</button>
     <button class="report-group-btn" onclick="setReportMode('month')">Month</button>
     <button class="report-group-btn" onclick="setReportMode('year')">Year</button>
   </div>
 
-  <div class="chart-container">
-    <canvas id="report-chart"></canvas>
-  </div>
+  <canvas id="report-chart"></canvas>
 </div>
-
-<!-- SETTINGS -->
-<div id="settings-screen" class="screen hidden">
-  <div class="screen-header">
-    <div class="screen-title">Settings</div>
-    <button class="home-btn" onclick="openScreen('menu')">🏠</button>
-  </div>
-
-  <div class="settings-row">
-    <label for="max-new-cards-select">Max new cards per day:</label>
-    <select id="max-new-cards-select">
-      <option>5</option>
-      <option>10</option>
-      <option>15</option>
-      <option>20</option>
-    </select>
-  </div>
-</div>
-
-<!-- TOAST -->
-<div id="toast" class="toast"></div>
 
 <!-- HINT MODAL -->
 <div id="hint-modal" class="modal hidden">
-  <div class="modal-content">
-    <img id="hint-image" src="" alt="">
-    <button class="primary-btn" onclick="closeHintModal()">Close</button>
+  <div class="hint-content">
+    <img id="hint-image" src="" />
+    <button onclick="closeHintModal()">Close</button>
   </div>
 </div>
 
-<!-- ======================================================
-     IMAGE PICKER MODAL (new search bar + button)
-====================================================== -->
+<!-- IMAGE PICKER MODAL -->
 <div id="image-picker-modal" class="modal hidden">
   <div class="image-picker-content">
-
     <h2>Select an Image</h2>
 
-    <!-- SEARCH BAR ROW -->
     <div class="search-row">
-      <input id="image-search-input" type="text" placeholder="Search term">
+      <input id="image-search-input" type="text" />
       <button class="primary-btn search-btn" onclick="runImageSearch()">Search</button>
     </div>
 
-    <!-- IMAGE GRID -->
     <div id="image-picker-grid" class="image-picker-grid"></div>
 
-    <!-- PREVIEW (hidden until selected) -->
     <div id="image-picker-preview" class="image-picker-preview hidden">
-      <img id="selected-image-preview" src="">
+      <img id="selected-image-preview" />
       <button class="primary-btn" onclick="confirmImageSelection()">Use this image</button>
       <button class="secondary-btn" onclick="cancelImagePreview()">Cancel</button>
     </div>
@@ -197,8 +174,9 @@
   </div>
 </div>
 
-<script src="config.js?v=105"></script>
-<script src="app.js?v=105"></script>
+<div id="toast" class="toast">Toast</div>
+
+<script src="app.js?v=108"></script>
 
 </body>
 </html>
