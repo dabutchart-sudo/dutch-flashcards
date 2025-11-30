@@ -11,7 +11,7 @@ body {
   max-width: 480px;
   margin: 0 auto;
   position: relative;
-  padding-top: 50px;
+  padding-top: 70px; /* extra space now BELOW fixed header */
 }
 
 .screen.visible {
@@ -22,29 +22,45 @@ body {
   display: none !important;
 }
 
-/* ---- NEW HEADER BAR ---- */
+/* ------------------------------------------------------ */
+/*                FIXED HEADER BAR (NEW)                  */
+/* ------------------------------------------------------ */
 .screen-header {
-  position: absolute;
-  top: 10px;
-  left: 0;
+  position: fixed;          /* always at top */
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 100%;
+  max-width: 480px;
+  height: 60px;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 12px;
+
+  padding: 0 16px;
+  background: #f4f4f4;
+
+  z-index: 50;
   box-sizing: border-box;
+  border-bottom: 1px solid #ddd;
 }
 
 .screen-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: bold;
+  text-align: left;
 }
 
+/* BIG HOME BUTTON */
 .home-btn {
-  font-size: 26px;
+  font-size: 40px;    /* larger icon for mobile */
   background: none;
   border: none;
   cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
 }
 
 /* Remove old back button */
@@ -52,8 +68,11 @@ body {
   display: none !important;
 }
 
-/* ---- MENU TITLE ---- */
+/* ------------------------------------------------------ */
+/*                     MENU TITLE                         */
+/* ------------------------------------------------------ */
 .menu-title {
+  margin-top: 20px;
   margin-bottom: 16px;
 }
 
@@ -238,7 +257,7 @@ body {
 .rating-btn.good  { background: #5cb85c; }
 .rating-btn.easy  { background: #5bc0de; }
 
-/* Browse screen table */
+/* Browse table */
 #browse-table {
   width: 100%;
   background: white;
@@ -247,4 +266,4 @@ body {
   overflow: hidden;
 }
 
-/* etc… (all your remaining CSS stays identical) */
+/* You may keep the remaining CSS exactly as before */
