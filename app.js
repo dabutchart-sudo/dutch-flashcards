@@ -1,5 +1,5 @@
 // =========================================================
-// app.js v105 — Wikimedia Image Picker + Editable Search
+// app.js v106 — Wikimedia Image Picker (allimages) + Editable Search
 // =========================================================
 
 // ------------ SUPABASE INIT ------------
@@ -80,7 +80,7 @@ function openScreenInternal(name) {
 window.openScreen = (n) => openScreenInternal(n);
 
 // ---------------------------------------------------------
-// LOAD CARDS (UNCHANGED – obeys your "before range fix" request)
+// LOAD CARDS (Still WITHOUT .range() — as you requested)
 // ---------------------------------------------------------
 async function loadCards() {
   const { data, error } = await supabaseClient
@@ -234,7 +234,7 @@ window.startReviewSession = async function () {
 };
 
 // ---------------------------------------------------------
-// FLIP – REVIEW MODE
+// REVIEW — FLIP
 // ---------------------------------------------------------
 (() => {
   const container = document.querySelector("#review-screen .flip-container");
@@ -263,7 +263,7 @@ window.startReviewSession = async function () {
 })();
 
 // ---------------------------------------------------------
-// REVIEW TTS
+// REVIEW — TTS
 // ---------------------------------------------------------
 window.tts = function () {
   const card = reviewQueue[currentReviewIndex];
@@ -275,7 +275,7 @@ window.tts = function () {
 };
 
 // ---------------------------------------------------------
-// HINT MODAL (SHARED WITH BROWSE)
+// HINT MODAL
 // ---------------------------------------------------------
 window.openHintModal = function () {
   const isReview = document.getElementById("review-screen").classList.contains("visible");
@@ -290,9 +290,7 @@ window.openHintModal = function () {
     return;
   }
 
-  const img = document.getElementById("hint-image");
-  img.src = card.image_url;
-
+  document.getElementById("hint-image").src = card.image_url;
   document.getElementById("hint-modal").classList.remove("hidden");
 };
 
@@ -301,7 +299,8 @@ window.closeHintModal = () => {
 };
 
 // ---------------------------------------------------------
-// REVIEW RATING LOGIC (unchanged)
+// REVIEW — RATING
+// (same as previous version)
 // ---------------------------------------------------------
 window.handleRating = async function (rating) {
   const card = reviewQueue[currentReviewIndex];
@@ -521,19 +520,15 @@ window.openImagePicker = function () {
   runImageSearch();
 };
 
-window.closeImagePicker = function () {
-  document.getElementById("image-picker-modal").classList.add("hidden");
-};
-
 // ---------------------------------------------------------
-// IMAGE PICKER — RUN SEARCH
+// IMAGE PICKER — SEARCH (allimages endpoint)
 // ---------------------------------------------------------
 window.runImageSearch = async function () {
   const grid = document.getElementById("image-picker-grid");
   const preview = document.getElementById("image-picker-preview");
   const searchInput = document.getElementById("image-search-input");
-  const query = searchInput.value.trim();
 
+  const query = searchInput.value.trim();
   if (!query) {
     showToast("Please enter a search term");
     return;
@@ -544,31 +539,35 @@ window.runImageSearch = async function () {
   selectedImageURL = null;
 
   const url =
-    `https://commons.wikimedia.org/w/api.php?action=query&` +
-    `generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=12&` +
-    `prop=imageinfo&iiprop=url&format=json&origin=*`;
+    `https://commons.wikimedia.org/w/api.php?` +
+    `action=query&` +
+    `list=allimages&` +
+    `aiprefix=${encodeURIComponent(query)}&` +
+    `ailimit=50&` +
+    `format=json&origin=*`;
 
   try {
     const res = await fetch(url);
     const data = await res.json();
 
-    const pages = data.query?.pages || {};
+    const images = data?.query?.allimages || [];
     grid.innerHTML = "";
 
-    Object.values(pages).forEach((p) => {
-      const img = p.imageinfo?.[0]?.url;
-      if (!img) return;
+    if (images.length === 0) {
+      grid.innerHTML = "<p>No images found.</p>";
+      return;
+    }
+
+    images.forEach((imgObj) => {
+      const url = imgObj.url;
+      if (!url) return;
 
       const thumb = document.createElement("img");
-      thumb.src = img;
-      thumb.onclick = () => selectImageForPreview(img);
+      thumb.src = url;
+      thumb.onclick = () => selectImageForPreview(url);
 
       grid.appendChild(thumb);
     });
-
-    if (!grid.innerHTML.trim()) {
-      grid.innerHTML = "<p>No images found.</p>";
-    }
 
   } catch (err) {
     console.error(err);
@@ -576,16 +575,17 @@ window.runImageSearch = async function () {
   }
 };
 
-// Press Enter to search
+// ENTER triggers search
 document.addEventListener("keypress", (e) => {
-  const modalVisible = !document.getElementById("image-picker-modal").classList.contains("hidden");
+  const modalVisible =
+    !document.getElementById("image-picker-modal").classList.contains("hidden");
   if (modalVisible && e.key === "Enter") {
     runImageSearch();
   }
 });
 
 // ---------------------------------------------------------
-// SELECT IMAGE FOR PREVIEW
+// IMAGE PICKER — PREVIEW
 // ---------------------------------------------------------
 function selectImageForPreview(url) {
   selectedImageURL = url;
@@ -597,8 +597,13 @@ function selectImageForPreview(url) {
   previewDiv.classList.remove("hidden");
 }
 
+window.cancelImagePreview = function () {
+  selectedImageURL = null;
+  document.getElementById("image-picker-preview").classList.add("hidden");
+};
+
 // ---------------------------------------------------------
-// CONFIRM IMAGE SELECTION — SAVE TO SUPABASE
+// IMAGE PICKER — SAVE TO SUPABASE
 // ---------------------------------------------------------
 window.confirmImageSelection = async function () {
   if (!selectedImageURL) {
@@ -627,9 +632,8 @@ window.confirmImageSelection = async function () {
   showToast("Image added!");
 };
 
-window.cancelImagePreview = function () {
-  selectedImageURL = null;
-  document.getElementById("image-picker-preview").classList.add("hidden");
+window.closeImagePicker = () => {
+  document.getElementById("image-picker-modal").classList.add("hidden");
 };
 
 // ---------------------------------------------------------
