@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dutch Flashcards</title>
-  <link rel="stylesheet" href="styles.css?v=102"/>
+  <link rel="stylesheet" href="styles.css?v=103"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
 </head>
@@ -36,7 +36,6 @@
 
 <!-- REVIEW SCREEN -->
 <div id="review-screen" class="screen hidden">
-
   <div class="screen-header">
     <div class="screen-title">Review</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
@@ -73,36 +72,32 @@
     <button class="rating-btn good" onclick="handleRating('good')">Good</button>
     <button class="rating-btn easy" onclick="handleRating('easy')">Easy</button>
   </div>
-
 </div>
 
 <!-- BROWSE SCREEN -->
 <div id="browse-screen" class="screen hidden">
 
   <div class="screen-header">
-    <div class="screen-title">Browse</div>
+    <div class="screen-title">Browse Cards</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
   </div>
 
-  <div style="margin-bottom:20px;">
-    <button id="browse-table-btn" class="primary-btn" onclick="showBrowseTable()">Table View</button>
-    <button id="browse-flashcard-btn" class="primary-btn" onclick="startBrowseFlashcard()">Flashcard View</button>
-  </div>
-
+  <!-- TABLE ONLY -->
   <div id="browse-table-view">
     <table id="word-table">
       <thead>
         <tr>
-          <th onclick="sortWordTable('dutch')">Dutch</th>
-          <th onclick="sortWordTable('english')">English</th>
-          <th onclick="sortWordTable('last_reviewed')">Last Reviewed</th>
-          <th onclick="sortWordTable('due_date')">Next Review</th>
+          <th>Dutch</th>
+          <th>English</th>
+          <th>Image</th>
+          <th>View</th>
         </tr>
       </thead>
       <tbody id="word-tbody"></tbody>
     </table>
   </div>
 
+  <!-- FLASHCARD VIEW (Viewer Mode Only) -->
   <div id="browse-flashcard-view" class="hidden">
     <div class="flip-container">
       <div id="browse-flipper" class="flipper">
@@ -120,6 +115,7 @@
       </div>
     </div>
 
+    <!-- Viewer mode: No rating buttons -->
     <div class="browse-nav-row">
       <button class="primary-btn" onclick="browsePrev()">Prev</button>
       <button class="primary-btn" onclick="toggleBrowseFlip()">Flip</button>
@@ -178,7 +174,7 @@
   </div>
 </div>
 
-<script src="config.js?v=102"></script>
-<script src="app.js?v=102"></script>
+<script src="config.js?v=103"></script>
+<script src="app.js?v=103"></script>
 </body>
 </html>
