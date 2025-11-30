@@ -1,3 +1,5 @@
+[START OF FILE: app.js]
+
 import { SUPABASE_URL, SUPABASE_ANON_KEY, APP_VERSION } from "./config.js";
 
 const { createClient } = window.supabase;
@@ -45,7 +47,7 @@ function showToast(msg) {
 const MAX_NEW_KEY = "maxNewCardsPerDay";
 
 function getMaxNewCardsPerDay() {
-  return parseInt(localStorage.getItem(MAX_NEW_KEY) || "10", 10);
+  return parseInt(localStorage.getItem(MAX_KEY) || "10", 10);
 }
 
 function setMaxNewCardsPerDay(val) {
@@ -65,9 +67,8 @@ window.openScreen = function (screen) {
     el.classList.remove("hidden");
   }
 
-  if (screen === "menu") {
-    updateSummary();
-  }
+  // *** OPTION A FIX ***
+  // ❌ Removed updateSummary() from here
 };
 
 /* ------------------------- Load Cards ------------------------- */
@@ -399,7 +400,6 @@ window.handleRating = async function (rating) {
   currentIndex++;
 
   if (currentIndex >= reviewQueue.length) {
-    // Final card: fill progress bar and wait for animations to finish
     const bar = document.getElementById("review-progress-bar");
     if (bar) bar.style.width = "100%";
 
@@ -420,7 +420,6 @@ window.openBrowse = async function () {
   await loadCards();
   updateSummary();
 
-  // Default order: due_date ascending (nulls last)
   browseSortColumn = "due_date";
   browseSortDirection = 1;
 
@@ -455,7 +454,6 @@ function buildBrowseList() {
         if (A > B) return 1 * browseSortDirection;
         return 0;
       } else {
-        // Strings
         A = (A || "").toString().toLowerCase();
         B = (B || "").toString().toLowerCase();
         if (A < B) return -1 * browseSortDirection;
@@ -939,7 +937,6 @@ document.getElementById("edit-save-btn").addEventListener("click", async () => {
     return;
   }
 
-  // Update in memory
   const card = allCards.find((c) => c.id === editCardId);
   if (card) {
     card.dutch = dutch;
@@ -963,7 +960,6 @@ document.getElementById("edit-save-btn").addEventListener("click", async () => {
     }
   });
 
-  // Refresh browse table and card
   if (document.getElementById("browse-screen").classList.contains("visible")) {
     buildBrowseList();
     renderBrowseTable();
@@ -971,7 +967,6 @@ document.getElementById("edit-save-btn").addEventListener("click", async () => {
     renderBrowseCard();
   }
 
-  // Refresh review card if visible
   if (document.getElementById("review-screen").classList.contains("visible")) {
     renderCurrentCard();
   }
@@ -997,3 +992,5 @@ window.addEventListener("load", async () => {
   updateSummary();
   openScreen("menu");
 });
+
+[END OF FILE]
