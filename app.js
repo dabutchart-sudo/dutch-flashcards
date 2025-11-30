@@ -1,5 +1,5 @@
 // =========================================================
-// app.js v106 — Wikimedia Image Picker (allimages) + Editable Search
+// app.js v107 — Supabase Range Fix + AllImages Image Search
 // =========================================================
 
 // ------------ SUPABASE INIT ------------
@@ -80,12 +80,13 @@ function openScreenInternal(name) {
 window.openScreen = (n) => openScreenInternal(n);
 
 // ---------------------------------------------------------
-// LOAD CARDS (Still WITHOUT .range() — as you requested)
+// LOAD CARDS (NOW WITH RANGE FIX)
 // ---------------------------------------------------------
 async function loadCards() {
   const { data, error } = await supabaseClient
     .from("cards")
     .select("*")
+    .range(0, 15000)   // <-- FIX: loads all 5000+ records
     .order("id");
 
   if (error) {
@@ -299,8 +300,7 @@ window.closeHintModal = () => {
 };
 
 // ---------------------------------------------------------
-// REVIEW — RATING
-// (same as previous version)
+// REVIEW — RATING (unchanged)
 // ---------------------------------------------------------
 window.handleRating = async function (rating) {
   const card = reviewQueue[currentReviewIndex];
@@ -521,7 +521,7 @@ window.openImagePicker = function () {
 };
 
 // ---------------------------------------------------------
-// IMAGE PICKER — SEARCH (allimages endpoint)
+// IMAGE SEARCH — allimages endpoint
 // ---------------------------------------------------------
 window.runImageSearch = async function () {
   const grid = document.getElementById("image-picker-grid");
@@ -603,7 +603,7 @@ window.cancelImagePreview = function () {
 };
 
 // ---------------------------------------------------------
-// IMAGE PICKER — SAVE TO SUPABASE
+// IMAGE PICKER — SAVE
 // ---------------------------------------------------------
 window.confirmImageSelection = async function () {
   if (!selectedImageURL) {
@@ -668,7 +668,7 @@ function updateSummaryPanel() {
 }
 
 // ---------------------------------------------------------
-// REPORTS (unchanged)
+// REPORTS
 // ---------------------------------------------------------
 window.openReport = async function () {
   await loadCards();
