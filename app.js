@@ -1,7 +1,12 @@
 /* =========================================================
-   app.js  —  Version 109
-   Openverse Image Search + Complete Fixes
-========================================================= */
+   app.js  —  Version 110  (Full, Updated)
+   Includes:
+   - Openverse via Cloudflare Worker Proxy
+   - Browse View Fixes
+   - A–Z Picker
+   - Sorting
+   - Multi-load
+============================================================ */
 
 /* -------------------------------
    SUPABASE INITIALIZATION
@@ -28,7 +33,7 @@ let reportChart = null;
 let reportMode = "day";
 
 /* ============================================================
-   UTILITY FUNCTIONS
+   UTILITIES
 ============================================================ */
 function todayStr() {
   return new Date().toISOString().split("T")[0];
@@ -57,14 +62,14 @@ function shuffle(arr) {
 /* ============================================================
    SETTINGS
 ============================================================ */
-const MAX_NEW_KEY = "maxNewCardsPerDay";
+const MAX_NEW_CARDS_KEY = "maxNewCardsPerDay";
 
 function getMaxNewCardsPerDay() {
-  return parseInt(localStorage.getItem(MAX_NEW_KEY) || "10", 10);
+  return parseInt(localStorage.getItem(MAX_NEW_CARDS_KEY) || "10", 10);
 }
 
 function setMaxNewCardsPerDay(v) {
-  localStorage.setItem(MAX_NEW_KEY, String(v));
+  localStorage.setItem(MAX_NEW_CARDS_KEY, String(v));
 }
 
 /* ============================================================
@@ -86,7 +91,7 @@ window.openScreen = function (name) {
 };
 
 /* ============================================================
-   LOAD ALL CARDS (multi-range loader)
+   LOAD CARDS (Multi-range loader for >1000 rows)
 ============================================================ */
 async function loadCards() {
   const chunk = 1000;
@@ -218,6 +223,7 @@ function renderCurrentReviewCard() {
   updateReviewProgressBar();
 }
 
+/* Flip handling */
 (() => {
   const container = document.querySelector("#review-screen .flip-container");
   if (!container) return;
@@ -244,6 +250,7 @@ function renderCurrentReviewCard() {
   });
 })();
 
+/* TTS */
 window.tts = function () {
   const card = reviewQueue[currentReviewIndex];
   if (!card) return;
@@ -255,7 +262,7 @@ window.tts = function () {
 };
 
 /* ============================================================
-   REVIEW RATING
+   RATING
 ============================================================ */
 window.handleRating = async function (rating) {
   const card = reviewQueue[currentReviewIndex];
@@ -384,15 +391,12 @@ window.openBrowse = async function () {
   openScreen("browse");
 };
 
-/* -------------------------------
-   Alphabet Picker
--------------------------------- */
+/* Alphabet Picker */
 function buildAlphabetPicker() {
   const container = document.getElementById("alphabet-picker");
   container.innerHTML = "";
 
-  const letters = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
-  letters.forEach(letter => {
+  [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].forEach(letter => {
     const btn = document.createElement("button");
     btn.textContent = letter;
 
@@ -411,7 +415,6 @@ function buildAlphabetPicker() {
   allBtn.onclick = () => {
     document.querySelectorAll("#alphabet-picker button")
       .forEach(x => x.classList.remove("active"));
-
     allBtn.classList.add("active");
     loadAllBrowseCards();
   };
@@ -476,7 +479,7 @@ function applySorting() {
 }
 
 /* ============================================================
-   RENDER TABLE
+   RENDER BROWSE TABLE
 ============================================================ */
 function renderBrowseTable() {
   const tbody = document.getElementById("word-tbody");
@@ -486,19 +489,10 @@ function renderBrowseTable() {
     .forEach(th => th.classList.remove("sort-asc", "sort-desc"));
 
   if (sortColumn && sortDirection) {
-    const thMap = {
-      dutch: 0,
-      english: 1,
-      last_reviewed: 2,
-      due_date: 3,
-      image_url: 4
-    };
-    const idx = thMap[sortColumn];
-
-    if (idx !== undefined) {
-      const h = document.querySelectorAll("#word-table th")[idx];
-      if (sortDirection === "asc") h.classList.add("sort-asc");
-      else h.classList.add("sort-desc");
+    const thIndex = { dutch: 0, english: 1, last_reviewed: 2, due_date: 3, image_url: 4 }[sortColumn];
+    if (thIndex !== undefined) {
+      const h = document.querySelectorAll("#word-table th")[thIndex];
+      h.classList.add(sortDirection === "asc" ? "sort-asc" : "sort-desc");
     }
   }
 
@@ -519,7 +513,7 @@ function renderBrowseTable() {
 }
 
 /* ============================================================
-   FLASHCARD VIEW (Browse)
+   BROWSE → FLASHCARD VIEW
 ============================================================ */
 window.openBrowseFlashcard = function (index) {
   browseIndex = index;
@@ -588,8 +582,9 @@ window.browseTTS = function () {
 };
 
 /* ============================================================
-   IMAGE PICKER — OPENVERSE SEARCH
+   IMAGE PICKER (USING YOUR WORKER)
 ============================================================ */
+
 window.openImagePicker = function () {
   const card = browseData[browseIndex];
   selectedImageURL = null;
@@ -619,11 +614,8 @@ window.runImageSearch = async function () {
   preview.classList.add("hidden");
   selectedImageURL = null;
 
-  const url =
-    `https://api.openverse.engineering/v1/images/?` +
-    `q=${encodeURIComponent(query)}` +
-    `&license_type=all` +
-    `&page_size=50`;
+  // Your Cloudflare Worker Proxy
+  const url = `https://icy-hat-73a2.dabutchart.workers.dev/?q=${encodeURIComponent(query)}`;
 
   try {
     const res = await fetch(url);
@@ -717,7 +709,7 @@ function updateSummaryPanel() {
 }
 
 /* ============================================================
-   REPORTS (unchanged)
+   REPORTS (unchanged structure)
 ============================================================ */
 window.openReport = async function () {
   await loadCards();
@@ -742,7 +734,7 @@ function updateReportButtons() {
   });
 }
 
-/* (Report chart implementation stays the same, omitted for length) */
+/* (Report chart builder omitted to save space; unchanged from your previous version) */
 
 /* ============================================================
    INITIALIZATION
