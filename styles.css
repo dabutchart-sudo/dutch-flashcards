@@ -1,7 +1,3 @@
-
-/* ---------------------------------------------------------
-   GLOBAL STYLES
---------------------------------------------------------- */
 body {
   font-family: Arial, sans-serif;
   background: #f4f4f4;
@@ -9,12 +5,13 @@ body {
   text-align: center;
 }
 
+/* Screens */
 .screen {
   display: none;
   max-width: 480px;
   margin: 0 auto;
   position: relative;
-  padding-top: 70px;
+  padding-top: 50px;
 }
 
 .screen.visible {
@@ -25,95 +22,42 @@ body {
   display: none !important;
 }
 
-/* ---------------------------------------------------------
-   FIXED HEADER
---------------------------------------------------------- */
-.screen-header {
-  position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 480px;
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0 16px;
-  background: #f4f4f4;
-  border-bottom: 1px solid #ddd;
-  z-index: 100;
-  box-sizing: border-box;
-}
-
-.screen-title {
-  font-size: 24px;
-  font-weight: bold;
-  flex: 1;
-  text-align: center;
-}
-
-.home-btn {
+/* Back button */
+.back-btn {
   position: absolute;
-  right: 16px;
-  font-size: 40px;
-  background: none;
+  top: 10px;
+  left: 10px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #ccc;
   border: none;
   cursor: pointer;
 }
 
-/* ---------------------------------------------------------
-   MENU TITLE
---------------------------------------------------------- */
-.menu-title {
-  margin-top: 20px;
-  margin-bottom: 16px;
-}
-
-.menu-title h1 {
-  margin: 4px 0 0 0;
-  font-size: 26px;
-  font-weight: bold;
-}
-
-.menu-flags {
-  font-size: 96px;
-}
-
-/* ---------------------------------------------------------
-   VERSION FOOTER
---------------------------------------------------------- */
-.version {
-  position: fixed;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 14px;
-  color: #555;
-}
-
-/* ---------------------------------------------------------
-   SUMMARY PANEL
---------------------------------------------------------- */
-.summary-panel {
-  background: white;
+/* Small secondary button */
+.small-secondary-btn {
+  display: inline-block;
+  margin: 8px 0;
+  padding: 6px 12px;
   border-radius: 10px;
-  padding: 12px 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-  text-align: center; /* centered */
-  margin: 0 auto 20px auto;
-  width: 90%;
-  max-width: 260px;
-}
-
-.summary-row {
+  border: none;
+  background: #dddddd;
   font-size: 14px;
-  margin: 4px 0;
+  cursor: pointer;
 }
 
-/* ---------------------------------------------------------
-   MENU BUTTONS
---------------------------------------------------------- */
+/* Primary button (for Save) */
+.primary-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: #ff8800;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+/* Menu buttons */
 .menu-buttons button {
   display: block;
   width: 90%;
@@ -128,9 +72,31 @@ body {
   cursor: pointer;
 }
 
-/* ---------------------------------------------------------
-   PROGRESS BAR
---------------------------------------------------------- */
+/* Summary panel aligned with buttons */
+.summary-panel {
+  background: white;
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  text-align: left;
+  margin: 0 auto 20px auto;
+  width: 90%;
+  max-width: 260px;
+}
+
+.summary-row {
+  font-size: 14px;
+  margin: 4px 0;
+}
+
+/* Card status */
+.card-status {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+/* Progress bar */
 .progress-wrapper {
   width: 360px;
   margin: 0 auto 10px auto;
@@ -155,9 +121,7 @@ body {
   color: #555;
 }
 
-/* ---------------------------------------------------------
-   FLASHCARDS
---------------------------------------------------------- */
+/* Flashcard */
 .flip-container {
   perspective: 1000px;
   width: 360px;
@@ -172,6 +136,7 @@ body {
   transition: 0.6s;
 }
 
+/* Rotate when flipped */
 .flipper.flip {
   transform: rotateY(180deg);
 }
@@ -195,6 +160,7 @@ body {
   transform: rotateY(180deg);
 }
 
+/* Flags */
 .flag {
   position: absolute;
   top: 10px;
@@ -202,45 +168,35 @@ body {
   font-size: 22px;
 }
 
+/* TTS & Hint buttons */
 .tts-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  font-size: 22px;
   background: transparent;
   border: none;
+  font-size: 22px;
   cursor: pointer;
 }
 
 .hint-btn {
   position: absolute;
   top: 10px;
-  right: 50px;
+  right: 45px;
+  background: transparent;
+  border: none;
   font-size: 20px;
-  background: transparent;
-  border: none;
   cursor: pointer;
 }
 
-.edit-btn {
-  position: absolute;
-  top: 10px;
-  right: 85px;
-  font-size: 22px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
+/* Card text */
 .card-text.centered {
   font-size: 22px;
   white-space: pre-wrap;
   text-align: center;
 }
 
-/* ---------------------------------------------------------
-   RATING BUTTONS
---------------------------------------------------------- */
+/* Rating buttons */
 .rating-row {
   width: 360px;
   margin: 0 auto;
@@ -259,241 +215,248 @@ body {
 }
 
 .rating-btn.again { background: #d9534f; }
-.rating-btn.hard { background: #f0ad4e; }
-.rating-btn.good { background: #5cb85c; }
-.rating-btn.easy { background: #5bc0de; }
+.rating-btn.hard  { background: #f0ad4e; }
+.rating-btn.good  { background: #5cb85c; }
+.rating-btn.easy  { background: #5bc0de; }
 
-/* ---------------------------------------------------------
-   ALPHABET PICKER (A–Z)
---------------------------------------------------------- */
-.alphabet-scroll {
-  margin-top: 10px;
-  overflow-x: auto;
-  white-space: nowrap;
-  padding: 6px 0;
+/* Browse navigation row */
+.browse-nav-row {
+  width: 360px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.alphabet-row {
-  display: inline-block;
+/* Browse view toggle */
+.browse-view-toggle {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
 }
 
-.alphabet-row button {
-  display: inline-block;
-  margin: 3px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid #bbb;
-  background: white;
-  font-size: 16px;
+.browse-view-btn {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: none;
+  background: #ddd;
   cursor: pointer;
+  font-size: 14px;
 }
 
-.alphabet-row button.active {
+.browse-view-btn.active {
   background: #ff8800;
   color: white;
-  border-color: #ff8800;
 }
 
-/* ---------------------------------------------------------
-   SCROLLABLE TABLE
---------------------------------------------------------- */
-.table-scroll {
-  overflow-x: auto;
-  margin-top: 12px;
+/* Browse hint text */
+.browse-hint-text {
+  font-size: 12px;
+  color: #666;
+  margin-top: 6px;
 }
 
-#word-table {
-  width: max-content;
-  min-width: 650px;
-  margin: 10px auto;
+/* Browse table */
+#browse-table {
+  width: 100%;
   background: white;
   border-collapse: collapse;
-  border: 1px solid black; /* thin outer border */
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-#word-table th,
-#word-table td {
-  padding: 10px;
-  border: 1px solid black; /* thin internal borders */
-  font-size: 15px;
-  white-space: nowrap;
-}
-
-#word-table th {
-  background: #fafafa;
-  cursor: pointer;
-}
-
-/* Sort icons */
-.sort-asc::after { content: " ▲"; }
-.sort-desc::after { content: " ▼"; }
-
-/* ---------------------------------------------------------
-   GENERAL BUTTONS
---------------------------------------------------------- */
-.primary-btn {
+#browse-table th {
   background: #ff8800;
   color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 10px;
   cursor: pointer;
-  font-size: 16px;
 }
 
-.secondary-btn {
-  background: #ccc;
-  color: black;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 16px;
+#browse-table td,
+#browse-table th {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
 }
 
-/* ---------------------------------------------------------
-   IMAGE PICKER MODAL
---------------------------------------------------------- */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.65);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 200;
-}
-
-.image-picker-content {
-  background: white;
-  padding: 20px;
-  width: 90%;
-  max-width: 420px;
-  max-height: 90vh;
-  overflow-y: auto;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.search-row {
-  display: flex;
-  width: 100%;
-  gap: 10px;
+/* Report */
+.report-controls {
   margin-bottom: 12px;
 }
 
-.search-row input {
-  flex: 1;
-  padding: 10px;
+.report-group-btn {
+  padding: 6px 10px;
+  margin: 0 5px;
   border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 16px;
-}
-
-.search-btn {
-  padding: 10px 14px;
-}
-
-.image-picker-grid {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.image-picker-grid img {
-  width: 100%;
-  border-radius: 10px;
-  cursor: pointer;
-  border: 3px solid transparent;
-}
-
-.image-picker-grid img:hover {
-  border-color: #ff8800;
-}
-
-.image-picker-preview {
-  margin-top: 20px;
-}
-
-.image-picker-preview img {
-  width: 100%;
-  border-radius: 10px;
-  margin-bottom: 10px;
-}
-
-.close-btn {
-  margin-top: 15px;
-  padding: 10px 16px;
   background: #ddd;
-  border-radius: 10px;
   border: none;
   cursor: pointer;
-}
-
-/* ---------------------------------------------------------
-   HINT MODAL
---------------------------------------------------------- */
-.hint-content img {
-  max-width: 90%;
-  border-radius: 10px;
-  margin-bottom: 10px;
-}
-
-.hint-content button {
-  margin-top: 10px;
-}
-
-/* ---------------------------------------------------------
-   REPORTS
---------------------------------------------------------- */
-.report-modes {
-  margin-top: 20px;
-}
-
-.report-group-btn {
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  margin: 4px;
 }
 
 .report-group-btn.active {
   background: #ff8800;
   color: white;
+}
+
+.chart-container {
+  width: 100%;
+  max-width: 480px;
+  height: 300px;
+  margin: 0 auto;
+}
+
+/* Modals (Hint, Session Summary, Edit Card) */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 16px 20px;
+  border-radius: 10px;
+  max-width: 90%;
+  max-height: 80%;
+  overflow-y: auto;
+  text-align: left;
+}
+
+/* Hint image */
+#hint-image {
+  max-width: 100%;
+  max-height: 220px;
+  display: block;
+  margin: 10px auto 16px;
+}
+
+/* Session summary */
+#session-summary-text p {
+  margin: 4px 0;
+}
+
+#session-summary-list {
+  margin-top: 8px;
+  padding-left: 20px;
+}
+
+#session-summary-list li {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+/* Edit card modal */
+#edit-modal label {
+  display: block;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  font-size: 14px;
+}
+
+#edit-modal input[type="text"] {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.edit-image-section {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+#edit-current-image {
+  max-width: 100%;
+  max-height: 160px;
+  display: block;
+  margin: 5px 0 10px 0;
+}
+
+#edit-no-image-text {
+  font-size: 13px;
+  color: #666;
+}
+
+/* Image grid for search results */
+.image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.image-option {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.image-option img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-option.selected {
   border-color: #ff8800;
 }
 
-#report-chart {
-  width: 100%;
-  max-width: 460px;
-  height: 320px;
-  max-height: 320px;
-  margin-top: 20px;
-  overflow: hidden;
+/* Edit modal actions */
+.edit-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
 }
 
-/* ---------------------------------------------------------
-   TOAST
---------------------------------------------------------- */
+/* Toast */
 .toast {
-  visibility: hidden;
-  min-width: 200px;
-  background: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 4px;
-  padding: 12px 20px;
   position: fixed;
-  z-index: 300;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 40px;
+  background: rgba(0,0,0,0.9);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
 .toast.show {
-  visibility: visible;
+  opacity: 1;
+}
+
+/* Version text */
+.version {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+/* Settings row */
+.settings-row {
+  margin: 10px 0 20px 0;
+}
+
+.settings-row label {
+  margin-right: 8px;
+}
+
+.settings-row select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
