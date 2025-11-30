@@ -272,21 +272,20 @@ body {
   margin: 20px auto;
   background: white;
   border-collapse: collapse;
-  border-radius: 10px;
-  overflow: hidden;
+  border: 1px solid black;  /* thin outer border */
 }
 
 #word-table th,
 #word-table td {
   padding: 10px;
-  border-bottom: 1px solid #e6e6e6;
+  border: 1px solid black;  /* thin inner borders */
   font-size: 16px;
 }
 
 #word-table th {
   background: #fafafa;
-  border-bottom: 2px solid #ddd;
 }
+
 
 /* ---------------------------------------------------------
    GENERAL BUTTONS
@@ -417,3 +416,4 @@ body {
 .toast.show {
   visibility: visible;
 }
+
