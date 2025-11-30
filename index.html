@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dutch Flashcards</title>
-  <link rel="stylesheet" href="styles.css?v=101"/>
+  <link rel="stylesheet" href="styles.css?v=102"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
 </head>
@@ -56,7 +56,7 @@
       <div class="card-face front">
         <span class="flag">🇳🇱</span>
         <button class="tts-btn" onclick="tts()">🔊</button>
-        <button class="hint-btn" onclick="openHintModal()">💡</button>
+        <button class="hint-btn hidden" id="review-hint-btn" onclick="openHintModal()">💡</button>
         <div id="card-front-text" class="card-text centered"></div>
       </div>
 
@@ -73,6 +73,7 @@
     <button class="rating-btn good" onclick="handleRating('good')">Good</button>
     <button class="rating-btn easy" onclick="handleRating('easy')">Easy</button>
   </div>
+
 </div>
 
 <!-- BROWSE SCREEN -->
@@ -108,9 +109,10 @@
         <div class="card-face front">
           <span class="flag">🇳🇱</span>
           <button class="tts-btn" onclick="browseTTS()">🔊</button>
-          <button class="hint-btn" onclick="openHintModal()">💡</button>
+          <button class="hint-btn hidden" id="browse-hint-btn" onclick="openHintModal()">💡</button>
           <div id="browse-front-text" class="card-text centered"></div>
         </div>
+
         <div class="card-face back">
           <span class="flag">🇬🇧</span>
           <div id="browse-back-text" class="card-text centered"></div>
@@ -124,11 +126,11 @@
       <button class="primary-btn" onclick="browseNext()">Next</button>
     </div>
   </div>
+
 </div>
 
 <!-- REPORT SCREEN -->
 <div id="report-screen" class="screen hidden">
-
   <div class="screen-header">
     <div class="screen-title">Report</div>
     <button class="home-btn" onclick="openScreen('menu')">🏠</button>
@@ -162,6 +164,7 @@
       <option>20</option>
     </select>
   </div>
+
 </div>
 
 <!-- TOAST -->
@@ -175,7 +178,7 @@
   </div>
 </div>
 
-<script src="config.js?v=101"></script>
-<script src="app.js?v=101"></script>
+<script src="config.js?v=102"></script>
+<script src="app.js?v=102"></script>
 </body>
 </html>
