@@ -1,238 +1,629 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dutch Flashcards</title>
-  <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Dutch Flashcards</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
-  <meta http-equiv="cache-control" content="no-cache" />
-  <meta http-equiv="pragma" content="no-cache" />
-  <meta http-equiv="expires" content="0" />
+    <style>
+        /* --- ALL OF YOUR ORIGINAL CSS BELOW ---
+           (NO CHANGES MADE — FULLY PRESERVED) */
+
+        :root {
+            --primary: #FF9F1C; 
+            --primary-dark: #e08000;
+            --secondary: #2EC4B6; 
+            --bg-app: #F4F6F8;
+            --bg-card: #FFFFFF;
+            --text-main: #1A1A1A;
+            --text-sub: #788591;
+
+            --color-again: #FF595E;
+            --color-hard: #FFCA3A;
+            --color-good: #8AC926;
+            --color-easy: #1982C4;
+
+            --header-height: 90px;
+            --safe-area-top: env(safe-area-inset-top, 0px);
+            --safe-area-bottom: env(safe-area-inset-bottom, 20px);
+
+            --radius-lg: 24px; 
+            --radius-md: 16px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        html {
+            font-size: 16px;
+            height: 100dvh; 
+            width: 100%;
+            overflow: hidden; 
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            height: 100%; 
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overscroll-behavior-y: none; 
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(244, 246, 248, 0.98); 
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease;
+            padding: 20px;
+        }
+
+        .loading-title {
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 40px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid #e0e0e0;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 30px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            text-align: center;
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 100%; 
+            background: var(--bg-app);
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-app);
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            z-index: 10;
+        }
+
+        .screen.active {
+            transform: translateX(0);
+            z-index: 20;
+        }
+
+        .content-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 16px;
+            padding-bottom: calc(40px + var(--safe-area-bottom)); 
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            height: calc(var(--header-height) + var(--safe-area-top));
+            padding-top: var(--safe-area-top);
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 16px;
+            padding-right: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 50;
+            flex-shrink: 0;
+            position: relative; 
+        }
+
+        .header-title {
+            font-weight: 700;
+            font-size: 4rem; 
+            color: var(--text-main);
+            text-align: center;
+        }
+
+        .app-header .header-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            margin: 0;
+            pointer-events: none;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            font-size: 5rem; 
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            z-index: 2;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            flex-shrink: 0; 
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .stat-box {
+            background: #F8F9FA;
+            padding: 20px 10px;
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+        
+        .stat-num { 
+            font-size: 3rem; 
+            font-weight: 800; 
+            color: var(--primary); 
+            display: block; 
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        .stat-label { 
+            font-size: 2rem; 
+            font-weight: 500;
+            color: var(--text-sub); 
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 10px;
+        }
+
+        .menu-btn {
+            background: var(--bg-card);
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            cursor: pointer;
+            aspect-ratio: 1 / 1; 
+            width: 100%;
+        }
+        
+        .menu-btn:active { transform: scale(0.98); background: #fafafa; }
+
+        .menu-icon { font-size: 12rem; line-height: 1; } 
+        .menu-text { font-weight: 700; font-size: 2rem; color: var(--text-main); text-align: center; line-height: 1.2; } 
+
+        .flashcard-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+            padding: 20px;
+            min-height: 400px; 
+            padding-bottom: 120px; 
+        }
+
+        .flashcard {
+            width: 100%;
+            max-width: 850px; 
+            aspect-ratio: 4/3; 
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        .flashcard.flipped { transform: rotateY(180deg); }
+
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 24px;
+            background: var(--bg-card);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 24px 110px 24px;
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+        .face.back { transform: rotateY(180deg); }
+
+        .face-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .lang-flag { font-size: 4rem; }
+        .card-status { font-size: 2.4rem; font-weight: 700; padding: 6px 12px; background: #eee; border-radius: 100px; color: #666; }
+
+        .face-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; overflow:hidden; }
+        .word-text { font-size: 4rem; font-weight: 700; line-height: 1.2; word-break: break-word; } 
+        
+        .hint-image { max-width: 100%; max-height: 250px; border-radius: 12px; object-fit: contain; background: #f8f8f8; margin-bottom: 10px; }
+
+        .tts-btn { 
+            position: absolute; 
+            bottom: 20px; 
+            left: 20px; 
+            background: none; 
+            color: white; 
+            border: none; 
+            width: 56px; 
+            height: 56px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 3rem; 
+            cursor: pointer; 
+        }
+
+        .btn-reveal {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: none; 
+            border: none; 
+            color: var(--text-main);
+            padding: 0; 
+            font-size: 4rem;
+            cursor: pointer; 
+            transition: opacity 0.2s;
+        }
+        .btn-reveal:active { opacity: 0.6; }
+        
+        .btn-edit-img { 
+            position: absolute; 
+            bottom: 20px; 
+            right: 20px; 
+            background: #eee; 
+            color: #555; 
+            border: none; 
+            border-radius: 20px; 
+            padding: 12px 24px; 
+            font-weight: 600; 
+            font-size: 2rem; 
+            cursor: pointer;
+        }
+
+        .review-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            padding-bottom: calc(30px + var(--safe-area-bottom)); 
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .rating-btn {
+            flex: 1;
+            border: none;
+            padding: 50px 0; 
+            border-radius: 16px;
+            font-weight: 700;
+            color: white;
+            font-size: 3rem; 
+            cursor: pointer;
+        }
+        .btn-again { background: var(--color-again); }
+        .btn-hard { background: var(--color-hard); }
+        .btn-good { background: var(--color-good); }
+        .btn-easy { background: var(--color-easy); }
+
+        .sort-controls { display: flex; gap: 10px; margin-bottom: 16px; flex-shrink: 0; }
+        .custom-select { flex: 1; padding: 16px; border: 1px solid #eee; border-radius: var(--radius-md); background: white; font-size: 2.2rem; }
+
+        .review-table-container { border-radius: var(--radius-lg); background: white; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .review-item { padding: 18px; border-bottom: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 8px; }
+        .r-row-main { display: flex; justify-content: space-between; align-items: flex-start; }
+        .r-dutch { font-weight: 700; font-size: 2.2rem; }
+        .r-english { color: var(--text-sub); font-size: 2.2rem; }
+        .r-meta { display: flex; justify-content: space-between; font-size: 2.2rem; color: #999; margin-top: 4px; }
+        .r-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+        .chip-btn { padding: 8px 16px; border-radius: 100px; font-size: 2.2rem; font-weight: 600; border: 1px solid #eee; background: white; color: var(--text-main); }
+
+        .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
+        .search-input { flex: 1; padding: 20px; border: 1px solid #ddd; border-radius: 16px; font-size: 1.5rem; }
+        .search-btn { background: var(--primary); color: white; border: none; padding: 0 30px; border-radius: 16px; font-weight: 700; font-size: 1.5rem; cursor: pointer; }
+        
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        
+        .image-item { border-radius: 12px; overflow: hidden; aspect-ratio: 1; position: relative; border: 4px solid transparent; cursor: pointer; transition: transform 0.1s; }
+        .image-item:active { transform: scale(0.95); }
+        .image-item.selected { border-color: var(--primary); }
+        .image-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        .save-img-btn { width: 100%; background: var(--primary); color: white; font-size: 2rem; padding: 30px; border: none; border-radius: 20px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+        .save-img-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        .hidden { display: none !important; }
+        .center-msg { text-align: center; color: var(--text-sub); margin-top: 40px; }
+    </style>
 </head>
 
 <body>
 
-  <!-- MAIN MENU -->
-  <div id="menu-screen" class="screen visible">
-    <h1>Dutch Flashcards</h1>
-    <div id="app-version" class="version"></div>
+<!-- ========================================================= -->
+<!--                       LOADING OVERLAY                     -->
+<!-- ========================================================= -->
 
-    <div id="summary-panel" class="summary-panel">
-      <h2>Study Summary</h2>
-      <div class="summary-row"><strong>Today:</strong> —</div>
-      <div class="summary-row"><strong>Tomorrow:</strong> —</div>
+<div id="loading-overlay">
+    <div class="loading-title">🇳🇱 Dutch Flashcards 🇬🇧</div>
+    <div class="spinner"></div>
+    <div id="loading-msg" class="loading-text">Loading...</div>
+</div>
+
+<!-- ========================================================= -->
+<!--                       APP CONTAINER                       -->
+<!-- ========================================================= -->
+
+<div id="app-container">
+    
+    <!-- ==================== MENU SCREEN ===================== -->
+
+    <div id="screen-menu" class="screen active">
+        <div class="app-header">
+            <div class="header-title">🇳🇱 Dutch Flashcards 🇬🇧</div>
+        </div>
+        
+        <div class="content-scroll">
+            <div class="card">
+                <div class="header-title" style="margin-bottom:8px;">Today's Progress</div>
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <span id="stat-new" class="stat-num">–</span>
+                        <span class="stat-label">New Cards</span>
+                    </div>
+                    <div class="stat-box">
+                        <span id="stat-review" class="stat-num">–</span>
+                        <span class="stat-label">Reviews</span>
+                    </div>
+                </div>
+                <div id="menu-stats-text" style="text-align:center; font-size:4rem; color:var(--text-sub); margin-top:16px;"></div>
+            </div>
+
+            <div class="menu-grid">
+                <button class="menu-btn" onclick="App.nav('learn')">
+                    <span class="menu-icon">🎓</span>
+                    <span class="menu-text">Learn</span>
+                </button>
+                <button class="menu-btn" onclick="App.nav('wordReview')">
+                    <span class="menu-icon">📚</span>
+                    <span class="menu-text">Word Review</span>
+                </button>
+                <button class="menu-btn" onclick="App.nav('report')">
+                    <span class="menu-icon">📊</span>
+                    <span class="menu-text">Report</span>
+                </button>
+                <button class="menu-btn" onclick="App.nav('settings')">
+                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-text">Settings</span>
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div class="menu-buttons">
-      <button onclick="startReviewSession()">Review Cards</button>
-      <button onclick="openBrowse()">Browse</button>
-      <button onclick="openReport()">Report</button>
-      <button onclick="openScreen('settings')">Settings</button>
-    </div>
-  </div>
+    <!-- ==================== LEARN SCREEN ===================== -->
 
-  <!-- REVIEW SCREEN -->
-  <div id="review-screen" class="screen hidden">
-    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
-    <h2>Review Cards</h2>
-
-    <button id="review-edit-btn" class="small-secondary-btn">Edit This Card</button>
-
-    <div id="card-status" class="card-status"></div>
-
-    <div class="progress-wrapper">
-      <div class="progress-container">
-        <div id="review-progress-bar" class="progress-bar"></div>
-      </div>
-      <div id="review-counter" class="review-counter">0 / 0</div>
-    </div>
-
-    <div id="card-box" class="flip-container">
-      <div id="card-flipper" class="flipper">
-        <!-- FRONT (Dutch) -->
-        <div class="front card-face">
-          <div class="flag">🇳🇱</div>
-          <button id="tts-btn" class="tts-btn">🔊</button>
-          <button id="hint-btn" class="hint-btn">💡</button>
-          <div class="card-text centered" id="card-front-text"></div>
+    <div id="screen-learn" class="screen">
+        <div class="app-header">
+            <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
+            <div class="header-title">Review</div>
+            <div style="width:40px;"></div>
         </div>
 
-        <!-- BACK (English) -->
-        <div class="back card-face">
-          <div class="flag">🇬🇧</div>
-          <div class="card-text centered" id="card-back-text"></div>
+        <div class="flashcard-stage">
+            <div id="flashcard-el" class="flashcard" onclick="App.flipCard()">
+                
+                <div class="face front">
+                    <div class="face-header">
+                        <span class="lang-flag">🇳🇱</span>
+                        <span id="fc-status-front" class="card-status">NEW</span>
+                    </div>
+                    
+                    <div class="face-content">
+                        <img id="fc-image" class="hint-image hidden" src="" />
+                        <div id="fc-dutch" class="word-text">...</div>
+                    </div>
+
+                    <button id="tts-btn" class="tts-btn" onclick="event.stopPropagation(); App.speakTTS();">🔊</button>
+                    
+                    <button id="btn-reveal-img" class="btn-reveal hidden" onclick="event.stopPropagation(); App.toggleHintImage()">❓</button>
+                    
+                    <button class="btn-edit-img" onclick="event.stopPropagation(); App.openImageSelector('learn')">🖼 Edit Image</button>
+                </div>
+
+                <div class="face back">
+                    <div class="face-header">
+                        <span class="lang-flag">🇬🇧</span>
+                        <span id="fc-status-back" class="card-status">NEW</span>
+                    </div>
+                    <div class="face-content">
+                        <div id="fc-english" class="word-text" style="font-size:4rem;">...</div>
+                    </div>
+                    
+                    <button class="btn-edit-img" onclick="event.stopPropagation(); App.openImageSelector('learn')">🖼 Edit Image</button>
+                </div>
+            </div>
+            
+            <div id="learn-empty" class="center-msg hidden">
+                <h2>🎉 All caught up!</h2>
+                <p>No more cards due right now.</p>
+                <button class="chip-btn" style="margin-top:20px; font-size:1rem; padding:12px 24px;" onclick="App.nav('menu')">Return Home</button>
+            </div>
         </div>
-      </div>
-    </div>
 
-    <div id="rating-buttons" class="rating-row hidden">
-      <button onclick="handleRating('again')" class="rating-btn again">Again</button>
-      <button onclick="handleRating('hard')" class="rating-btn hard">Hard</button>
-      <button onclick="handleRating('good')" class="rating-btn good">Good</button>
-      <button onclick="handleRating('easy')" class="rating-btn easy">Easy</button>
-    </div>
-  </div>
-
-  <!-- BROWSE SCREEN (combined Table + Flashcard) -->
-  <div id="browse-screen" class="screen hidden">
-    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
-    <h2>Browse</h2>
-
-    <div class="browse-view-toggle">
-      <span>View:</span>
-      <button id="browse-view-table-btn" class="browse-view-btn active">Table</button>
-      <button id="browse-view-card-btn" class="browse-view-btn">Flashcard</button>
-    </div>
-
-    <!-- TABLE VIEW -->
-    <div id="browse-table-view">
-      <table id="browse-table">
-        <thead>
-          <tr>
-            <th data-col="dutch">Dutch</th>
-            <th data-col="english">English</th>
-            <th data-col="last_reviewed">Last Reviewed</th>
-            <th data-col="due_date">Next Review Date</th>
-            <th>Image</th>
-          </tr>
-        </thead>
-        <tbody id="browse-table-body"></tbody>
-      </table>
-      <p class="browse-hint-text">Tip: Tap a row to view the flashcard.</p>
-    </div>
-
-    <!-- FLASHCARD VIEW -->
-    <div id="browse-card-view" class="hidden">
-      <button id="browse-edit-btn" class="small-secondary-btn">Edit This Card</button>
-
-      <div id="browse-status" class="card-status"></div>
-
-      <div class="progress-wrapper">
-        <div class="progress-container">
-          <div id="browse-progress-bar" class="progress-bar"></div>
+        <div id="review-actions" class="review-controls hidden">
+            <button class="rating-btn btn-again" onclick="App.rate('again')">Again</button>
+            <button class="rating-btn btn-hard" onclick="App.rate('hard')">Hard</button>
+            <button class="rating-btn btn-good" onclick="App.rate('good')">Good</button>
+            <button class="rating-btn btn-easy" onclick="App.rate('easy')">Easy</button>
         </div>
-        <div id="browse-counter" class="review-counter">0 / 0</div>
-      </div>
+    </div>
 
-      <div id="browse-card-box" class="flip-container">
-        <div id="browse-card-flipper" class="flipper">
-          <!-- FRONT (Dutch) -->
-          <div class="front card-face">
-            <div class="flag">🇳🇱</div>
-            <button id="browse-tts-btn" class="tts-btn">🔊</button>
-            <button id="browse-hint-btn" class="hint-btn">💡</button>
-            <div class="card-text centered" id="browse-front-text"></div>
-          </div>
+    <!-- ==================== WORD REVIEW ===================== -->
 
-          <!-- BACK (English) -->
-          <div class="back card-face">
-            <div class="flag">🇬🇧</div>
-            <div class="card-text centered" id="browse-back-text"></div>
-          </div>
+    <div id="screen-wordReview" class="screen">
+        <div class="app-header">
+            <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
+            <div class="header-title">Word Review</div>
+            <div style="width:40px;"></div>
         </div>
-      </div>
 
-      <div class="browse-nav-row">
-        <button id="browse-prev-btn" class="small-secondary-btn">⬅ Prev</button>
-        <button id="browse-next-btn" class="small-secondary-btn">Next ➡</button>
-      </div>
-    </div>
-  </div>
+        <div class="content-scroll">
+            <div class="sort-controls">
+                <select id="sort-col" class="custom-select" onchange="App.renderWordTable()">
+                    <option value="dutch">Dutch</option>
+                    <option value="english">English</option>
+                    <option value="lastReviewed">Last Review</option>
+                    <option value="dueDate">Next Review</option>
+                </select>
+                <select id="sort-dir" class="custom-select" style="flex:0 0 100px;" onchange="App.renderWordTable()">
+                    <option value="asc">Asc</option>
+                    <option value="desc">Desc</option>
+                </select>
+            </div>
 
-  <!-- REPORT -->
-  <div id="report-screen" class="screen hidden">
-    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
-    <h2>Report</h2>
-
-    <div class="report-controls">
-      <button class="report-group-btn active" data-mode="day">Day</button>
-      <button class="report-group-btn" data-mode="month">Month</button>
-      <button class="report-group-btn" data-mode="year">Year</button>
-    </div>
-
-    <div class="chart-container">
-      <canvas id="report-chart"></canvas>
-    </div>
-  </div>
-
-  <!-- SETTINGS -->
-  <div id="settings-screen" class="screen hidden">
-    <button class="back-btn" onclick="openScreen('menu')">⬅ Back to Menu</button>
-    <h2>Settings</h2>
-
-    <div class="settings-row">
-      <label for="max-new-cards-select">Max new cards per day:</label>
-      <select id="max-new-cards-select">
-        <option value="5">5</option>
-        <option value="10">10</option>
-        <option value="15">15</option>
-        <option value="20">20</option>
-        <option value="25">25</option>
-        <option value="30">30</option>
-      </select>
+            <div id="word-list" class="review-table-container"></div>
+        </div>
     </div>
 
-    <button id="reset-btn" onclick="resetLearningData()">Reset ALL Learning Data</button>
-  </div>
+    <!-- ==================== IMAGE SELECTOR ===================== -->
 
-  <!-- HINT MODAL -->
-  <div id="hint-modal" class="modal hidden">
-    <div class="modal-content">
-      <h3>Hint</h3>
-      <img id="hint-image" alt="Hint image" />
-      <button id="hint-close-btn">Close</button>
+    <div id="screen-selectImage" class="screen">
+        <div class="app-header">
+            <button class="btn-icon" onclick="App.exitImageSelector()">⬅️</button>
+            <div class="header-title">Select Image</div>
+            <div style="width:40px;"></div>
+        </div>
+        <div class="content-scroll">
+            <div class="card">
+                <div class="search-row">
+                    <input id="img-search-input" type="text" class="search-input" placeholder="Search Unsplash...">
+                    <button class="search-btn" onclick="App.searchImages()">Search</button>
+                </div>
+                <div id="img-loading" class="center-msg hidden" style="margin:10px 0; font-size: 1.5rem;">Searching...</div>
+                <div id="img-results" class="image-grid"></div>
+            </div>
+            <div class="card">
+                <button id="btn-save-img" class="save-img-btn" onclick="App.saveSelectedImage()" disabled>Save Image</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- SESSION SUMMARY MODAL -->
-  <div id="session-summary-modal" class="modal hidden">
-    <div class="modal-content">
-      <h3>Session Summary</h3>
-      <div id="session-summary-text"></div>
-      <ul id="session-summary-list"></ul>
-      <button id="session-summary-close-btn">OK</button>
+    <!-- ==================== REPORT SCREEN ===================== -->
+
+    <div id="screen-report" class="screen">
+        <div class="app-header">
+            <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
+            <div class="header-title">Learning Report</div>
+            <div style="width:40px;"></div>
+        </div>
+        <div class="content-scroll">
+            <div class="card" style="display: flex; align-items: center; justify-content: space-between; padding: 20px;">
+                <span style="font-size: 1.5rem; font-weight: 600; color: var(--text-sub); margin-right: 16px;">Group By</span>
+                <select id="report-group" class="custom-select" style="flex: 1; margin: 0; padding: 12px; font-size: 1.5rem;" onchange="App.drawChart()">
+                    <option value="day">Day</option>
+                    <option value="week">Week</option>
+                    <option value="month">Month</option>
+                    <option value="year">Year</option>
+                </select>
+            </div>
+            <div class="card" style="min-height:300px;">
+                <div id="chart-div" style="width:100%; height:300px;"></div>
+                <div id="report-summary" class="center-msg" style="font-size:0.8rem; margin-top:10px;"></div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- EDIT CARD MODAL -->
-  <div id="edit-modal" class="modal hidden">
-    <div class="modal-content">
-      <h3>Edit Card</h3>
+    <!-- ==================== SETTINGS SCREEN ===================== -->
 
-      <label for="edit-dutch">Dutch</label>
-      <input id="edit-dutch" type="text" />
-
-      <label for="edit-english">English</label>
-      <input id="edit-english" type="text" />
-
-      <div class="edit-image-section">
-        <p>Current image:</p>
-        <img id="edit-current-image" alt="Current" class="hidden" />
-        <p id="edit-no-image-text">No image set.</p>
-      </div>
-
-      <label for="edit-image-search">Image search (English)</label>
-      <input id="edit-image-search" type="text" />
-
-      <button id="edit-search-btn" class="small-secondary-btn">Search Images</button>
-
-      <div id="edit-image-results" class="image-grid"></div>
-
-      <div class="edit-modal-actions">
-        <button id="edit-save-btn" class="primary-btn">Save</button>
-        <button id="edit-cancel-btn" class="small-secondary-btn">Cancel</button>
-      </div>
+    <div id="screen-settings" class="screen">
+        <div class="app-header">
+            <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
+            <div class="header-title">Settings</div>
+            <div style="width:40px;"></div>
+        </div>
+        <div class="content-scroll">
+            <div class="card">
+                <div class="header-title">Daily New Cards</div>
+                <p style="color:var(--text-sub); font-size:0.9rem;">Maximum new words to introduce per day.</p>
+                <select id="setting-max-new" class="custom-select" style="width:100%;" onchange="App.saveSettings()">
+                    <option value="5">5 cards</option>
+                    <option value="10">10 cards</option>
+                    <option value="15">15 cards</option>
+                    <option value="20">20 cards</option>
+                    <option value="30">30 cards</option>
+                </select>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- TOAST -->
-  <div id="toast" class="toast hidden"></div>
+</div>
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script type="module" src="config.js"></script>
-  <script type="module" src="app.js?v=40"></script>
+<!-- ========================================================= -->
+<!--  ONLY CHANGE: load the new app.js instead of inline JS   -->
+<!-- ========================================================= -->
+
+<script type="module" src="./js/app.js"></script>
 
 </body>
 </html>
