@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.8 (Fixed History & Reps)
+// app.js — VERSION 1.9 (Added Progress Bar)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -15,6 +15,7 @@ const App = (function () {
     // -------------------------------------------------------------
     let allCards = [];
     let todayQueue = [];
+    let sessionTotal = 0; // NEW: Track total cards for progress bar
     let reviewBuffer = [];
     let reviewHistory = [];
     let currentCardIndex = 0;
@@ -173,10 +174,29 @@ const App = (function () {
         todayQueue = [...dueCards, ...newCards];
         todayQueue.sort(() => Math.random() - 0.5);
 
+        // NEW: Set session total for progress bar
+        sessionTotal = todayQueue.length;
+        updateProgressBar();
+
         currentCardIndex = 0;
         isFlipped = false;
 
         renderCard();
+    }
+
+    // NEW: Update progress bar logic
+    function updateProgressBar() {
+        const bar = document.getElementById("learn-progress-fill");
+        if (!sessionTotal || sessionTotal === 0) {
+            bar.style.width = "0%";
+            return;
+        }
+
+        const remaining = todayQueue.length;
+        const completed = sessionTotal - remaining;
+        const pct = (completed / sessionTotal) * 100;
+
+        bar.style.width = pct + "%";
     }
 
     // -------------------------------------------------------------
@@ -194,6 +214,8 @@ const App = (function () {
         if (!card) {
             elCard.style.display = "none";
             elEmpty.classList.remove("hidden");
+            // If empty, ensure progress bar is 100%
+            document.getElementById("learn-progress-fill").style.width = "100%";
             return;
         }
 
@@ -262,10 +284,8 @@ const App = (function () {
         const card = todayQueue[currentCardIndex];
         const now = new Date().toISOString();
 
-        // Capture current type BEFORE scheduling logic changes it
         const typeAtReview = card.type; 
 
-        // Update reps
         card.reps = (card.reps || 0) + 1;
 
         const review = {
@@ -276,7 +296,7 @@ const App = (function () {
             lapses: card.lapses || 0,
             interval: card.interval,
             ease: card.ease,
-            review_type: typeAtReview // Save if it was New or Review
+            review_type: typeAtReview 
         };
 
         if (rating === "again") review.lapses++;
@@ -284,6 +304,9 @@ const App = (function () {
         reviewBuffer.push(review);
 
         todayQueue.splice(currentCardIndex, 1);
+        
+        // NEW: Update progress bar immediately after removing card
+        updateProgressBar();
 
         applyScheduling(card, rating);
 
@@ -340,7 +363,7 @@ const App = (function () {
             lapses: item.lapses,
             interval: item.interval,
             ease: item.ease,
-            review_type: item.review_type // Save the type to DB
+            review_type: item.review_type 
         }));
 
         await supabase.from("reviewhistory").insert(rows);
@@ -362,7 +385,7 @@ const App = (function () {
                     last_reviewed: card.last_reviewed,
                     due_date: card.due_date,
                     first_seen: card.first_seen,
-                    reps: card.reps // Save the total reps count
+                    reps: card.reps 
                 })
                 .eq("id", card.id);
         }
