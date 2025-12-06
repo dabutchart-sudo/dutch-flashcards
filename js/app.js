@@ -98,7 +98,7 @@ const App = (function() {
             const toSend = [...reviewBuffer];
             reviewBuffer = [];
 
-            await supabase.from("reviewHistory").insert(toSend);
+            await supabase.from("reviewhistory").insert(toSend);
             await updateScheduledCards(toSend);
         }
 
@@ -335,7 +335,7 @@ const App = (function() {
         const toSend = [...reviewBuffer];
         reviewBuffer = [];
 
-        await supabase.from("reviewHistory").insert(toSend);
+        await supabase.from("reviewhistory").insert(toSend);
 
         await updateScheduledCards(toSend);
     }
