@@ -401,24 +401,14 @@
 
 <body>
 
-<!-- ========================================================= -->
-<!--                       LOADING OVERLAY                     -->
-<!-- ========================================================= -->
-
 <div id="loading-overlay">
     <div class="loading-title">🇳🇱 Dutch Flashcards 🇬🇧</div>
     <div class="spinner"></div>
     <div id="loading-msg" class="loading-text">Loading...</div>
 </div>
 
-<!-- ========================================================= -->
-<!--                       APP CONTAINER                       -->
-<!-- ========================================================= -->
-
 <div id="app-container">
     
-    <!-- ==================== MENU SCREEN ===================== -->
-
     <div id="screen-menu" class="screen active">
         <div class="app-header">
             <div class="header-title">🇳🇱 Dutch Flashcards 🇬🇧</div>
@@ -458,10 +448,11 @@
                     <span class="menu-text">Settings</span>
                 </button>
             </div>
+
+            <div id="version-display" class="center-msg" style="margin-top: 30px; font-size: 1.5rem; opacity: 0.7;"></div>
+
         </div>
     </div>
-
-    <!-- ==================== LEARN SCREEN ===================== -->
 
     <div id="screen-learn" class="screen">
         <div class="app-header">
@@ -519,8 +510,6 @@
         </div>
     </div>
 
-    <!-- ==================== WORD REVIEW ===================== -->
-
     <div id="screen-wordReview" class="screen">
         <div class="app-header">
             <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
@@ -549,8 +538,6 @@
         </div>
     </div>
 
-    <!-- ==================== IMAGE SELECTOR ===================== -->
-
     <div id="screen-selectImage" class="screen">
         <div class="app-header">
             <button class="btn-icon" onclick="App.exitImageSelector()">⬅️</button>
@@ -571,8 +558,6 @@
             </div>
         </div>
     </div>
-
-    <!-- ==================== REPORT SCREEN ===================== -->
 
     <div id="screen-report" class="screen">
         <div class="app-header">
@@ -597,8 +582,6 @@
         </div>
     </div>
 
-    <!-- ==================== SETTINGS SCREEN ===================== -->
-
     <div id="screen-settings" class="screen">
         <div class="app-header">
             <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
@@ -621,10 +604,6 @@
     </div>
 
 </div>
-
-<!-- ========================================================= -->
-<!--  ONLY CHANGE: load the new app.js instead of inline JS   -->
-<!-- ========================================================= -->
 
 <script type="module" src="./js/app.js"></script>
 
