@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.10 (Fixed Flip Bug & Progress Bar Logic)
+// app.js — VERSION 1.11 (Thicker Progress Bar with Count)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -183,10 +183,14 @@ const App = (function () {
         renderCard();
     }
 
+    // UPDATED: Progress Bar with Count (X / Y)
     function updateProgressBar() {
         const bar = document.getElementById("learn-progress-fill");
+        const txt = document.getElementById("learn-progress-text");
+
         if (!sessionTotal || sessionTotal === 0) {
-            bar.style.width = "0%";
+            if(bar) bar.style.width = "0%";
+            if(txt) txt.textContent = "0 / 0";
             return;
         }
 
@@ -194,7 +198,15 @@ const App = (function () {
         const completed = sessionTotal - remaining;
         const pct = (completed / sessionTotal) * 100;
 
-        bar.style.width = pct + "%";
+        if(bar) bar.style.width = pct + "%";
+
+        // Logic for "Current Card / Total"
+        // If 0 completed, we are on card 1.
+        // If all completed, show Max / Max.
+        let currentNum = completed + 1;
+        if (currentNum > sessionTotal) currentNum = sessionTotal;
+
+        if(txt) txt.textContent = `${currentNum} / ${sessionTotal}`;
     }
 
     // -------------------------------------------------------------
@@ -207,17 +219,17 @@ const App = (function () {
         const elEmpty = document.getElementById("learn-empty");
         const elActions = document.getElementById("review-actions");
 
-        // 1. ALWAYS RESET FLIP STATE when rendering a new card
         elCard.classList.remove("flipped");
         isFlipped = false;
 
-        // 2. Hide actions initially
         elActions.classList.add("hidden");
 
         if (!card) {
             elCard.style.display = "none";
             elEmpty.classList.remove("hidden");
+            // Ensure bar shows full when done
             document.getElementById("learn-progress-fill").style.width = "100%";
+            document.getElementById("learn-progress-text").textContent = `${sessionTotal} / ${sessionTotal}`;
             return;
         }
 
