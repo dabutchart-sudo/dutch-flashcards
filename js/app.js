@@ -1,23 +1,22 @@
-// =========================================================
-// app.js — FULL APP LOGIC + SUPABASE BACKEND + SCHEDULING
-// =========================================================
+// ===================================================================
+// app.js — Final Version (Matches Your Supabase Schema Exactly)
+// ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW } from "./constants.js";
-
-// Load Supabase client
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const App = (function() {
+const App = (function () {
     "use strict";
 
-    // ---------------------------
-    // STATE
-    // ---------------------------
+    // -------------------------------------------------------------
+    // State
+    // -------------------------------------------------------------
     let allCards = [];
     let todayQueue = [];
     let reviewBuffer = [];
-    let reviewhistory = [];
+    let reviewHistory = [];
     let currentCardIndex = 0;
     let isFlipped = false;
     let isProcessing = false;
@@ -26,12 +25,13 @@ const App = (function() {
     let currentImageScreen = "learn";
     let selectedImageUrl = null;
 
-    // ---------------------------
-    // LOADING SCREEN HANDLER
-    // ---------------------------
+    // -------------------------------------------------------------
+    // UI Loading Overlay
+    // -------------------------------------------------------------
     function toggleLoading(show, msg = "Loading...") {
         const el = document.getElementById("loading-overlay");
         const txt = document.getElementById("loading-msg");
+
         if (show) {
             txt.textContent = msg;
             el.classList.remove("hidden");
@@ -42,24 +42,22 @@ const App = (function() {
         }
     }
 
-    // ---------------------------
-    // INIT
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Init (load cards + history)
+    // -------------------------------------------------------------
     async function init() {
-        toggleLoading(true, "Loading your library...");
+        toggleLoading(true, "Loading…");
 
         const maxNew = localStorage.getItem(CONFIG_MAX_NEW) || "10";
         document.getElementById("setting-max-new").value = maxNew;
 
-        // Load Cards
-        let { data: cards, error: cardsErr } = await supabase.from("cards").select("*");
-        if (cardsErr) console.error(cardsErr);
+        // --- Load cards (MATCHES YOUR SCHEMA) ---
+        let { data: cards } = await supabase.from("cards").select("*");
         allCards = cards || [];
 
-        // Load review history
-        let { data: hist, error: histErr } = await supabase.from("reviewhistory").select("*");
-        if (histErr) console.error(histErr);
-        reviewhistory = hist || [];
+        // --- Load review history ---
+        let { data: hist } = await supabase.from("reviewhistory").select("*");
+        reviewHistory = hist || [];
 
         calcProgress();
 
@@ -68,37 +66,31 @@ const App = (function() {
         toggleLoading(false);
     }
 
-    // ---------------------------
-    // NAVIGATION
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Navigation
+    // -------------------------------------------------------------
     function nav(id) {
         if (id === "menu") {
             handleReturnToMenu();
             return;
         }
-        setActiveScreen(id);
+
+        document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+        document.getElementById("screen-" + id).classList.add("active");
 
         if (id === "learn") startSession();
         if (id === "wordReview") renderWordTable();
         if (id === "report") drawChart();
     }
 
-    function setActiveScreen(id) {
-        document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-        document.getElementById("screen-" + id).classList.add("active");
-    }
-
-    // ---------------------------
-    // SAVE PROGRESS WHEN RETURNING HOME
-    // ---------------------------
     async function handleReturnToMenu() {
-        toggleLoading(true, "Saving progress...");
+        toggleLoading(true, "Saving progress…");
 
         if (reviewBuffer.length > 0) {
             const toSend = [...reviewBuffer];
             reviewBuffer = [];
 
-            await supabase.from("reviewhistory").insert(toSend);
+            await flushReviewHistory(toSend);
             await updateScheduledCards(toSend);
         }
 
@@ -106,61 +98,62 @@ const App = (function() {
         allCards = data;
 
         calcProgress();
-        setActiveScreen("menu");
+        document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+        document.getElementById("screen-menu").classList.add("active");
+
         toggleLoading(false);
     }
 
-    // ---------------------------
-    // PROGRESS COUNTERS
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Calculate Progress Counts
+    // -------------------------------------------------------------
     function calcProgress() {
         const today = new Date().toISOString().slice(0, 10);
-        const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
+        const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || "10");
 
-        const introducedToday = allCards.filter(c => !c.suspended && c.firstSeen === today).length;
-        const newAvailable = allCards.filter(c => !c.suspended && c.type === "new").length;
+        const introducedToday = allCards.filter(c => !c.Suspended && c.FirstSeen === today).length;
         const remainingNew = Math.max(0, maxNew - introducedToday);
 
-        const due = allCards.filter(c => {
-            if (c.suspended || c.type === "new" || !c.dueDate) return false;
-            return c.dueDate <= today;
-        }).length;
+        const newAvailable = allCards.filter(c => !c.Suspended && c.Type === "new").length;
+        const due = allCards.filter(c => !c.Suspended && c.Type !== "new" && c.DueDate && c.DueDate.slice(0,10) <= today).length;
 
         document.getElementById("stat-new").textContent = Math.min(remainingNew, newAvailable);
         document.getElementById("stat-review").textContent = due;
     }
 
-    // ---------------------------
-    // START REVIEW SESSION
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Start Review Session
+    // -------------------------------------------------------------
     function startSession() {
-        const today = new Date().toISOString().slice(0,10);
+        const today = new Date().toISOString().slice(0, 10);
+
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
-        const introducedToday = allCards.filter(c => !c.suspended && c.firstSeen === today).length;
+        const introducedToday = allCards.filter(c => !c.Suspended && c.FirstSeen === today).length;
 
         const dueCards = allCards.filter(c =>
-            !c.suspended && c.type !== "new" && c.dueDate && c.dueDate <= today
+            !c.Suspended &&
+            c.Type !== "new" &&
+            c.DueDate &&
+            c.DueDate.slice(0,10) <= today
         );
 
         const newLimit = Math.max(0, maxNew - introducedToday);
-        let newCards = allCards.filter(c => !c.suspended && c.type === "new");
+        let newCards = allCards.filter(c => !c.Suspended && c.Type === "new");
         newCards.sort(() => Math.random() - 0.5);
         newCards = newCards.slice(0, newLimit);
 
-        todayQueue = [...dueCards, ...newCards].map(c => ({
-            ...c,
-            isNew: c.type === "new"
-        }));
-
+        todayQueue = [...dueCards, ...newCards];
         todayQueue.sort(() => Math.random() - 0.5);
+
         currentCardIndex = 0;
         isFlipped = false;
+
         renderCard();
     }
 
-    // ---------------------------
-    // CARD UI RENDERING
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Render Card
+    // -------------------------------------------------------------
     function renderCard() {
         const card = todayQueue[currentCardIndex];
         const elCard = document.getElementById("flashcard-el");
@@ -173,22 +166,19 @@ const App = (function() {
         if (!card) {
             elCard.style.display = "none";
             elEmpty.classList.remove("hidden");
-            if (reviewBuffer.length > 0) flushBuffer();
+            if (reviewBuffer.length > 0) flushReviewHistory(reviewBuffer);
             return;
         }
-
-        elCard.style.transition = "none";
-        elCard.classList.remove("flipped");
-        void elCard.offsetWidth;
-        elCard.style.transition = "";
 
         elCard.style.display = "block";
         elEmpty.classList.add("hidden");
 
-        document.getElementById("fc-dutch").textContent = card.dutch;
-        document.getElementById("fc-english").textContent = card.english;
+        elCard.classList.remove("flipped");
 
-        const status = card.isNew ? "NEW" : "REVIEW";
+        document.getElementById("fc-dutch").textContent = card.Dutch;
+        document.getElementById("fc-english").textContent = card.English;
+
+        const status = card.Type === "new" ? "NEW" : "REVIEW";
         document.getElementById("fc-status-front").textContent = status;
         document.getElementById("fc-status-back").textContent = status;
 
@@ -197,47 +187,44 @@ const App = (function() {
 
         imgEl.classList.add("hidden");
 
-        if (card.imageUrl) {
-            imgEl.src = card.imageUrl;
+        if (card.ImageUrl) {
+            imgEl.src = card.ImageUrl;
             btnReveal.classList.remove("hidden");
         } else {
             btnReveal.classList.add("hidden");
         }
     }
 
-    // ---------------------------
-    // SHOW/HIDE HINT IMAGE
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Toggle Hint Image
+    // -------------------------------------------------------------
     function toggleHintImage() {
         const imgEl = document.getElementById("fc-image");
-        if (imgEl.classList.contains("hidden")) imgEl.classList.remove("hidden");
-        else imgEl.classList.add("hidden");
+        imgEl.classList.toggle("hidden");
     }
 
-    // ---------------------------
-    // FLIP CARD
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Flip Card
+    // -------------------------------------------------------------
     function flipCard() {
-        const card = todayQueue[currentCardIndex];
-        if (!card) return;
-
-        const el = document.getElementById("flashcard-el");
+        const elCard = document.getElementById("flashcard-el");
         const actions = document.getElementById("review-actions");
 
-        el.classList.toggle("flipped");
-        isFlipped = el.classList.contains("flipped");
+        elCard.classList.toggle("flipped");
+        isFlipped = elCard.classList.contains("flipped");
+
         if (isFlipped) actions.classList.remove("hidden");
         else actions.classList.add("hidden");
     }
 
-    // ---------------------------
-    // TEXT-TO-SPEECH
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Text to Speech
+    // -------------------------------------------------------------
     function speakTTS() {
         const card = todayQueue[currentCardIndex];
         if (!card) return;
 
-        const clean = card.dutch.replace(/\(.*\)/g, "").trim();
+        const clean = card.Dutch.replace(/\(.*\)/g, "").trim();
 
         if ("speechSynthesis" in window) {
             window.speechSynthesis.cancel();
@@ -247,133 +234,139 @@ const App = (function() {
         }
     }
 
-    // ---------------------------
-    // RATE CARD
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Rate Card
+    // -------------------------------------------------------------
     function rate(rating) {
         if (isProcessing) return;
         isProcessing = true;
 
         const card = todayQueue[currentCardIndex];
 
-        reviewBuffer.push({
+        const review = {
             cardId: card.id,
             rating,
             timestamp: new Date().toISOString(),
-            type: card.isNew ? "new" : "review"
-        });
+            reps: (card.Reps || 0) + 1,
+            lapses: card.Lapses || 0,
+            interval: card.Interval,
+            ease: card.Ease
+        };
+
+        if (rating === "again") review.lapses++;
+
+        reviewBuffer.push(review);
 
         todayQueue.splice(currentCardIndex, 1);
+
+        applyScheduling(card, rating);
 
         renderCard();
         isProcessing = false;
 
-        if (reviewBuffer.length >= 5) flushBuffer();
+        if (reviewBuffer.length >= 5) flushReviewHistory(reviewBuffer);
     }
 
-    // ---------------------------
-    // CALCULATE SCHEDULING + UPDATE CARDS
-    // ---------------------------
-    async function updateScheduledCards(reviews) {
-        for (const r of reviews) {
+    // -------------------------------------------------------------
+    // Apply SM2 Scheduling (MATCHED TO YOUR DB COLUMN NAMES)
+    // -------------------------------------------------------------
+    function applyScheduling(card, rating) {
+        const today = new Date().toISOString().slice(0, 10);
+
+        if (card.Type === "new") {
+            card.Type = "review";
+            card.Ease = 2.5;
+            card.Interval = 1;
+            card.FirstSeen = today;
+        }
+
+        if (rating === "again") {
+            card.Interval = 1;
+            card.Ease = Math.max(1.3, card.Ease - 0.2);
+        } else if (rating === "hard") {
+            card.Interval = Math.max(1, Math.round(card.Interval * 1.2));
+            card.Ease = Math.max(1.3, card.Ease - 0.1);
+        } else if (rating === "good") {
+            card.Interval = Math.round(card.Interval * card.Ease);
+        } else if (rating === "easy") {
+            card.Interval = Math.round(card.Interval * (card.Ease + 0.15));
+            card.Ease += 0.1;
+        }
+
+        const due = new Date();
+        due.setDate(due.getDate() + card.Interval);
+
+        card.DueDate = due.toISOString();
+        card.LastReviewed = today;
+    }
+
+    // -------------------------------------------------------------
+    // Save ReviewHistory rows to Supabase (MATCHES YOUR SCHEMA)
+    // -------------------------------------------------------------
+    async function flushReviewHistory(list) {
+        if (!list || list.length === 0) return;
+
+        const rows = list.map(item => ({
+            card_id: item.cardId,
+            rating: item.rating,
+            created_at: item.timestamp,
+            reps: item.reps,
+            lapses: item.lapses,
+            interval: item.interval,
+            ease: item.ease
+        }));
+
+        await supabase.from("reviewhistory").insert(rows);
+    }
+
+    // -------------------------------------------------------------
+    // Update Scheduled Cards in Supabase
+    // -------------------------------------------------------------
+    async function updateScheduledCards(list) {
+        for (const r of list) {
             const card = allCards.find(c => c.id === r.cardId);
             if (!card) continue;
 
-            applyScheduling(card, r.rating);
-
             await supabase.from("cards")
                 .update({
-                    type: card.type,
-                    interval: card.interval,
-                    ease: card.ease,
-                    lastReviewed: card.lastReviewed,
-                    dueDate: card.dueDate,
-                    firstSeen: card.firstSeen
+                    Type: card.Type,
+                    Interval: card.Interval,
+                    Ease: card.Ease,
+                    LastReviewed: card.LastReviewed,
+                    DueDate: card.DueDate,
+                    FirstSeen: card.FirstSeen
                 })
                 .eq("id", card.id);
         }
     }
 
-    // ---------------------------
-    // SIMPLE ANKI-LIKE SCHEDULER
-    // ---------------------------
-    function applyScheduling(card, rating) {
-        const today = new Date().toISOString().slice(0,10);
-
-        if (card.type === "new") {
-            card.type = "review";
-            card.ease = 250;
-            card.interval = 1;
-            card.firstSeen = today;
-        }
-
-        if (rating === "again") {
-            card.interval = 1;
-            card.ease = Math.max(130, card.ease - 20);
-        } else if (rating === "hard") {
-            card.interval = Math.max(1, Math.round(card.interval * 1.2));
-            card.ease = Math.max(130, card.ease - 10);
-        } else if (rating === "good") {
-            card.interval = Math.round(card.interval * (card.ease / 100));
-        } else if (rating === "easy") {
-            card.interval = Math.round(card.interval * (card.ease / 80));
-            card.ease += 10;
-        }
-
-        const due = new Date();
-        due.setDate(due.getDate() + card.interval);
-        card.dueDate = due.toISOString().slice(0, 10);
-        card.lastReviewed = today;
-    }
-
-    // ---------------------------
-    // FLUSH BUFFER TO SUPABASE
-    // ---------------------------
-    async function flushBuffer() {
-        if (reviewBuffer.length === 0) return;
-
-        const toSend = [...reviewBuffer];
-        reviewBuffer = [];
-
-        await supabase.from("reviewhistory").insert(toSend);
-
-        await updateScheduledCards(toSend);
-    }
-
-    // ---------------------------
-    // IMAGE SELECTOR — OPEN
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Image Selector
+    // -------------------------------------------------------------
     function openImageSelector(fromScreen, cardOverride) {
         currentImageScreen = fromScreen;
-        currentImageCard = cardOverride ?? todayQueue[currentCardIndex];
+        currentImageCard = cardOverride || todayQueue[currentCardIndex];
 
-        if (!currentImageCard) return;
-
-        document.getElementById("img-search-input").value = currentImageCard.english;
+        document.getElementById("img-search-input").value = currentImageCard.English;
         document.getElementById("img-results").innerHTML = "";
         document.getElementById("btn-save-img").disabled = true;
         selectedImageUrl = null;
 
-        nav("selectImage");
+        document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+        document.getElementById("screen-selectImage").classList.add("active");
+
         searchImages();
     }
 
-    // ---------------------------
-    // IMAGE SELECTOR — EXIT
-    // ---------------------------
     function exitImageSelector() {
         if (currentImageScreen === "learn") {
-            setActiveScreen("learn");
+            document.getElementById("screen-learn").classList.add("active");
             renderCard();
-            toggleHintImage();
         } else {
             nav("wordReview");
         }
     }
 
-    // ---------------------------
-    // SEARCH UNSPLASH IMAGES CLIENT-SIDE
-    // ---------------------------
     async function searchImages() {
         const query = document.getElementById("img-search-input").value;
         const grid = document.getElementById("img-results");
@@ -384,8 +377,7 @@ const App = (function() {
         grid.innerHTML = "";
         loader.classList.remove("hidden");
 
-        const url =
-            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=12&client_id=${UNSPLASH_ACCESS_KEY}`;
+        const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=12&client_id=${UNSPLASH_ACCESS_KEY}`;
 
         const res = await fetch(url);
         const json = await res.json();
@@ -406,9 +398,6 @@ const App = (function() {
         });
     }
 
-    // ---------------------------
-    // SELECT IMAGE
-    // ---------------------------
     function selectImage(el, url) {
         document.querySelectorAll(".image-item").forEach(x => x.classList.remove("selected"));
         el.classList.add("selected");
@@ -416,28 +405,20 @@ const App = (function() {
         document.getElementById("btn-save-img").disabled = false;
     }
 
-    // ---------------------------
-    // SAVE IMAGE
-    // ---------------------------
     async function saveSelectedImage() {
         if (!selectedImageUrl || !currentImageCard) return;
 
-        const btn = document.getElementById("btn-save-img");
-        btn.textContent = "Saving...";
-        btn.disabled = true;
-
         await supabase.from("cards")
-            .update({ imageUrl: selectedImageUrl })
+            .update({ ImageUrl: selectedImageUrl })
             .eq("id", currentImageCard.id);
 
-        currentImageCard.imageUrl = selectedImageUrl;
-
+        currentImageCard.ImageUrl = selectedImageUrl;
         exitImageSelector();
     }
 
-    // ---------------------------
-    // WORD LIST SCREEN
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Word Review Table
+    // -------------------------------------------------------------
     function renderWordTable() {
         const list = document.getElementById("word-list");
         list.innerHTML = "";
@@ -450,75 +431,74 @@ const App = (function() {
         sorted.sort((a, b) => {
             let va = a[col] || "";
             let vb = b[col] || "";
-            if (col === "dutch" || col === "english") {
-                return dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
-            }
             return dir === "asc" ? (va > vb ? 1 : -1) : (vb > va ? 1 : -1);
         });
 
-        const today = new Date().toISOString().slice(0,10);
+        const today = new Date().toISOString().slice(0, 10);
 
         sorted.forEach(c => {
             const item = document.createElement("div");
             item.className = "review-item";
-            const last = c.lastReviewed || "-";
-            const due = c.dueDate || "-";
-            const suspended = c.suspended;
 
             item.innerHTML = `
                 <div class="r-row-main">
-                    <span class="r-dutch">${c.dutch}</span>
-                    <span class="r-english">${c.english}</span>
+                    <span class="r-dutch">${c.Dutch}</span>
+                    <span class="r-english">${c.English}</span>
                 </div>
                 <div class="r-meta">
-                    <span>Last: ${last}</span>
-                    <span style="color:${c.dueDate <= today ? "#d9534f" : "#999"}">Due: ${due}</span>
+                    <span>Last: ${c.LastReviewed || "-"}</span>
+                    <span style="color:${c.DueDate && c.DueDate.slice(0,10) <= today ? "#d9534f" : "#999"}">
+                        Due: ${c.DueDate ? c.DueDate.slice(0,10) : "-"}
+                    </span>
                 </div>
                 <div class="r-actions">
-                    <button class="chip-btn" onclick="App.toggleSuspend(${c.id}, ${!suspended})">
-                        ${suspended ? "Unsuspend" : "Suspend"}
+                    <button class="chip-btn" onclick="App.toggleSuspend(${c.id}, ${!c.Suspended})">
+                        ${c.Suspended ? "Unsuspend" : "Suspend"}
                     </button>
                     <button class="chip-btn" onclick="App.openImageSelector('wordReview', App.getCard(${c.id}))">
-                        ${c.imageUrl ? "Edit Image" : "Add Image"}
+                        ${c.ImageUrl ? "Edit Image" : "Add Image"}
                     </button>
                 </div>
             `;
+
             list.appendChild(item);
         });
     }
 
-    // ---------------------------
-    // GET CARD BY ID
-    // ---------------------------
-    function getCard(id) {
-        return allCards.find(c => c.id === id);
-    }
-
-    // ---------------------------
-    // TOGGLE SUSPEND
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Toggle Suspend
+    // -------------------------------------------------------------
     async function toggleSuspend(id, state) {
-        const card = getCard(id);
-        if (card) card.suspended = state;
+        const card = allCards.find(c => c.id === id);
+        if (card) card.Suspended = state;
 
-        await supabase.from("cards").update({ suspended: state }).eq("id", id);
+        await supabase.from("cards")
+            .update({ Suspended: state })
+            .eq("id", id);
 
         renderWordTable();
     }
 
-    // ---------------------------
-    // SAVE SETTINGS
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Get Card by ID
+    // -------------------------------------------------------------
+    function getCard(id) {
+        return allCards.find(c => c.id === id);
+    }
+
+    // -------------------------------------------------------------
+    // Save Settings
+    // -------------------------------------------------------------
     function saveSettings() {
         const val = document.getElementById("setting-max-new").value;
         localStorage.setItem(CONFIG_MAX_NEW, val);
     }
 
-    // ---------------------------
-    // REPORT CHART
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Reports (chart)
+    // -------------------------------------------------------------
     function drawChart() {
-        if (!reviewhistory.length) {
+        if (!reviewHistory.length) {
             document.getElementById("report-summary").textContent = "No history available.";
             return;
         }
@@ -526,21 +506,22 @@ const App = (function() {
         const group = document.getElementById("report-group").value;
         const dataMap = {};
 
-        reviewhistory.forEach(h => {
-            let key = h.timestamp.slice(0,10);
+        reviewHistory.forEach(h => {
+            let key = h.created_at.slice(0, 10);
 
-            if (group === "month") key = key.slice(0,7);
-            if (group === "year") key = key.slice(0,4);
+            if (group === "month") key = key.slice(0, 7);
+            if (group === "year") key = key.slice(0, 4);
 
             if (group === "week") {
-                const d = new Date(h.timestamp);
+                const d = new Date(h.created_at);
                 const dow = d.getDay();
                 d.setDate(d.getDate() - dow);
-                key = d.toISOString().slice(0,10);
+                key = d.toISOString().slice(0, 10);
             }
 
-            if (!dataMap[key]) dataMap[key] = { new:0, rev:0 };
-            dataMap[key][h.type]++;
+            if (!dataMap[key]) dataMap[key] = { new: 0, rev: 0 };
+            if (h.rating === "again") dataMap[key].rev++;
+            else dataMap[key].new++;
         });
 
         const data = new google.visualization.DataTable();
@@ -553,36 +534,27 @@ const App = (function() {
 
         keys.forEach(k => {
             const parts = k.split("-").map(Number);
-            let d;
-
-            if (group === "year") d = new Date(parts[0], 0, 1);
-            else if (group === "month") d = new Date(parts[0], parts[1] - 1, 1);
-            else d = new Date(parts[0], parts[1] - 1, parts[2]);
-
+            let d = new Date(parts[0], parts[1] - 1, parts[2]);
             data.addRow([d, dataMap[k].new, dataMap[k].rev]);
             ticks.push(d);
         });
-
-        let format = "MMM d";
-        if (group === "month") format = "MMM yyyy";
-        if (group === "year") format = "yyyy";
 
         const options = {
             isStacked: true,
             legend: { position: "bottom" },
             colors: ["#FF9F1C", "#2EC4B6"],
-            chartArea: { width: "85%", height: "70%" },
-            vAxis: { gridlines: { count: 4 }},
-            hAxis: { format, ticks }
+            chartArea: { width: "85%", height: "70%" }
         };
 
-        const chart = new google.visualization.ColumnChart(document.getElementById("chart-div"));
+        const chart = new google.visualization.ColumnChart(
+            document.getElementById("chart-div")
+        );
         chart.draw(data, options);
     }
 
-    // ---------------------------
-    // PUBLIC API
-    // ---------------------------
+    // -------------------------------------------------------------
+    // Expose Public API
+    // -------------------------------------------------------------
     window.addEventListener("load", init);
 
     return {
@@ -598,9 +570,10 @@ const App = (function() {
         renderWordTable,
         toggleSuspend,
         getCard,
-        saveSettings
+        saveSettings,
+        drawChart
     };
-
 })();
 
-window.App = App; 
+// Make App available to onclick="App.nav()"
+window.App = App;
