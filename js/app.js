@@ -603,4 +603,4 @@ const App = (function() {
 
 })();
 
-window.App = App;
+window.App = App; 
