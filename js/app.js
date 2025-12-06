@@ -2,7 +2,7 @@
 // app.js — FINAL VERSION (matches your Supabase schema exactly)
 // ===================================================================
 
-import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW } from "./constants.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -45,6 +45,10 @@ const App = (function () {
     // -------------------------------------------------------------
     async function init() {
         toggleLoading(true, "Loading…");
+
+        // Set Version Display
+        const verEl = document.getElementById("version-display");
+        if (verEl) verEl.textContent = "Version " + APP_VERSION;
 
         const maxNew = localStorage.getItem(CONFIG_MAX_NEW) || "10";
         document.getElementById("setting-max-new").value = maxNew;
