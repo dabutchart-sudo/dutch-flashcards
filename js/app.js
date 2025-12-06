@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.11 (Thicker Progress Bar with Count)
+// app.js — VERSION 1.12 (Fix: Stay on card after image save)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -183,7 +183,7 @@ const App = (function () {
         renderCard();
     }
 
-    // UPDATED: Progress Bar with Count (X / Y)
+    // Progress Bar with Count (X / Y)
     function updateProgressBar() {
         const bar = document.getElementById("learn-progress-fill");
         const txt = document.getElementById("learn-progress-text");
@@ -200,9 +200,6 @@ const App = (function () {
 
         if(bar) bar.style.width = pct + "%";
 
-        // Logic for "Current Card / Total"
-        // If 0 completed, we are on card 1.
-        // If all completed, show Max / Max.
         let currentNum = completed + 1;
         if (currentNum > sessionTotal) currentNum = sessionTotal;
 
@@ -227,7 +224,6 @@ const App = (function () {
         if (!card) {
             elCard.style.display = "none";
             elEmpty.classList.remove("hidden");
-            // Ensure bar shows full when done
             document.getElementById("learn-progress-fill").style.width = "100%";
             document.getElementById("learn-progress-text").textContent = `${sessionTotal} / ${sessionTotal}`;
             return;
@@ -421,7 +417,11 @@ const App = (function () {
 
     function exitImageSelector() {
         if (currentImageScreen === "learn") {
-            nav("learn");
+            // FIX: Don't call nav('learn') because it restarts the session (shuffles cards).
+            // Instead, manually switch screens and just re-render the current card.
+            document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+            document.getElementById("screen-learn").classList.add("active");
+            renderCard();
         } else {
             nav("wordReview");
         }
