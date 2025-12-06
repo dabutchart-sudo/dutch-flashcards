@@ -602,3 +602,5 @@ const App = (function() {
     };
 
 })();
+
+window.App = App;
