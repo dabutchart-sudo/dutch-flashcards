@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — FINAL VERSION (Fixed for 6000+ records)
+// app.js — VERSION 1.8 (Fixed History & Reps)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -46,14 +46,13 @@ const App = (function () {
     async function init() {
         toggleLoading(true, "Loading…");
 
-        // Set Version Display
         const verEl = document.getElementById("version-display");
         if (verEl) verEl.textContent = "Version " + APP_VERSION;
 
         const maxNew = localStorage.getItem(CONFIG_MAX_NEW) || "10";
         document.getElementById("setting-max-new").value = maxNew;
 
-        // Load cards (Increased limit to 10,000 to handle your 6000 records)
+        // Load cards (Max 10,000)
         let { data: cards } = await supabase
             .from("cards")
             .select("*")
@@ -100,7 +99,7 @@ const App = (function () {
             await updateScheduledCards(toSend);
         }
 
-        // Reload cards to ensure sync (Increased limit here too)
+        // Reload cards to ensure sync
         const { data } = await supabase
             .from("cards")
             .select("*")
@@ -123,7 +122,6 @@ const App = (function () {
         const today = new Date().toISOString().slice(0, 10);
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
 
-        // Count cards introduced TODAY
         const introducedToday = allCards.filter(c => 
             !c.suspended && 
             c.first_seen && 
@@ -264,14 +262,21 @@ const App = (function () {
         const card = todayQueue[currentCardIndex];
         const now = new Date().toISOString();
 
+        // Capture current type BEFORE scheduling logic changes it
+        const typeAtReview = card.type; 
+
+        // Update reps
+        card.reps = (card.reps || 0) + 1;
+
         const review = {
             cardid: card.id,
             rating,
             timestamp: now,
-            reps: (card.reps || 0) + 1,
+            reps: card.reps,
             lapses: card.lapses || 0,
             interval: card.interval,
-            ease: card.ease
+            ease: card.ease,
+            review_type: typeAtReview // Save if it was New or Review
         };
 
         if (rating === "again") review.lapses++;
@@ -334,7 +339,8 @@ const App = (function () {
             reps: item.reps,
             lapses: item.lapses,
             interval: item.interval,
-            ease: item.ease
+            ease: item.ease,
+            review_type: item.review_type // Save the type to DB
         }));
 
         await supabase.from("reviewhistory").insert(rows);
@@ -355,7 +361,8 @@ const App = (function () {
                     ease: card.ease,
                     last_reviewed: card.last_reviewed,
                     due_date: card.due_date,
-                    first_seen: card.first_seen
+                    first_seen: card.first_seen,
+                    reps: card.reps // Save the total reps count
                 })
                 .eq("id", card.id);
         }
@@ -501,7 +508,7 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Charts
+    // Charts (UPDATED)
     // -------------------------------------------------------------
     function drawChart() {
         if (!reviewHistory.length) {
@@ -520,8 +527,15 @@ const App = (function () {
 
             if (!dataMap[key]) dataMap[key] = { new: 0, rev: 0 };
 
-            if (h.rating === "again") dataMap[key].rev++;
-            else dataMap[key].new++;
+            // Logic: Use review_type if available (New), otherwise fallback to Rating (Old)
+            if (h.review_type) {
+                if (h.review_type === 'new') dataMap[key].new++;
+                else dataMap[key].rev++;
+            } else {
+                // Fallback for old history: 'again' = Review (Fail), others = New (Pass)
+                if (h.rating === "again") dataMap[key].rev++;
+                else dataMap[key].new++;
+            }
         });
 
         const data = new google.visualization.DataTable();
