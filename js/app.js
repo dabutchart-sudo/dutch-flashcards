@@ -110,11 +110,32 @@ const App = (function () {
     // -------------------------------------------------------------
     // Progress Counters
     // -------------------------------------------------------------
+// -------------------------------------------------------------
+    // Progress Counters (Updated with Debugging)
+    // -------------------------------------------------------------
     function calcProgress() {
         const today = new Date().toISOString().slice(0, 10);
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
 
-        const introducedToday = allCards.filter(c => !c.suspended && c.first_seen?.slice(0,10) === today).length;
+        // DEBUG: Check what the app thinks 'today' is
+        console.log("App Date (UTC):", today);
+
+        const introducedToday = allCards.filter(c => {
+            if (c.suspended) return false;
+            
+            // Check if first_seen exists
+            if (!c.first_seen) return false;
+
+            const cardDate = c.first_seen.slice(0,10);
+            const isToday = cardDate === today;
+
+            // DEBUG: Log matches to ensure we are finding them
+            if (isToday) console.log(`Card ${c.id} introduced today (${cardDate})`);
+            
+            return isToday;
+        }).length;
+
+        console.log(`Introduced Today: ${introducedToday}, Max: ${maxNew}`);
 
         const remainingNew = Math.max(0, maxNew - introducedToday);
 
