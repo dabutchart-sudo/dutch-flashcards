@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.9 (Added Progress Bar)
+// app.js — VERSION 1.10 (Fixed Flip Bug & Progress Bar Logic)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -15,7 +15,7 @@ const App = (function () {
     // -------------------------------------------------------------
     let allCards = [];
     let todayQueue = [];
-    let sessionTotal = 0; // NEW: Track total cards for progress bar
+    let sessionTotal = 0;
     let reviewBuffer = [];
     let reviewHistory = [];
     let currentCardIndex = 0;
@@ -174,7 +174,6 @@ const App = (function () {
         todayQueue = [...dueCards, ...newCards];
         todayQueue.sort(() => Math.random() - 0.5);
 
-        // NEW: Set session total for progress bar
         sessionTotal = todayQueue.length;
         updateProgressBar();
 
@@ -184,7 +183,6 @@ const App = (function () {
         renderCard();
     }
 
-    // NEW: Update progress bar logic
     function updateProgressBar() {
         const bar = document.getElementById("learn-progress-fill");
         if (!sessionTotal || sessionTotal === 0) {
@@ -209,12 +207,16 @@ const App = (function () {
         const elEmpty = document.getElementById("learn-empty");
         const elActions = document.getElementById("review-actions");
 
+        // 1. ALWAYS RESET FLIP STATE when rendering a new card
+        elCard.classList.remove("flipped");
+        isFlipped = false;
+
+        // 2. Hide actions initially
         elActions.classList.add("hidden");
 
         if (!card) {
             elCard.style.display = "none";
             elEmpty.classList.remove("hidden");
-            // If empty, ensure progress bar is 100%
             document.getElementById("learn-progress-fill").style.width = "100%";
             return;
         }
@@ -305,7 +307,6 @@ const App = (function () {
 
         todayQueue.splice(currentCardIndex, 1);
         
-        // NEW: Update progress bar immediately after removing card
         updateProgressBar();
 
         applyScheduling(card, rating);
