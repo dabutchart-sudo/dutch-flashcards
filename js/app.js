@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — FINAL VERSION (matches your Supabase schema exactly)
+// app.js — FINAL VERSION (Fixed for 6000+ records)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -53,8 +53,12 @@ const App = (function () {
         const maxNew = localStorage.getItem(CONFIG_MAX_NEW) || "10";
         document.getElementById("setting-max-new").value = maxNew;
 
-        // Load cards
-        let { data: cards } = await supabase.from("cards").select("*");
+        // Load cards (Increased limit to 10,000 to handle your 6000 records)
+        let { data: cards } = await supabase
+            .from("cards")
+            .select("*")
+            .range(0, 9999);
+            
         allCards = cards || [];
 
         // Load review history
@@ -96,7 +100,12 @@ const App = (function () {
             await updateScheduledCards(toSend);
         }
 
-        const { data } = await supabase.from("cards").select("*");
+        // Reload cards to ensure sync (Increased limit here too)
+        const { data } = await supabase
+            .from("cards")
+            .select("*")
+            .range(0, 9999);
+
         allCards = data || [];
 
         calcProgress();
@@ -110,32 +119,16 @@ const App = (function () {
     // -------------------------------------------------------------
     // Progress Counters
     // -------------------------------------------------------------
-// -------------------------------------------------------------
-    // Progress Counters (Updated with Debugging)
-    // -------------------------------------------------------------
     function calcProgress() {
         const today = new Date().toISOString().slice(0, 10);
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
 
-        // DEBUG: Check what the app thinks 'today' is
-        console.log("App Date (UTC):", today);
-
-        const introducedToday = allCards.filter(c => {
-            if (c.suspended) return false;
-            
-            // Check if first_seen exists
-            if (!c.first_seen) return false;
-
-            const cardDate = c.first_seen.slice(0,10);
-            const isToday = cardDate === today;
-
-            // DEBUG: Log matches to ensure we are finding them
-            if (isToday) console.log(`Card ${c.id} introduced today (${cardDate})`);
-            
-            return isToday;
-        }).length;
-
-        console.log(`Introduced Today: ${introducedToday}, Max: ${maxNew}`);
+        // Count cards introduced TODAY
+        const introducedToday = allCards.filter(c => 
+            !c.suspended && 
+            c.first_seen && 
+            c.first_seen.slice(0, 10) === today
+        ).length;
 
         const remainingNew = Math.max(0, maxNew - introducedToday);
 
@@ -159,7 +152,12 @@ const App = (function () {
         const today = new Date().toISOString().slice(0, 10);
 
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
-        const introducedToday = allCards.filter(c => !c.suspended && c.first_seen?.slice(0,10) === today).length;
+        
+        const introducedToday = allCards.filter(c => 
+            !c.suspended && 
+            c.first_seen && 
+            c.first_seen.slice(0, 10) === today
+        ).length;
 
         const dueCards = allCards.filter(c =>
             !c.suspended &&
@@ -291,7 +289,7 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // SM-2 Scheduling (Matches your schema)
+    // SM-2 Scheduling
     // -------------------------------------------------------------
     function applyScheduling(card, rating) {
         const today = new Date().toISOString().slice(0, 10);
@@ -324,7 +322,7 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Save Review History (Your schema)
+    // Save Review History
     // -------------------------------------------------------------
     async function flushReviewHistory(list) {
         if (!list || list.length === 0) return;
