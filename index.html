@@ -53,22 +53,39 @@
             overscroll-behavior-y: none; 
         }
 
-        /* --- UPDATED PROGRESS BAR STYLES --- */
+        /* --- UPDATED PROGRESS BAR STYLES (THICKER) --- */
         .progress-track {
             width: 100%;
-            max-width: 850px; /* Match flashcard max-width */
-            height: 4px;      /* Thinner "think" bar */
+            max-width: 850px;
+            height: 24px;      /* THICKER height */
             background: #e0e0e0;
-            border-radius: 4px;
-            margin-bottom: 12px; /* Space between bar and card */
+            border-radius: 12px; /* Rounded pill shape */
+            margin-bottom: 16px;
             overflow: hidden;
+            position: relative; /* Needed for text overlay */
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
         }
         .progress-fill {
             height: 100%;
             background: var(--primary);
             width: 0%;
-            transition: width 0.3s ease;
-            border-radius: 4px;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 12px;
+        }
+        .progress-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-main);
+            z-index: 5;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4); /* Better contrast */
         }
         /* -------------------------------------- */
 
@@ -483,6 +500,7 @@
             
             <div class="progress-track">
                 <div id="learn-progress-fill" class="progress-fill"></div>
+                <div id="learn-progress-text" class="progress-text">0 / 0</div>
             </div>
 
             <div id="flashcard-el" class="flashcard" onclick="App.flipCard()">
