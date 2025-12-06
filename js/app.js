@@ -17,7 +17,7 @@ const App = (function() {
     let allCards = [];
     let todayQueue = [];
     let reviewBuffer = [];
-    let reviewHistory = [];
+    let reviewhistory = [];
     let currentCardIndex = 0;
     let isFlipped = false;
     let isProcessing = false;
@@ -57,9 +57,9 @@ const App = (function() {
         allCards = cards || [];
 
         // Load review history
-        let { data: hist, error: histErr } = await supabase.from("reviewHistory").select("*");
+        let { data: hist, error: histErr } = await supabase.from("reviewhistory").select("*");
         if (histErr) console.error(histErr);
-        reviewHistory = hist || [];
+        reviewhistory = hist || [];
 
         calcProgress();
 
@@ -518,7 +518,7 @@ const App = (function() {
     // REPORT CHART
     // ---------------------------
     function drawChart() {
-        if (!reviewHistory.length) {
+        if (!reviewhistory.length) {
             document.getElementById("report-summary").textContent = "No history available.";
             return;
         }
@@ -526,7 +526,7 @@ const App = (function() {
         const group = document.getElementById("report-group").value;
         const dataMap = {};
 
-        reviewHistory.forEach(h => {
+        reviewhistory.forEach(h => {
             let key = h.timestamp.slice(0,10);
 
             if (group === "month") key = key.slice(0,7);
