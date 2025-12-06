@@ -7,8 +7,7 @@
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
     <style>
-        /* --- ALL OF YOUR ORIGINAL CSS BELOW ---
-           (NO CHANGES MADE — FULLY PRESERVED) */
+        /* --- ALL OF YOUR ORIGINAL CSS BELOW --- */
 
         :root {
             --primary: #FF9F1C; 
@@ -53,6 +52,23 @@
             flex-direction: column;
             overscroll-behavior-y: none; 
         }
+
+        /* --- ADDED PROGRESS BAR STYLES HERE --- */
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background: #e6e6e6;
+            flex-shrink: 0; /* Prevent it from squashing */
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-top-right-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        /* -------------------------------------- */
 
         #loading-overlay {
             position: fixed;
@@ -461,6 +477,10 @@
             <div style="width:40px;"></div>
         </div>
 
+        <div class="progress-track">
+            <div id="learn-progress-fill" class="progress-fill"></div>
+        </div>
+
         <div class="flashcard-stage">
             <div id="flashcard-el" class="flashcard" onclick="App.flipCard()">
                 
@@ -605,7 +625,7 @@
 
 </div>
 
-<script type="module" src="./js/app.js?v=2"></script>
+<script type="module" src="./js/app.js"></script>
 
 </body>
 </html>
