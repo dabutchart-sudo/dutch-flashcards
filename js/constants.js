@@ -15,4 +15,4 @@ export const UNSPLASH_ACCESS_KEY = "YOUR_UNSPLASH_ACCESS_KEY";
 export const CONFIG_MAX_NEW = "dfc_max_new";
 
 // App Version
-export const APP_VERSION = "1.4";
+export const APP_VERSION = "1.1";
