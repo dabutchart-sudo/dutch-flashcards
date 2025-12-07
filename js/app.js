@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.14 (Done/Due Split + Chart Labels)
+// app.js — VERSION 1.15 (New Dictionary Dashboard)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -25,6 +25,10 @@ const App = (function () {
     let currentImageCard = null;
     let currentImageScreen = "learn";
     let selectedImageUrl = null;
+
+    // Word Review State
+    let wordFilter = 'all'; // all, due, new, suspended
+    let wordSearch = '';
 
     // -------------------------------------------------------------
     function toggleLoading(show, msg = "Loading...") {
@@ -121,37 +125,29 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Progress Counters (Updated for Done vs Due)
+    // Progress Counters
     // -------------------------------------------------------------
     function calcProgress() {
         const today = new Date().toISOString().slice(0, 10);
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
 
         // --- 1. NEW CARDS LOGIC ---
-        
-        // Calculate New Done: Cards with first_seen today
         const newDone = allCards.filter(c => 
             !c.suspended && 
             c.first_seen && 
             c.first_seen.slice(0, 10) === today
         ).length;
 
-        // Calculate New Due: (Limit - Done), capped by available 'new' cards
         const newAvailable = allCards.filter(c => !c.suspended && c.type === "new").length;
         const newDue = Math.min(Math.max(0, maxNew - newDone), newAvailable);
 
-
         // --- 2. REVIEWS LOGIC ---
-
-        // Calculate Reviews Done: Check history + current buffer for today's logs
-        // We look for items where review_type was 'review' (not 'new')
         const historyToday = reviewHistory.filter(h => h.timestamp.startsWith(today));
         const bufferToday = reviewBuffer.filter(h => h.timestamp.startsWith(today));
         const allTodayLogs = [...historyToday, ...bufferToday];
 
         const reviewDone = allTodayLogs.filter(log => log.review_type === 'review').length;
 
-        // Calculate Reviews Due: Cards with due_date <= today
         const reviewDue = allCards.filter(c =>
             !c.suspended &&
             c.type !== "new" &&
@@ -159,8 +155,6 @@ const App = (function () {
             c.due_date.slice(0, 10) <= today
         ).length;
 
-
-        // --- 3. UPDATE UI (Updated IDs for Done vs Due split) ---
         const setStat = (id, val) => {
             const el = document.getElementById(id);
             if(el) el.textContent = val;
@@ -350,11 +344,11 @@ const App = (function () {
         renderCard();
         isProcessing = false;
 
-if (reviewBuffer.length >= 5) {
-        const toSend = [...reviewBuffer];
-        reviewBuffer = []; // Empty the buffer so we don't resend old cards
-        flushReviewHistory(toSend);
-    }
+        if (reviewBuffer.length >= 5) {
+            const toSend = [...reviewBuffer];
+            reviewBuffer = [];
+            flushReviewHistory(toSend);
+        }
     }
 
     // -------------------------------------------------------------
@@ -449,8 +443,6 @@ if (reviewBuffer.length >= 5) {
 
     function exitImageSelector() {
         if (currentImageScreen === "learn") {
-            // FIX: Don't call nav('learn') because it restarts the session (shuffles cards).
-            // Instead, manually switch screens and just re-render the current card.
             document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
             document.getElementById("screen-learn").classList.add("active");
             renderCard();
@@ -508,46 +500,108 @@ if (reviewBuffer.length >= 5) {
     }
 
     // -------------------------------------------------------------
-    // Word Review Table
+    // Word Review Dashboard (NEW)
     // -------------------------------------------------------------
+    
+    function handleSearch(val) {
+        wordSearch = val.toLowerCase().trim();
+        const clearBtn = document.getElementById("wr-clear-search");
+        if (wordSearch.length > 0) clearBtn.classList.remove("hidden");
+        else clearBtn.classList.add("hidden");
+        
+        renderWordTable();
+    }
+
+    function clearSearch() {
+        document.getElementById("wr-search").value = "";
+        handleSearch("");
+    }
+
+    function setFilter(type, btnEl) {
+        wordFilter = type;
+        
+        document.querySelectorAll(".filter-pill").forEach(el => el.classList.remove("active"));
+        btnEl.classList.add("active");
+        
+        renderWordTable();
+    }
+
     function renderWordTable() {
         const list = document.getElementById("word-list");
+        const countEl = document.getElementById("wr-count");
         list.innerHTML = "";
 
         const col = document.getElementById("sort-col").value;
-        const dir = document.getElementById("sort-dir").value;
-
-        let sorted = [...allCards];
-
-        sorted.sort((a, b) => {
-            let va = a[col] ?? "";
-            let vb = b[col] ?? "";
-            return dir === "asc" ? (va > vb ? 1 : -1) : (vb > va ? 1 : -1);
-        });
-
         const today = new Date().toISOString().slice(0, 10);
 
-        sorted.forEach(c => {
+        // 1. Filter
+        let filtered = allCards.filter(c => {
+            // Search Text
+            const matchText = (c.dutch.toLowerCase().includes(wordSearch) || 
+                               c.english.toLowerCase().includes(wordSearch));
+            if (!matchText) return false;
+
+            // Filter Pills
+            if (wordFilter === 'suspended') return c.suspended;
+            if (c.suspended) return false; // Hide suspended cards in other views
+
+            if (wordFilter === 'new') return c.type === 'new';
+            if (wordFilter === 'due') {
+                return (c.type !== 'new' && c.due_date && c.due_date.slice(0,10) <= today);
+            }
+            return true; // 'all'
+        });
+
+        // 2. Sort
+        filtered.sort((a, b) => {
+            let va = a[col] ?? "";
+            let vb = b[col] ?? "";
+            
+            // Text sorting (a-z)
+            if (col === 'dutch' || col === 'english') {
+                return va.localeCompare(vb);
+            }
+            // Date sorting
+            return va > vb ? 1 : -1;
+        });
+
+        countEl.textContent = `${filtered.length} Words`;
+
+        if (filtered.length === 0) {
+            list.innerHTML = `<div class="center-msg">No words found.</div>`;
+            return;
+        }
+
+        // 3. Render
+        filtered.forEach(c => {
             const item = document.createElement("div");
             item.className = "review-item";
 
+            // Determine Badge
+            let badgeHtml = "";
+            if (c.suspended) badgeHtml = `<span class="ri-badge bg-susp">Frozen</span>`;
+            else if (c.type === 'new') badgeHtml = `<span class="ri-badge bg-new">New</span>`;
+            else if (c.due_date && c.due_date.slice(0,10) <= today) badgeHtml = `<span class="ri-badge bg-due">Due</span>`;
+            else badgeHtml = `<span class="ri-badge bg-ok">${c.due_date ? c.due_date.slice(5,10) : '-'}</span>`;
+
             item.innerHTML = `
-                <div class="r-row-main">
-                    <span class="r-dutch">${c.dutch}</span>
-                    <span class="r-english">${c.english}</span>
+                <div class="ri-text">
+                    <div class="ri-dutch">${c.dutch}</div>
+                    <div class="ri-eng">${c.english}</div>
+                    <div class="ri-meta">
+                        ${badgeHtml}
+                        <span style="color:#ccc">•</span>
+                        <span>Ease: ${Math.round((c.ease || 2.5)*100)}%</span>
+                    </div>
                 </div>
-                <div class="r-meta">
-                    <span>Last: ${c.last_reviewed || "-"}</span>
-                    <span style="color:${c.due_date && c.due_date.slice(0,10) <= today ? "#d9534f" : "#999"}">
-                        Due: ${c.due_date ? c.due_date.slice(0,10) : "-"}
-                    </span>
-                </div>
-                <div class="r-actions">
-                    <button class="chip-btn" onclick="App.toggleSuspend(${c.id}, ${!c.suspended})">
-                        ${c.suspended ? "Unsuspend" : "Suspend"}
+                <div class="ri-actions">
+                    <button class="icon-btn ${c.image_url ? 'img-active' : ''}" 
+                        onclick="App.openImageSelector('wordReview', App.getCard(${c.id}))">
+                        🖼
                     </button>
-                    <button class="chip-btn" onclick="App.openImageSelector('wordReview', App.getCard(${c.id}))">
-                        ${c.image_url ? "Edit Image" : "Add Image"}
+                    <button class="icon-btn" style="${c.suspended ? 'background:#ffebee; color:red;' : ''}" 
+                        onclick="App.toggleSuspend(${c.id}, ${!c.suspended})">
+                        ${c.suspended ? '❄️' : '🚫'}
                     </button>
                 </div>
             `;
@@ -556,7 +610,6 @@ if (reviewBuffer.length >= 5) {
         });
     }
 
-    // -------------------------------------------------------------
     async function toggleSuspend(id, state) {
         const card = allCards.find(c => c.id === id);
         if (card) card.suspended = state;
@@ -576,7 +629,7 @@ if (reviewBuffer.length >= 5) {
     }
 
     // -------------------------------------------------------------
-    // Charts (UPDATED)
+    // Charts
     // -------------------------------------------------------------
     function drawChart() {
         if (!reviewHistory.length) {
@@ -595,12 +648,10 @@ if (reviewBuffer.length >= 5) {
 
             if (!dataMap[key]) dataMap[key] = { new: 0, rev: 0 };
 
-            // Logic: Use review_type if available (New), otherwise fallback to Rating (Old)
             if (h.review_type) {
                 if (h.review_type === 'new') dataMap[key].new++;
                 else dataMap[key].rev++;
             } else {
-                // Fallback for old history: 'again' = Review (Fail), others = New (Pass)
                 if (h.rating === "again") dataMap[key].rev++;
                 else dataMap[key].new++;
             }
@@ -619,10 +670,9 @@ if (reviewBuffer.length >= 5) {
             data.addRow([dt, dataMap[k].new, dataMap[k].rev]);
         });
 
-        // Dynamic date format for X-Axis based on group selection
-        let format = "MMM d"; // Default for Day (e.g., "Jan 1")
-        if (group === "month") format = "MMM yyyy"; // (e.g., "Jan 2024")
-        if (group === "year") format = "yyyy";      // (e.g., "2024")
+        let format = "MMM d"; 
+        if (group === "month") format = "MMM yyyy";
+        if (group === "year") format = "yyyy"; 
 
         const options = {
             isStacked: true,
@@ -653,7 +703,10 @@ if (reviewBuffer.length >= 5) {
         toggleSuspend,
         getCard,
         saveSettings,
-        drawChart
+        drawChart,
+        handleSearch,
+        clearSearch,
+        setFilter
     };
 })();
 
