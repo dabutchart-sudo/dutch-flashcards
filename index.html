@@ -7,8 +7,6 @@
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
     <style>
-        /* --- ALL OF YOUR ORIGINAL CSS BELOW --- */
-
         :root {
             --primary: #FF9F1C; 
             --primary-dark: #e08000;
@@ -53,16 +51,16 @@
             overscroll-behavior-y: none; 
         }
 
-        /* --- UPDATED PROGRESS BAR STYLES (THICKER) --- */
+        /* --- PROGRESS BAR STYLES --- */
         .progress-track {
             width: 100%;
             max-width: 850px;
-            height: 48px;      /* THICKER height */
+            height: 48px;
             background: #e0e0e0;
-            border-radius: 24px; /* Rounded pill shape */
+            border-radius: 24px; 
             margin-bottom: 16px;
             overflow: hidden;
-            position: relative; /* Needed for text overlay */
+            position: relative; 
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
         }
         .progress-fill {
@@ -85,9 +83,8 @@
             font-weight: 700;
             color: var(--text-main);
             z-index: 5;
-            text-shadow: 0 1px 0 rgba(255,255,255,0.4); /* Better contrast */
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4); 
         }
-        /* -------------------------------------- */
 
         #loading-overlay {
             position: fixed;
@@ -224,7 +221,7 @@
             flex-shrink: 0; 
         }
 
-        /* --- NEW PROGRESS WIDGET STYLES --- */
+        /* --- PROGRESS WIDGET STYLES --- */
         .progress-widget {
             background: #F8F9FA;
             border-radius: var(--radius-md);
@@ -234,13 +231,11 @@
 
         .pw-grid {
             display: grid;
-            /* Columns: Label | New Val | Divider | Review Val */
             grid-template-columns: 1fr 70px 20px 70px;
             align-items: center;
             row-gap: 12px;
         }
 
-        /* Headers (NEW / REVIEW) */
         .pw-head {
             font-size: 0.9rem;
             font-weight: 700;
@@ -250,7 +245,6 @@
             padding-bottom: 4px;
         }
 
-        /* Row Labels (Done Today / Due Now) */
         .pw-label {
             font-size: 1.6rem;
             font-weight: 600;
@@ -259,7 +253,6 @@
             padding-right: 20px;
         }
 
-        /* The Numbers */
         .pw-val {
             font-size: 2.8rem;
             font-weight: 800;
@@ -268,14 +261,12 @@
             line-height: 1;
         }
 
-        /* Vertical Divider */
         .pw-div-vert {
             width: 2px;
             height: 30px;
             background: #E9ECEF;
             margin: 0 auto;
         }
-        /* ---------------------------------- */
 
         .menu-grid {
             display: grid;
@@ -428,17 +419,7 @@
         .btn-good { background: var(--color-good); }
         .btn-easy { background: var(--color-easy); }
 
-        .sort-controls { display: flex; gap: 10px; margin-bottom: 16px; flex-shrink: 0; }
         .custom-select { flex: 1; padding: 16px; border: 1px solid #eee; border-radius: var(--radius-md); background: white; font-size: 2.2rem; }
-
-        .review-table-container { border-radius: var(--radius-lg); background: white; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
-        .review-item { padding: 18px; border-bottom: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 8px; }
-        .r-row-main { display: flex; justify-content: space-between; align-items: flex-start; }
-        .r-dutch { font-weight: 700; font-size: 2.2rem; }
-        .r-english { color: var(--text-sub); font-size: 2.2rem; }
-        .r-meta { display: flex; justify-content: space-between; font-size: 2.2rem; color: #999; margin-top: 4px; }
-        .r-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
-        .chip-btn { padding: 8px 16px; border-radius: 100px; font-size: 2.2rem; font-weight: 600; border: 1px solid #eee; background: white; color: var(--text-main); }
 
         .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
         .search-input { flex: 1; padding: 20px; border: 1px solid #ddd; border-radius: 16px; font-size: 1.5rem; }
@@ -456,6 +437,144 @@
 
         .hidden { display: none !important; }
         .center-msg { text-align: center; color: var(--text-sub); margin-top: 40px; }
+        .chip-btn { padding: 8px 16px; border-radius: 100px; font-size: 2.2rem; font-weight: 600; border: 1px solid #eee; background: white; color: var(--text-main); }
+
+
+        /* --- NEW WORD REVIEW STYLES --- */
+        .wr-subheader {
+            background: var(--bg-card);
+            padding: 16px;
+            padding-bottom: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            z-index: 40;
+            position: relative;
+        }
+
+        .wr-search-container {
+            background: #F0F2F5;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+        }
+        .search-icon { font-size: 1.2rem; margin-right: 10px; opacity: 0.5; }
+        .wr-search-input {
+            border: none;
+            background: transparent;
+            font-size: 1.2rem;
+            flex: 1;
+            outline: none;
+            color: var(--text-main);
+        }
+        #wr-clear-search {
+            background: #ccc; border:none; color:white;
+            border-radius:50%; width:24px; height:24px; font-weight:bold; cursor: pointer;
+        }
+
+        .wr-filters {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            -ms-overflow-style: none; scrollbar-width: none; 
+        }
+        .wr-filters::-webkit-scrollbar { display: none; }
+
+        .filter-pill {
+            background: #F0F2F5;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            white-space: nowrap;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .filter-pill.active {
+            background: var(--text-main);
+            color: white;
+        }
+
+        .wr-tools {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 4px;
+        }
+        .minimal-select {
+            border: none;
+            background: transparent;
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 700;
+            text-align: right;
+            direction: rtl; 
+            cursor: pointer;
+        }
+
+        .review-table-container { border-radius: var(--radius-lg); background: white; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        
+        .review-item {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+            background: white;
+        }
+        
+        .ri-text { display: flex; flex-direction: column; gap: 4px; }
+        
+        .ri-dutch { 
+            font-size: 1.4rem; 
+            font-weight: 700; 
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+        .ri-eng { 
+            font-size: 1.1rem; 
+            color: var(--text-sub); 
+        }
+
+        .ri-meta {
+            font-size: 0.8rem;
+            margin-top: 4px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .ri-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+        .bg-new { background: #e3f2fd; color: #1982C4; }
+        .bg-due { background: #fff3cd; color: #856404; }
+        .bg-ok  { background: #d4edda; color: #155724; }
+        .bg-susp { background: #f8d7da; color: #721c24; }
+
+        .ri-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .icon-btn {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            border: 1px solid #eee;
+            background: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            transition: background 0.1s;
+            cursor: pointer;
+        }
+        .icon-btn:active { background: #f5f5f5; }
+        .img-active { border-color: var(--primary); color: var(--primary); }
     </style>
 </head>
 
@@ -504,7 +623,7 @@
                 </button>
                 <button class="menu-btn" onclick="App.nav('wordReview')">
                     <span class="menu-icon">📚</span>
-                    <span class="menu-text">Word Review</span>
+                    <span class="menu-text">Dictionary</span>
                 </button>
                 <button class="menu-btn" onclick="App.nav('report')">
                     <span class="menu-icon">📊</span>
@@ -586,24 +705,33 @@
     <div id="screen-wordReview" class="screen">
         <div class="app-header">
             <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
-            <div class="header-title">Word Review</div>
-            <div style="width:40px;"></div>
+            <div class="header-title">Dictionary</div>
+            <div style="width:40px;"></div> 
         </div>
 
-        <div class="content-scroll">
-            <div class="sort-controls">
-                <select id="sort-col" class="custom-select" onchange="App.renderWordTable()">
-<option value="dutch">Dutch</option>
-<option value="english">English</option>
-<option value="last_reviewed">Last Reviewed</option>
-<option value="due_date">Due Date</option>
-<option value="interval">Interval</option>
-<option value="ease">Ease</option>
+        <div class="wr-subheader">
+            <div class="wr-search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="wr-search" class="wr-search-input" placeholder="Search Dutch or English..." onkeyup="App.handleSearch(this.value)">
+                <button id="wr-clear-search" class="hidden" onclick="App.clearSearch()">✕</button>
+            </div>
+            
+            <div class="wr-filters">
+                <button class="filter-pill active" onclick="App.setFilter('all', this)">All</button>
+                <button class="filter-pill" onclick="App.setFilter('due', this)">Due</button>
+                <button class="filter-pill" onclick="App.setFilter('new', this)">New</button>
+                <button class="filter-pill" onclick="App.setFilter('suspended', this)">Frozen</button>
+            </div>
+        </div>
 
-                </select>
-                <select id="sort-dir" class="custom-select" style="flex:0 0 100px;" onchange="App.renderWordTable()">
-                    <option value="asc">Asc</option>
-                    <option value="desc">Desc</option>
+        <div class="content-scroll" style="padding-top: 0;">
+            <div class="wr-tools">
+                <span id="wr-count" style="color:var(--text-sub); font-size:0.9rem;">0 Words</span>
+                <select id="sort-col" class="minimal-select" onchange="App.renderWordTable()">
+                    <option value="dutch">A-Z (Dutch)</option>
+                    <option value="english">A-Z (English)</option>
+                    <option value="last_reviewed">Recent</option>
+                    <option value="due_date">Due Date</option>
                 </select>
             </div>
 
