@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.13 (Updated Progress Stats)
+// app.js — VERSION 1.14 (Done/Due Split + Chart Labels)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -160,16 +160,16 @@ const App = (function () {
         ).length;
 
 
-        // --- 3. UPDATE UI ---
+        // --- 3. UPDATE UI (Updated IDs for Done vs Due split) ---
         const setStat = (id, val) => {
             const el = document.getElementById(id);
             if(el) el.textContent = val;
         };
 
-        setStat("stat-new-done", newDone);
-        setStat("stat-new-due", newDue);
-        setStat("stat-review-done", reviewDone);
-        setStat("stat-review-due", reviewDue);
+        setStat("stat-done-new", newDone);
+        setStat("stat-done-review", reviewDone);
+        setStat("stat-due-new", newDue);
+        setStat("stat-due-review", reviewDue);
     }
 
     // -------------------------------------------------------------
@@ -612,20 +612,24 @@ if (reviewBuffer.length >= 5) {
         data.addColumn("number", "Review");
 
         const keys = Object.keys(dataMap).sort();
-        const ticks = [];
-
+        
         keys.forEach(k => {
             const [y, m, d] = k.split("-").map(Number);
             const dt = new Date(y, (m || 1) - 1, d || 1);
             data.addRow([dt, dataMap[k].new, dataMap[k].rev]);
-            ticks.push(dt);
         });
+
+        // Dynamic date format for X-Axis based on group selection
+        let format = "MMM d"; // Default for Day (e.g., "Jan 1")
+        if (group === "month") format = "MMM yyyy"; // (e.g., "Jan 2024")
+        if (group === "year") format = "yyyy";      // (e.g., "2024")
 
         const options = {
             isStacked: true,
             legend: { position: "bottom" },
             colors: ["#FF9F1C", "#1a80d9"],
-            chartArea: { width: "85%", height: "70%" }
+            chartArea: { width: "85%", height: "70%" },
+            hAxis: { format: format }
         };
 
         const chart = new google.visualization.ColumnChart(document.getElementById("chart-div"));
