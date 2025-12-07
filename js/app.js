@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.16 (Mastery Pie Chart)
+// app.js — VERSION 1.17 (Mastery History Chart)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -26,7 +26,6 @@ const App = (function () {
     let currentImageScreen = "learn";
     let selectedImageUrl = null;
 
-    // Word Review State
     let wordFilter = 'all'; 
     let wordSearch = '';
 
@@ -92,9 +91,9 @@ const App = (function () {
         if (id === "wordReview") renderWordTable();
         
         if (id === "report") {
-            // Draw both charts when entering report screen
             drawChart();
             drawStatusChart();
+            drawMasteryHistoryChart();
         }
     }
 
@@ -593,17 +592,12 @@ const App = (function () {
         };
 
         allCards.forEach(c => {
-            // Exclude suspended cards from the mastery chart?
             if (c.suspended) return; 
 
             if (c.type === 'new') {
                 stats.new++;
             } else {
                 const ivl = c.interval || 0;
-                // Logic: 
-                // < 3 days = Learning (Just started)
-                // 3 - 21 days = Reviewing (Getting there)
-                // > 21 days = Mastered (Solid)
                 if (ivl <= 3) stats.learning++;
                 else if (ivl <= 21) stats.reviewing++;
                 else stats.mastered++;
@@ -620,7 +614,6 @@ const App = (function () {
 
         const options = {
             pieHole: 0.4,
-            // Colors: Grey (New), Yellow (Learn), Blue (Review), Green (Master)
             colors: ['#ADB5BD', '#FFCA3A', '#1982C4', '#8AC926'], 
             chartArea: { width: "90%", height: "85%" },
             legend: { position: 'bottom' },
@@ -632,7 +625,131 @@ const App = (function () {
         chart.draw(data, options);
     }
 
-    // 2. Activity History Column Chart
+    // 2. Mastery HISTORY Area Chart (NEW)
+    function drawMasteryHistoryChart() {
+        if (!reviewHistory || reviewHistory.length === 0) return;
+        
+        // --- 1. PREPARE REPLAY ---
+        // Identify all cards and assume they start as "New"
+        // Map: cardId -> { status: 'new', interval: 0, ease: 2.5 }
+        const cardMap = new Map();
+        
+        // We only track cards that currently exist in allCards to keep totals consistent
+        const validIds = new Set(allCards.map(c => c.id));
+        
+        validIds.forEach(id => {
+            cardMap.set(id, { status: 'new', interval: 0, ease: 2.5 });
+        });
+
+        // Sort history chronological
+        const sortedHistory = [...reviewHistory].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+        
+        if (sortedHistory.length === 0) return;
+
+        // --- 2. REPLAY LOOP ---
+        const dailyStats = []; // { date, new, learning, reviewing, mastered }
+        const totalCards = validIds.size;
+
+        let currentDate = sortedHistory[0].timestamp.slice(0, 10);
+        const today = new Date().toISOString().slice(0, 10);
+
+        // Helper to take a snapshot of current map state
+        const takeSnapshot = (dateStr) => {
+            let s = { new:0, learning:0, reviewing:0, mastered:0 };
+            
+            for (const [id, state] of cardMap.entries()) {
+                if (state.status === 'new') s.new++;
+                else if (state.interval <= 3) s.learning++;
+                else if (state.interval <= 21) s.reviewing++;
+                else s.mastered++;
+            }
+            
+            // Push date object for Google Charts
+            const [y, m, d] = dateStr.split("-").map(Number);
+            dailyStats.push([new Date(y, m-1, d), s.new, s.learning, s.reviewing, s.mastered]);
+        };
+
+        // Initialize snapshot at start
+        takeSnapshot(currentDate);
+
+        // Group history by date to process in chunks
+        let historyIdx = 0;
+        
+        while (currentDate <= today) {
+            // Process all events for this currentDate
+            while (historyIdx < sortedHistory.length) {
+                const event = sortedHistory[historyIdx];
+                const evtDate = event.timestamp.slice(0, 10);
+
+                if (evtDate > currentDate) break; // Next day
+                
+                // Process event
+                if (cardMap.has(event.cardid)) {
+                    const cardState = cardMap.get(event.cardid);
+                    
+                    // Replicate Scheduling Logic to determine RESULTING bucket
+                    // Logic from applyScheduling:
+                    
+                    // 1. If card was New, it becomes Review (Interval 1)
+                    if (event.review_type === 'new') {
+                        cardState.status = 'review';
+                        cardState.interval = 1;
+                        cardState.ease = 2.5;
+                    }
+
+                    // 2. Apply Rating Modifiers
+                    // Note: We use the values captured in cardState to calculate next state
+                    if (event.rating === "again") {
+                        cardState.interval = 1;
+                        cardState.ease = Math.max(1.3, cardState.ease - 0.2);
+                    } else if (event.rating === "hard") {
+                        cardState.interval = Math.max(1, Math.round(cardState.interval * 1.2));
+                        cardState.ease = Math.max(1.3, cardState.ease - 0.1);
+                    } else if (event.rating === "good") {
+                        cardState.interval = Math.round(cardState.interval * cardState.ease);
+                    } else if (event.rating === "easy") {
+                        cardState.interval = Math.round(cardState.interval * (cardState.ease + 0.15));
+                        cardState.ease += 0.1;
+                    }
+                }
+                
+                historyIdx++;
+            }
+
+            // End of day: Take snapshot
+            takeSnapshot(currentDate);
+
+            // Move to next day
+            const d = new Date(currentDate);
+            d.setDate(d.getDate() + 1);
+            currentDate = d.toISOString().slice(0, 10);
+        }
+
+        // --- 3. DRAW CHART ---
+        const data = new google.visualization.DataTable();
+        data.addColumn('date', 'Date');
+        data.addColumn('number', 'New');
+        data.addColumn('number', 'Learning');
+        data.addColumn('number', 'Reviewing');
+        data.addColumn('number', 'Mastered');
+
+        data.addRows(dailyStats);
+
+        const options = {
+            isStacked: true,
+            colors: ['#ADB5BD', '#FFCA3A', '#1982C4', '#8AC926'], // Grey, Yellow, Blue, Green
+            chartArea: { width: "85%", height: "70%" },
+            legend: { position: 'bottom' },
+            hAxis: { format: 'MMM d' },
+            vAxis: { textPosition: 'none', gridlines: { count: 0 } }, // Clean look
+            areaOpacity: 0.9
+        };
+
+        const chart = new google.visualization.AreaChart(document.getElementById('mastery-history-chart'));
+        chart.draw(data, options);
+    }
+
+    // 3. Activity History Column Chart
     function drawChart() {
         if (!reviewHistory.length) {
             document.getElementById("report-summary").textContent = "No history available.";
@@ -707,6 +824,7 @@ const App = (function () {
         saveSettings,
         drawChart,
         drawStatusChart,
+        drawMasteryHistoryChart,
         handleSearch,
         clearSearch,
         setFilter
