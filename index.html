@@ -161,6 +161,7 @@
             z-index: 20;
         }
 
+        /* Fixed: Ensure flex containers don't collapse scrolling */
         .content-scroll {
             flex: 1;
             overflow-y: auto;
@@ -169,6 +170,8 @@
             padding-bottom: calc(40px + var(--safe-area-bottom)); 
             display: flex;
             flex-direction: column;
+            min-height: 0; /* Crucial for nested flex scrolling */
+            -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
         }
 
         .app-header {
@@ -182,7 +185,7 @@
             padding-right: 16px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             z-index: 50;
-            flex-shrink: 0;
+            flex-shrink: 0; /* Prevent header from squashing */
             position: relative; 
         }
 
@@ -448,6 +451,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.03);
             z-index: 40;
             position: relative;
+            flex-shrink: 0; /* Ensures subheader doesn't shrink, letting list scroll */
         }
 
         .wr-search-container {
@@ -515,7 +519,7 @@
             cursor: pointer;
         }
 
-        .review-table-container { border-radius: var(--radius-lg); background: white; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .review-table-container { border-radius: var(--radius-lg); background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
         
         .review-item {
             padding: 16px;
@@ -595,7 +599,7 @@
         
         <div class="content-scroll">
             <div class="card">
-                <div class="header-title" style="margin-bottom:8px;">Today's Progress</div>
+                <div class="header-title" style="margin-bottom:8px; text-align: center; width: 100%;">Today's Progress</div>
                 
                 <div class="progress-widget">
                     <div class="pw-grid">
@@ -642,10 +646,8 @@
 
     <div id="screen-learn" class="screen">
         <div class="app-header">
-            <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
-            <div class="header-title">Review</div>
-            <div style="width:40px;"></div>
-        </div>
+            <div style="width:50px;"></div> <div class="header-title">Review</div>
+            <button class="btn-icon" onclick="App.nav('menu')">🏠</button> </div>
 
         <div class="flashcard-stage">
             
@@ -704,10 +706,8 @@
 
     <div id="screen-wordReview" class="screen">
         <div class="app-header">
-            <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
-            <div class="header-title">Dictionary</div>
-            <div style="width:40px;"></div> 
-        </div>
+            <div style="width:50px;"></div> <div class="header-title">Dictionary</div>
+            <button class="btn-icon" onclick="App.nav('menu')">🏠</button> </div>
 
         <div class="wr-subheader">
             <div class="wr-search-container">
@@ -741,8 +741,7 @@
 
     <div id="screen-selectImage" class="screen">
         <div class="app-header">
-            <button class="btn-icon" onclick="App.exitImageSelector()">⬅️</button>
-            <div class="header-title">Select Image</div>
+            <button class="btn-icon" onclick="App.exitImageSelector()">⬅️</button> <div class="header-title">Select Image</div>
             <div style="width:40px;"></div>
         </div>
         <div class="content-scroll">
@@ -762,10 +761,8 @@
 
     <div id="screen-report" class="screen">
         <div class="app-header">
-            <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
-            <div class="header-title">Learning Report</div>
-            <div style="width:40px;"></div>
-        </div>
+            <div style="width:50px;"></div> <div class="header-title">Report</div>
+            <button class="btn-icon" onclick="App.nav('menu')">🏠</button> </div>
         <div class="content-scroll">
             <div class="card" style="display: flex; align-items: center; justify-content: space-between; padding: 20px;">
                 <span style="font-size: 1.5rem; font-weight: 600; color: var(--text-sub); margin-right: 16px;">Group By</span>
@@ -785,10 +782,8 @@
 
     <div id="screen-settings" class="screen">
         <div class="app-header">
-            <button class="btn-icon" onclick="App.nav('menu')">🏠</button>
-            <div class="header-title">Settings</div>
-            <div style="width:40px;"></div>
-        </div>
+            <div style="width:50px;"></div> <div class="header-title">Settings</div>
+            <button class="btn-icon" onclick="App.nav('menu')">🏠</button> </div>
         <div class="content-scroll">
             <div class="card">
                 <div class="header-title">Daily New Cards</div>
