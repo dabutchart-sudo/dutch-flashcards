@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.15 (New Dictionary Dashboard + UI Tweaks)
+// app.js — VERSION 1.16 (Mastery Pie Chart)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -27,7 +27,7 @@ const App = (function () {
     let selectedImageUrl = null;
 
     // Word Review State
-    let wordFilter = 'all'; // all, due, new, suspended
+    let wordFilter = 'all'; 
     let wordSearch = '';
 
     // -------------------------------------------------------------
@@ -57,7 +57,7 @@ const App = (function () {
         const maxNew = localStorage.getItem(CONFIG_MAX_NEW) || "10";
         document.getElementById("setting-max-new").value = maxNew;
 
-        // Load cards (Max 10,000)
+        // Load cards
         let { data: cards } = await supabase
             .from("cards")
             .select("*")
@@ -90,7 +90,12 @@ const App = (function () {
 
         if (id === "learn") startSession();
         if (id === "wordReview") renderWordTable();
-        if (id === "report") drawChart();
+        
+        if (id === "report") {
+            // Draw both charts when entering report screen
+            drawChart();
+            drawStatusChart();
+        }
     }
 
     async function handleReturnToMenu() {
@@ -98,17 +103,13 @@ const App = (function () {
 
         if (reviewBuffer.length > 0) {
             const toSend = [...reviewBuffer];
-            
-            // Push to local history so 'Done' counts update immediately
             reviewHistory.push(...toSend);
-            
             reviewBuffer = [];
 
             await flushReviewHistory(toSend);
             await updateScheduledCards(toSend);
         }
 
-        // Reload cards to ensure sync
         const { data } = await supabase
             .from("cards")
             .select("*")
@@ -131,7 +132,7 @@ const App = (function () {
         const today = new Date().toISOString().slice(0, 10);
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
 
-        // --- 1. NEW CARDS LOGIC ---
+        // New Logic
         const newDone = allCards.filter(c => 
             !c.suspended && 
             c.first_seen && 
@@ -141,7 +142,7 @@ const App = (function () {
         const newAvailable = allCards.filter(c => !c.suspended && c.type === "new").length;
         const newDue = Math.min(Math.max(0, maxNew - newDone), newAvailable);
 
-        // --- 2. REVIEWS LOGIC ---
+        // Reviews Logic
         const historyToday = reviewHistory.filter(h => h.timestamp.startsWith(today));
         const bufferToday = reviewBuffer.filter(h => h.timestamp.startsWith(today));
         const allTodayLogs = [...historyToday, ...bufferToday];
@@ -171,7 +172,6 @@ const App = (function () {
     // -------------------------------------------------------------
     function startSession() {
         const today = new Date().toISOString().slice(0, 10);
-
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
         
         const introducedToday = allCards.filter(c => 
@@ -205,7 +205,6 @@ const App = (function () {
         renderCard();
     }
 
-    // Progress Bar with Count (X / Y)
     function updateProgressBar() {
         const bar = document.getElementById("learn-progress-fill");
         const txt = document.getElementById("learn-progress-text");
@@ -233,14 +232,12 @@ const App = (function () {
     // -------------------------------------------------------------
     function renderCard() {
         const card = todayQueue[currentCardIndex];
-
         const elCard = document.getElementById("flashcard-el");
         const elEmpty = document.getElementById("learn-empty");
         const elActions = document.getElementById("review-actions");
 
         elCard.classList.remove("flipped");
         isFlipped = false;
-
         elActions.classList.add("hidden");
 
         if (!card) {
@@ -290,14 +287,12 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // TTS
+    // TTS & Rating
     // -------------------------------------------------------------
     function speakTTS() {
         const card = todayQueue[currentCardIndex];
         if (!card) return;
-
         const clean = card.dutch.replace(/\(.*\)/g, "").trim();
-
         if ("speechSynthesis" in window) {
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(clean);
@@ -306,16 +301,12 @@ const App = (function () {
         }
     }
 
-    // -------------------------------------------------------------
-    // Rating (Again / Hard / Good / Easy)
-    // -------------------------------------------------------------
     function rate(rating) {
         if (isProcessing) return;
         isProcessing = true;
 
         const card = todayQueue[currentCardIndex];
         const now = new Date().toISOString();
-
         const typeAtReview = card.type; 
 
         card.reps = (card.reps || 0) + 1;
@@ -334,13 +325,10 @@ const App = (function () {
         if (rating === "again") review.lapses++;
 
         reviewBuffer.push(review);
-
         todayQueue.splice(currentCardIndex, 1);
         
         updateProgressBar();
-
         applyScheduling(card, rating);
-
         renderCard();
         isProcessing = false;
 
@@ -351,9 +339,6 @@ const App = (function () {
         }
     }
 
-    // -------------------------------------------------------------
-    // SM-2 Scheduling
-    // -------------------------------------------------------------
     function applyScheduling(card, rating) {
         const today = new Date().toISOString().slice(0, 10);
 
@@ -384,12 +369,8 @@ const App = (function () {
         card.last_reviewed = today;
     }
 
-    // -------------------------------------------------------------
-    // Save Review History
-    // -------------------------------------------------------------
     async function flushReviewHistory(list) {
         if (!list || list.length === 0) return;
-
         const rows = list.map(item => ({
             cardid: item.cardid,
             rating: item.rating,
@@ -400,18 +381,13 @@ const App = (function () {
             ease: item.ease,
             review_type: item.review_type 
         }));
-
         await supabase.from("reviewhistory").insert(rows);
     }
 
-    // -------------------------------------------------------------
-    // Update Scheduled Cards
-    // -------------------------------------------------------------
     async function updateScheduledCards(list) {
         for (const r of list) {
             const card = allCards.find(c => c.id === r.cardid);
             if (!card) continue;
-
             await supabase.from("cards")
                 .update({
                     type: card.type,
@@ -427,17 +403,14 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Image Selector
+    // Image & Search
     // -------------------------------------------------------------
     function openImageSelector(fromScreen, cardOverride) {
         currentImageScreen = fromScreen;
         currentImageCard = cardOverride || todayQueue[currentCardIndex];
-
         document.getElementById("img-search-input").value = currentImageCard.english;
-
         document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
         document.getElementById("screen-selectImage").classList.add("active");
-
         searchImages();
     }
 
@@ -457,15 +430,12 @@ const App = (function () {
         const loader = document.getElementById("img-loading");
 
         if (!query) return;
-
         grid.innerHTML = "";
         loader.classList.remove("hidden");
 
         const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=12&client_id=${UNSPLASH_ACCESS_KEY}`;
-
         const res = await fetch(url);
         const json = await res.json();
-
         loader.classList.add("hidden");
 
         if (!json.results?.length) {
@@ -489,26 +459,19 @@ const App = (function () {
 
     async function saveSelectedImage() {
         if (!selectedImageUrl || !currentImageCard) return;
-
-        await supabase.from("cards")
-            .update({ image_url: selectedImageUrl })
-            .eq("id", currentImageCard.id);
-
+        await supabase.from("cards").update({ image_url: selectedImageUrl }).eq("id", currentImageCard.id);
         currentImageCard.image_url = selectedImageUrl;
-
         exitImageSelector();
     }
 
     // -------------------------------------------------------------
-    // Word Review Dashboard (NEW)
+    // Word Review Dashboard
     // -------------------------------------------------------------
-    
     function handleSearch(val) {
         wordSearch = val.toLowerCase().trim();
         const clearBtn = document.getElementById("wr-clear-search");
         if (wordSearch.length > 0) clearBtn.classList.remove("hidden");
         else clearBtn.classList.add("hidden");
-        
         renderWordTable();
     }
 
@@ -519,10 +482,8 @@ const App = (function () {
 
     function setFilter(type, btnEl) {
         wordFilter = type;
-        
         document.querySelectorAll(".filter-pill").forEach(el => el.classList.remove("active"));
         btnEl.classList.add("active");
-        
         renderWordTable();
     }
 
@@ -534,34 +495,27 @@ const App = (function () {
         const col = document.getElementById("sort-col").value;
         const today = new Date().toISOString().slice(0, 10);
 
-        // 1. Filter
         let filtered = allCards.filter(c => {
-            // Search Text
             const matchText = (c.dutch.toLowerCase().includes(wordSearch) || 
                                c.english.toLowerCase().includes(wordSearch));
             if (!matchText) return false;
 
-            // Filter Pills
             if (wordFilter === 'suspended') return c.suspended;
-            if (c.suspended) return false; // Hide suspended cards in other views
+            if (c.suspended) return false; 
 
             if (wordFilter === 'new') return c.type === 'new';
             if (wordFilter === 'due') {
                 return (c.type !== 'new' && c.due_date && c.due_date.slice(0,10) <= today);
             }
-            return true; // 'all'
+            return true; 
         });
 
-        // 2. Sort
         filtered.sort((a, b) => {
             let va = a[col] ?? "";
             let vb = b[col] ?? "";
-            
-            // Text sorting (a-z)
             if (col === 'dutch' || col === 'english') {
                 return va.localeCompare(vb);
             }
-            // Date sorting
             return va > vb ? 1 : -1;
         });
 
@@ -572,12 +526,10 @@ const App = (function () {
             return;
         }
 
-        // 3. Render
         filtered.forEach(c => {
             const item = document.createElement("div");
             item.className = "review-item";
 
-            // Determine Badge
             let badgeHtml = "";
             if (c.suspended) badgeHtml = `<span class="ri-badge bg-susp">Frozen</span>`;
             else if (c.type === 'new') badgeHtml = `<span class="ri-badge bg-new">New</span>`;
@@ -605,7 +557,6 @@ const App = (function () {
                     </button>
                 </div>
             `;
-
             list.appendChild(item);
         });
     }
@@ -613,9 +564,7 @@ const App = (function () {
     async function toggleSuspend(id, state) {
         const card = allCards.find(c => c.id === id);
         if (card) card.suspended = state;
-
         await supabase.from("cards").update({ suspended: state }).eq("id", id);
-
         renderWordTable();
     }
 
@@ -629,8 +578,61 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Charts
+    // Charts (UPDATED)
     // -------------------------------------------------------------
+    
+    // 1. Mastery Status Pie Chart
+    function drawStatusChart() {
+        if (!allCards || allCards.length === 0) return;
+
+        let stats = {
+            new: 0,
+            learning: 0,
+            reviewing: 0,
+            mastered: 0
+        };
+
+        allCards.forEach(c => {
+            // Exclude suspended cards from the mastery chart?
+            if (c.suspended) return; 
+
+            if (c.type === 'new') {
+                stats.new++;
+            } else {
+                const ivl = c.interval || 0;
+                // Logic: 
+                // < 3 days = Learning (Just started)
+                // 3 - 21 days = Reviewing (Getting there)
+                // > 21 days = Mastered (Solid)
+                if (ivl <= 3) stats.learning++;
+                else if (ivl <= 21) stats.reviewing++;
+                else stats.mastered++;
+            }
+        });
+
+        const data = google.visualization.arrayToDataTable([
+            ['Status', 'Count'],
+            ['New', stats.new],
+            ['Learning', stats.learning],
+            ['Reviewing', stats.reviewing],
+            ['Mastered', stats.mastered]
+        ]);
+
+        const options = {
+            pieHole: 0.4,
+            // Colors: Grey (New), Yellow (Learn), Blue (Review), Green (Master)
+            colors: ['#ADB5BD', '#FFCA3A', '#1982C4', '#8AC926'], 
+            chartArea: { width: "90%", height: "85%" },
+            legend: { position: 'bottom' },
+            fontSize: 14,
+            fontName: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto'
+        };
+
+        const chart = new google.visualization.PieChart(document.getElementById('status-chart-div'));
+        chart.draw(data, options);
+    }
+
+    // 2. Activity History Column Chart
     function drawChart() {
         if (!reviewHistory.length) {
             document.getElementById("report-summary").textContent = "No history available.";
@@ -704,6 +706,7 @@ const App = (function () {
         getCard,
         saveSettings,
         drawChart,
+        drawStatusChart,
         handleSearch,
         clearSearch,
         setFilter
