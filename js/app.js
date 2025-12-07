@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.12 (Fix: Stay on card after image save)
+// app.js — VERSION 1.13 (Updated Progress Stats)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -94,6 +94,10 @@ const App = (function () {
 
         if (reviewBuffer.length > 0) {
             const toSend = [...reviewBuffer];
+            
+            // Push to local history so 'Done' counts update immediately
+            reviewHistory.push(...toSend);
+            
             reviewBuffer = [];
 
             await flushReviewHistory(toSend);
@@ -117,31 +121,55 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Progress Counters
+    // Progress Counters (Updated for Done vs Due)
     // -------------------------------------------------------------
     function calcProgress() {
         const today = new Date().toISOString().slice(0, 10);
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
 
-        const introducedToday = allCards.filter(c => 
+        // --- 1. NEW CARDS LOGIC ---
+        
+        // Calculate New Done: Cards with first_seen today
+        const newDone = allCards.filter(c => 
             !c.suspended && 
             c.first_seen && 
             c.first_seen.slice(0, 10) === today
         ).length;
 
-        const remainingNew = Math.max(0, maxNew - introducedToday);
-
+        // Calculate New Due: (Limit - Done), capped by available 'new' cards
         const newAvailable = allCards.filter(c => !c.suspended && c.type === "new").length;
+        const newDue = Math.min(Math.max(0, maxNew - newDone), newAvailable);
 
-        const due = allCards.filter(c =>
+
+        // --- 2. REVIEWS LOGIC ---
+
+        // Calculate Reviews Done: Check history + current buffer for today's logs
+        // We look for items where review_type was 'review' (not 'new')
+        const historyToday = reviewHistory.filter(h => h.timestamp.startsWith(today));
+        const bufferToday = reviewBuffer.filter(h => h.timestamp.startsWith(today));
+        const allTodayLogs = [...historyToday, ...bufferToday];
+
+        const reviewDone = allTodayLogs.filter(log => log.review_type === 'review').length;
+
+        // Calculate Reviews Due: Cards with due_date <= today
+        const reviewDue = allCards.filter(c =>
             !c.suspended &&
             c.type !== "new" &&
             c.due_date &&
             c.due_date.slice(0, 10) <= today
         ).length;
 
-        document.getElementById("stat-new").textContent = Math.min(remainingNew, newAvailable);
-        document.getElementById("stat-review").textContent = due;
+
+        // --- 3. UPDATE UI ---
+        const setStat = (id, val) => {
+            const el = document.getElementById(id);
+            if(el) el.textContent = val;
+        };
+
+        setStat("stat-new-done", newDone);
+        setStat("stat-new-due", newDue);
+        setStat("stat-review-done", reviewDone);
+        setStat("stat-review-due", reviewDue);
     }
 
     // -------------------------------------------------------------
