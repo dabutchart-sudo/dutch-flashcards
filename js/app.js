@@ -592,7 +592,7 @@ const App = (function () {
         const options = {
             isStacked: true,
             legend: { position: "bottom" },
-            colors: ["#FF9F1C", "#2EC4B6"],
+            colors: ["#FF9F1C", "#1a80d9"],
             chartArea: { width: "85%", height: "70%" }
         };
 
