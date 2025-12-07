@@ -322,7 +322,11 @@ const App = (function () {
         renderCard();
         isProcessing = false;
 
-        if (reviewBuffer.length >= 5) flushReviewHistory(reviewBuffer);
+if (reviewBuffer.length >= 5) {
+        const toSend = [...reviewBuffer];
+        reviewBuffer = []; // Empty the buffer so we don't resend old cards
+        flushReviewHistory(toSend);
+    }
     }
 
     // -------------------------------------------------------------
