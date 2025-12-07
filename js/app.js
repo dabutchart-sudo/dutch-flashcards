@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.15 (New Dictionary Dashboard)
+// app.js — VERSION 1.15 (New Dictionary Dashboard + UI Tweaks)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
