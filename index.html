@@ -224,33 +224,58 @@
             flex-shrink: 0; 
         }
 
-        .stat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-top: 16px;
+        /* --- NEW PROGRESS WIDGET STYLES --- */
+        .progress-widget {
+            background: #F8F9FA;
+            border-radius: var(--radius-md);
+            padding: 20px 20px;
+            margin-top: 10px;
         }
 
-        .stat-box {
-            background: #F8F9FA;
-            padding: 20px 10px;
-            border-radius: var(--radius-md);
+        .pw-grid {
+            display: grid;
+            /* Columns: Label | New Val | Divider | Review Val */
+            grid-template-columns: 1fr 70px 20px 70px;
+            align-items: center;
+            row-gap: 12px;
+        }
+
+        /* Headers (NEW / REVIEW) */
+        .pw-head {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #ADB5BD;
             text-align: center;
+            letter-spacing: 0.05em;
+            padding-bottom: 4px;
         }
-        
-        .stat-num { 
-            font-size: 3rem; 
-            font-weight: 800; 
-            color: var(--primary); 
-            display: block; 
+
+        /* Row Labels (Done Today / Due Now) */
+        .pw-label {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            text-align: right;
+            padding-right: 20px;
+        }
+
+        /* The Numbers */
+        .pw-val {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-align: center;
             line-height: 1;
-            margin-bottom: 8px;
         }
-        .stat-label { 
-            font-size: 2rem; 
-            font-weight: 500;
-            color: var(--text-sub); 
+
+        /* Vertical Divider */
+        .pw-div-vert {
+            width: 2px;
+            height: 30px;
+            background: #E9ECEF;
+            margin: 0 auto;
         }
+        /* ---------------------------------- */
 
         .menu-grid {
             display: grid;
@@ -453,35 +478,20 @@
             <div class="card">
                 <div class="header-title" style="margin-bottom:8px;">Today's Progress</div>
                 
-                <div class="stat-grid">
-                    <div class="stat-box">
-                        <div class="stat-label" style="margin-bottom:12px;">Done Today</div>
-                        <div style="display:flex; justify-content:center; align-items:center; gap:16px;">
-                            <div style="text-align:center;">
-                                <span id="stat-done-new" class="stat-num" style="font-size:2.2rem; margin-bottom:0;">0</span>
-                                <span style="font-size:0.9rem; color:#aaa; font-weight:600; text-transform:uppercase;">New</span>
-                            </div>
-                            <div style="width:1px; height:30px; background:#ddd;"></div>
-                            <div style="text-align:center;">
-                                <span id="stat-done-review" class="stat-num" style="font-size:2.2rem; margin-bottom:0;">0</span>
-                                <span style="font-size:0.9rem; color:#aaa; font-weight:600; text-transform:uppercase;">Review</span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="progress-widget">
+                    <div class="pw-grid">
+                        <div></div> <div class="pw-head">NEW</div>
+                        <div></div> <div class="pw-head">REVIEW</div>
 
-                    <div class="stat-box">
-                        <div class="stat-label" style="margin-bottom:12px;">Due Now</div>
-                        <div style="display:flex; justify-content:center; align-items:center; gap:16px;">
-                            <div style="text-align:center;">
-                                <span id="stat-due-new" class="stat-num" style="font-size:2.2rem; margin-bottom:0;">0</span>
-                                <span style="font-size:0.9rem; color:#aaa; font-weight:600; text-transform:uppercase;">New</span>
-                            </div>
-                            <div style="width:1px; height:30px; background:#ddd;"></div>
-                            <div style="text-align:center;">
-                                <span id="stat-due-review" class="stat-num" style="font-size:2.2rem; margin-bottom:0;">0</span>
-                                <span style="font-size:0.9rem; color:#aaa; font-weight:600; text-transform:uppercase;">Review</span>
-                            </div>
-                        </div>
+                        <div class="pw-label">Done Today</div>
+                        <div id="stat-done-new" class="pw-val">0</div>
+                        <div class="pw-div-vert"></div>
+                        <div id="stat-done-review" class="pw-val">0</div>
+
+                        <div class="pw-label">Due Now</div>
+                        <div id="stat-due-new" class="pw-val">0</div>
+                        <div class="pw-div-vert"></div>
+                        <div id="stat-due-review" class="pw-val">0</div>
                     </div>
                 </div>
                 <div id="menu-stats-text" style="text-align:center; font-size:4rem; color:var(--text-sub); margin-top:16px;"></div>
