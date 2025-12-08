@@ -1,3 +1,12 @@
+I have made the necessary amendment to your `app.js` file.
+
+The change ensures that when the in-memory review buffer reaches 5 items, the updates to both the **review history** (the log of the review) and the **cards table** (the critical scheduling data like `interval` and `due_date`) are sent to Supabase concurrently.
+
+Here is the amended `app.js` file:
+
+### `app.js` (Amended)
+
+```javascript
 // ===================================================================
 // app.js — VERSION 1.17 (Mastery History Chart)
 // ===================================================================
@@ -183,7 +192,7 @@ const App = (function () {
             !c.suspended &&
             c.type !== "new" &&
             c.due_date &&
-            c.due_date.slice(0,10) <= today
+            c.due_date.slice(0, 10) <= today
         );
 
         const newLimit = Math.max(0, maxNew - introducedToday);
@@ -334,7 +343,13 @@ const App = (function () {
         if (reviewBuffer.length >= 5) {
             const toSend = [...reviewBuffer];
             reviewBuffer = [];
-            flushReviewHistory(toSend);
+            
+            // AMENDMENT: Ensure that both the review history (flush) 
+            // and the card's new scheduling data (update) are sent to the DB
+            Promise.all([
+                flushReviewHistory(toSend),
+                updateScheduledCards(toSend)
+            ]);
         }
     }
 
@@ -832,3 +847,4 @@ const App = (function () {
 })();
 
 window.App = App;
+```
