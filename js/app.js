@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.18 (Due Today/Tomorrow & Robust Limit)
+// app.js — VERSION 1.19 (Simplified Due Dates & Robust Limit)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -126,7 +126,7 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Progress Counters (MODIFIED)
+    // Progress Counters (MODIFIED for simplified table)
     // -------------------------------------------------------------
     function calcProgress() {
         const now = new Date();
@@ -138,27 +138,27 @@ const App = (function () {
 
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
 
-        // --- New Logic ---
+        // --- Stats Done Today (for the text above the table) ---
         
-        // Count all cards introduced today (first_seen set to today's date)
+        // Count all cards marked as 'first_seen' today
         const newDone = allCards.filter(c => 
             !c.suspended && 
             c.first_seen && 
             c.first_seen.slice(0, 10) === today
         ).length;
 
-        const newAvailable = allCards.filter(c => !c.suspended && c.type === "new").length;
-        const newDue = Math.max(0, maxNew - newDone);
-
-        // --- Reviews Logic ---
-        
         const historyToday = reviewHistory.filter(h => h.timestamp.startsWith(today));
         const bufferToday = reviewBuffer.filter(h => h.timestamp.startsWith(today));
         const allTodayLogs = [...historyToday, ...bufferToday];
 
         const reviewDone = allTodayLogs.filter(log => log.review_type === 'review').length;
-
-        // Cards DUE TODAY (due_date <= today)
+        
+        // --- Due Today Logic ---
+        
+        // Max new cards remaining to introduce today
+        const newDueToday = Math.max(0, maxNew - newDone);
+        
+        // Review cards DUE TODAY (due_date <= today)
         const reviewDueToday = allCards.filter(c =>
             !c.suspended &&
             c.type !== "new" &&
@@ -166,7 +166,15 @@ const App = (function () {
             c.due_date.slice(0, 10) <= today
         ).length;
 
-        // Cards DUE TOMORROW (due_date = tomorrow)
+        // --- Due Tomorrow Logic ---
+
+        // New cards available tomorrow (All available new cards that are NOT due today)
+        const totalNewAvailable = allCards.filter(c => !c.suspended && c.type === "new").length;
+        const newDueTomorrow = totalNewAvailable; // If New Due Today is 0, this is the total pool.
+                                                 // The main learn session caps new cards at newDueToday.
+                                                 // Displaying the total pool is the best representation of future new work.
+
+        // Review cards DUE TOMORROW (due_date = tomorrow)
         const reviewDueTomorrow = allCards.filter(c => 
             !c.suspended &&
             c.type !== "new" &&
@@ -179,12 +187,15 @@ const App = (function () {
             if(el) el.textContent = val;
         };
 
+        // Done Stats (Text above table)
         setStat("stat-done-new", newDone);
         setStat("stat-done-review", reviewDone);
         
-        setStat("stat-due-new", newDue);
+        // Table Stats (Due Today / Due Tomorrow)
+        setStat("stat-due-new", newDueToday);
         setStat("stat-due-review", reviewDueToday);
-        setStat("stat-due-tomorrow", newAvailable > newDue ? newAvailable - newDue : 0); // New Available Tomorrow
+        
+        setStat("stat-due-tomorrow-new", newDueTomorrow);
         setStat("stat-due-tomorrow-review", reviewDueTomorrow);
     }
 
@@ -375,8 +386,6 @@ const App = (function () {
         }
         
         // Recalculate progress after rating, showing immediate change on the menu screen
-        // This is primarily for the 'Done Today' counter, which is helpful to the user
-        // We do this after all local state changes, but before potential network flush
         calcProgress();
     }
 
