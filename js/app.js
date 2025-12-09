@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.19 (Simplified Due Dates & Robust Limit)
+// app.js — VERSION 1.20 (Corrected Due Tomorrow Logic)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -126,7 +126,7 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Progress Counters (MODIFIED for simplified table)
+    // Progress Counters (MODIFIED: Corrected Due Tomorrow / New)
     // -------------------------------------------------------------
     function calcProgress() {
         const now = new Date();
@@ -168,11 +168,9 @@ const App = (function () {
 
         // --- Due Tomorrow Logic ---
 
-        // New cards available tomorrow (All available new cards that are NOT due today)
-        const totalNewAvailable = allCards.filter(c => !c.suspended && c.type === "new").length;
-        const newDueTomorrow = totalNewAvailable; // If New Due Today is 0, this is the total pool.
-                                                 // The main learn session caps new cards at newDueToday.
-                                                 // Displaying the total pool is the best representation of future new work.
+        // NEW: If the user hasn't started learning tomorrow yet, the full quota is available.
+        // We assume tomorrow's quota starts at the max limit set by the user (10).
+        const newDueTomorrow = maxNew; 
 
         // Review cards DUE TOMORROW (due_date = tomorrow)
         const reviewDueTomorrow = allCards.filter(c => 
@@ -195,7 +193,7 @@ const App = (function () {
         setStat("stat-due-new", newDueToday);
         setStat("stat-due-review", reviewDueToday);
         
-        setStat("stat-due-tomorrow-new", newDueTomorrow);
+        setStat("stat-due-tomorrow-new", newDueTomorrow); // Corrected value
         setStat("stat-due-tomorrow-review", reviewDueTomorrow);
     }
 
