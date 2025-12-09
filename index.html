@@ -220,7 +220,11 @@
             padding: 24px;
             margin-bottom: 16px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-            flex-shrink: 0; 
+            flex-shrink: 0;
+            /* Added for Centering Menu Card */
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         /* --- PROGRESS WIDGET STYLES --- */
@@ -232,8 +236,9 @@
         }
 
         .pw-grid {
+            /* Changed grid to 1fr 70px 20px 70px 20px 70px */
             display: grid;
-            grid-template-columns: 1fr 70px 20px 70px;
+            grid-template-columns: 1fr 70px 20px 70px 20px 70px;
             align-items: center;
             row-gap: 12px;
         }
@@ -275,6 +280,10 @@
             grid-template-columns: 1fr 1fr;
             gap: 16px;
             margin-top: 10px;
+            /* Added for Centering Menu Grid */
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .menu-btn {
@@ -602,18 +611,26 @@
                 
                 <div class="progress-widget">
                     <div class="pw-grid">
-                        <div></div> <div class="pw-head">NEW</div>
-                        <div></div> <div class="pw-head">REVIEW</div>
+                        <div></div> 
+                        <div class="pw-head">NEW</div>
+                        <div></div> 
+                        <div class="pw-head">REVIEW</div>
+                        <div></div> 
+                        <div class="pw-head">TOMORROW</div>
 
                         <div class="pw-label">Done Today</div>
                         <div id="stat-done-new" class="pw-val">0</div>
                         <div class="pw-div-vert"></div>
                         <div id="stat-done-review" class="pw-val">0</div>
+                        <div class="pw-div-vert"></div>
+                        <div id="stat-due-tomorrow" class="pw-val">0</div>
 
-                        <div class="pw-label">Due Now</div>
+                        <div class="pw-label">Due Today</div>
                         <div id="stat-due-new" class="pw-val">0</div>
                         <div class="pw-div-vert"></div>
                         <div id="stat-due-review" class="pw-val">0</div>
+                        <div class="pw-div-vert"></div>
+                        <div id="stat-due-tomorrow-review" class="pw-val">0</div>
                     </div>
                 </div>
                 <div id="menu-stats-text" style="text-align:center; font-size:4rem; color:var(--text-sub); margin-top:16px;"></div>
