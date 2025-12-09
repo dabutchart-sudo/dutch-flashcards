@@ -221,7 +221,7 @@
             margin-bottom: 16px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.03);
             flex-shrink: 0;
-            /* Added for Centering Menu Card */
+            /* Centering */
             max-width: 500px;
             margin-left: auto;
             margin-right: auto;
@@ -234,11 +234,11 @@
             padding: 20px 20px;
             margin-top: 10px;
         }
-
+        
+        /* Simpler 1fr | 70px | 20px | 70px grid */
         .pw-grid {
-            /* Changed grid to 1fr 70px 20px 70px 20px 70px */
             display: grid;
-            grid-template-columns: 1fr 70px 20px 70px 20px 70px;
+            grid-template-columns: 1fr 70px 20px 70px;
             align-items: center;
             row-gap: 12px;
         }
@@ -280,7 +280,7 @@
             grid-template-columns: 1fr 1fr;
             gap: 16px;
             margin-top: 10px;
-            /* Added for Centering Menu Grid */
+            /* Centering */
             max-width: 500px;
             margin-left: auto;
             margin-right: auto;
@@ -607,33 +607,32 @@
         
         <div class="content-scroll">
             <div class="card">
-                <div class="header-title" style="margin-bottom:8px; text-align: center; width: 100%;">Today's Progress</div>
+                <div class="header-title" style="margin-bottom:8px; font-size:2.5rem; text-align: center; width: 100%; position:relative; transform:none; left:0;">Today's Progress</div>
                 
+                <div style="display:flex; justify-content:space-around; margin-bottom: 12px; font-size:1.8rem;">
+                    <span style="color:var(--text-sub);">New Done: <strong id="stat-done-new" style="color:var(--text-main);">0</strong></span>
+                    <span style="color:var(--text-sub);">Reviews Done: <strong id="stat-done-review" style="color:var(--text-main);">0</strong></span>
+                </div>
+
                 <div class="progress-widget">
                     <div class="pw-grid">
                         <div></div> 
                         <div class="pw-head">NEW</div>
-                        <div></div> 
+                        <div class="pw-div-vert"></div>
                         <div class="pw-head">REVIEW</div>
-                        <div></div> 
-                        <div class="pw-head">TOMORROW</div>
-
-                        <div class="pw-label">Done Today</div>
-                        <div id="stat-done-new" class="pw-val">0</div>
-                        <div class="pw-div-vert"></div>
-                        <div id="stat-done-review" class="pw-val">0</div>
-                        <div class="pw-div-vert"></div>
-                        <div id="stat-due-tomorrow" class="pw-val">0</div>
 
                         <div class="pw-label">Due Today</div>
                         <div id="stat-due-new" class="pw-val">0</div>
                         <div class="pw-div-vert"></div>
                         <div id="stat-due-review" class="pw-val">0</div>
+
+                        <div class="pw-label">Due Tomorrow</div>
+                        <div id="stat-due-tomorrow-new" class="pw-val">0</div>
                         <div class="pw-div-vert"></div>
                         <div id="stat-due-tomorrow-review" class="pw-val">0</div>
                     </div>
                 </div>
-                <div id="menu-stats-text" style="text-align:center; font-size:4rem; color:var(--text-sub); margin-top:16px;"></div>
+                <div id="menu-stats-text" class="center-msg" style="margin-top:16px;"></div>
             </div>
 
             <div class="menu-grid">
