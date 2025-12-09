@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.17 (Mastery History Chart)
+// app.js — VERSION 1.18 (Due Today/Tomorrow & Robust Limit)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -109,6 +109,7 @@ const App = (function () {
             await updateScheduledCards(toSend);
         }
 
+        // Re-fetch all cards to ensure the most up-to-date schedule is loaded
         const { data } = await supabase
             .from("cards")
             .select("*")
@@ -116,7 +117,7 @@ const App = (function () {
 
         allCards = data || [];
 
-        calcProgress();
+        calcProgress(); // IMPORTANT: Recalculate stats for the menu screen
 
         document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
         document.getElementById("screen-menu").classList.add("active");
@@ -125,13 +126,21 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Progress Counters
+    // Progress Counters (MODIFIED)
     // -------------------------------------------------------------
     function calcProgress() {
-        const today = new Date().toISOString().slice(0, 10);
+        const now = new Date();
+        const today = now.toISOString().slice(0, 10);
+        
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        const tomorrowDateStr = tomorrow.toISOString().slice(0, 10);
+
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
 
-        // New Logic
+        // --- New Logic ---
+        
+        // Count all cards introduced today (first_seen set to today's date)
         const newDone = allCards.filter(c => 
             !c.suspended && 
             c.first_seen && 
@@ -139,20 +148,30 @@ const App = (function () {
         ).length;
 
         const newAvailable = allCards.filter(c => !c.suspended && c.type === "new").length;
-        const newDue = Math.min(Math.max(0, maxNew - newDone), newAvailable);
+        const newDue = Math.max(0, maxNew - newDone);
 
-        // Reviews Logic
+        // --- Reviews Logic ---
+        
         const historyToday = reviewHistory.filter(h => h.timestamp.startsWith(today));
         const bufferToday = reviewBuffer.filter(h => h.timestamp.startsWith(today));
         const allTodayLogs = [...historyToday, ...bufferToday];
 
         const reviewDone = allTodayLogs.filter(log => log.review_type === 'review').length;
 
-        const reviewDue = allCards.filter(c =>
+        // Cards DUE TODAY (due_date <= today)
+        const reviewDueToday = allCards.filter(c =>
             !c.suspended &&
             c.type !== "new" &&
             c.due_date &&
             c.due_date.slice(0, 10) <= today
+        ).length;
+
+        // Cards DUE TOMORROW (due_date = tomorrow)
+        const reviewDueTomorrow = allCards.filter(c => 
+            !c.suspended &&
+            c.type !== "new" &&
+            c.due_date &&
+            c.due_date.slice(0, 10) === tomorrowDateStr
         ).length;
 
         const setStat = (id, val) => {
@@ -162,8 +181,11 @@ const App = (function () {
 
         setStat("stat-done-new", newDone);
         setStat("stat-done-review", reviewDone);
+        
         setStat("stat-due-new", newDue);
-        setStat("stat-due-review", reviewDue);
+        setStat("stat-due-review", reviewDueToday);
+        setStat("stat-due-tomorrow", newAvailable > newDue ? newAvailable - newDue : 0); // New Available Tomorrow
+        setStat("stat-due-tomorrow-review", reviewDueTomorrow);
     }
 
     // -------------------------------------------------------------
@@ -173,6 +195,7 @@ const App = (function () {
         const today = new Date().toISOString().slice(0, 10);
         const maxNew = parseInt(localStorage.getItem(CONFIG_MAX_NEW) || 10);
         
+        // This relies on allCards being up-to-date, which is now ensured in rate()
         const introducedToday = allCards.filter(c => 
             !c.suspended && 
             c.first_seen && 
@@ -300,7 +323,7 @@ const App = (function () {
         }
     }
 
-    // MODIFIED: Declared 'rate' as async
+    // MODIFIED: Added local state update for robustness
     async function rate(rating) {
         if (isProcessing) return;
         isProcessing = true;
@@ -329,6 +352,15 @@ const App = (function () {
         
         updateProgressBar();
         applyScheduling(card, rating);
+        
+        // NEW: Immediately update the main allCards state locally
+        const cardIndex = allCards.findIndex(c => c.id === card.id);
+        if (cardIndex !== -1) {
+            // Use spread to ensure deep copies of properties are retained, 
+            // making the updated first_seen/due_date immediately visible to calcProgress/startSession
+            allCards[cardIndex] = { ...card }; 
+        }
+
         renderCard();
         isProcessing = false;
 
@@ -336,12 +368,16 @@ const App = (function () {
             const toSend = [...reviewBuffer];
             reviewBuffer = [];
             
-            // MODIFIED: Added 'await' to ensure the batch completes before continuing
             await Promise.all([
                 flushReviewHistory(toSend),
                 updateScheduledCards(toSend)
             ]);
         }
+        
+        // Recalculate progress after rating, showing immediate change on the menu screen
+        // This is primarily for the 'Done Today' counter, which is helpful to the user
+        // We do this after all local state changes, but before potential network flush
+        calcProgress();
     }
 
     function applyScheduling(card, rating) {
