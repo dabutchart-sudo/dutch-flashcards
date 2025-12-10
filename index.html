@@ -246,11 +246,14 @@
         }
         
         /* Simpler 1fr | 70px | 20px | 70px grid */
-        .pw-grid {
+.pw-grid {
             display: grid;
-            grid-template-columns: 1fr 70px 20px 70px;
+            /* Change '1fr' to 'auto' so it doesn't eat all the space */
+            grid-template-columns: auto 70px 20px 70px; 
             align-items: center;
             row-gap: 12px;
+            /* Add this to center the table in the middle of the grey box */
+            justify-content: center; 
         }
 
         .pw-head {
