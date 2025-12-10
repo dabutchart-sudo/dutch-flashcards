@@ -214,19 +214,29 @@
             z-index: 2;
         }
 
-        .card {
+        /* --- NEW MODULAR CARD STYLES (Replacing generic .card) --- */
+        
+        /* 1. Presentation: Background, shadow, and corner style */
+        .container-elevated {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
-            padding: 24px;
-            margin-bottom: 16px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.03);
             flex-shrink: 0;
-            /* Centering */
+            margin-bottom: 16px;
+        }
+        
+        /* 2. Layout: Max-width and centering for smaller blocks (like settings) */
+        .container-centered {
             max-width: 500px;
             margin-left: auto;
             margin-right: auto;
         }
 
+        /* 3. Padding: Consistent inner padding */
+        .content-block {
+            padding: 24px;
+        }
+        
         /* --- PROGRESS WIDGET STYLES --- */
         .progress-widget {
             background: #F8F9FA;
@@ -280,6 +290,7 @@
             grid-template-columns: 1fr 1fr;
             gap: 16px;
             margin-top: 10px;
+            /* Removed max-width and centering to span full content width */
         }
 
         .menu-btn {
@@ -447,7 +458,7 @@
         .chip-btn { padding: 8px 16px; border-radius: 100px; font-size: 2.2rem; font-weight: 600; border: 1px solid #eee; background: white; color: var(--text-main); }
 
 
-        /* --- NEW WORD REVIEW STYLES --- */
+        /* --- WORD REVIEW STYLES --- */
         .wr-subheader {
             background: var(--bg-card);
             padding: 16px;
@@ -602,7 +613,8 @@
         </div>
         
         <div class="content-scroll">
-            <div class="card">
+            
+            <div class="container-elevated content-block container-centered"> 
                 <div class="header-title" style="margin-bottom:8px; font-size:2.5rem; text-align: center; width: 100%; position:relative; transform:none; left:0;">Today's Progress</div>
                 
                 <div style="display:flex; justify-content:space-around; margin-bottom: 12px; font-size:1.8rem;">
@@ -760,7 +772,8 @@
             <div style="width:40px;"></div>
         </div>
         <div class="content-scroll">
-            <div class="card">
+            
+            <div class="container-elevated content-block">
                 <div class="search-row">
                     <input id="img-search-input" type="text" class="search-input" placeholder="Search Unsplash...">
                     <button class="search-btn" onclick="App.searchImages()">Search</button>
@@ -768,7 +781,8 @@
                 <div id="img-loading" class="center-msg hidden" style="margin:10px 0; font-size: 1.5rem;">Searching...</div>
                 <div id="img-results" class="image-grid"></div>
             </div>
-            <div class="card">
+            
+            <div class="container-elevated content-block">
                 <button id="btn-save-img" class="save-img-btn" onclick="App.saveSelectedImage()" disabled>Save Image</button>
             </div>
         </div>
@@ -782,17 +796,17 @@
         </div>
         <div class="content-scroll">
             
-            <div class="card">
+            <div class="container-elevated content-block">
                 <div class="header-title" style="margin-bottom:12px; font-size:2.5rem; position:relative; left:0; transform:none; text-align:left;">Mastery History</div>
                 <div id="mastery-history-chart" style="width:100%; height:300px;"></div>
             </div>
 
-            <div class="card">
+            <div class="container-elevated content-block">
                 <div class="header-title" style="margin-bottom:12px; font-size:2.5rem; position:relative; left:0; transform:none; text-align:left;">Current Mastery</div>
                 <div id="status-chart-div" style="width:100%; height:300px;"></div>
             </div>
 
-            <div class="card">
+            <div class="container-elevated content-block">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                      <div class="header-title" style="font-size:2.5rem; position:relative; left:0; transform:none; text-align:left;">Activity</div>
                      <select id="report-group" class="custom-select" style="flex:0 0 140px; margin: 0; padding: 8px; font-size: 1.2rem;" onchange="App.drawChart()">
@@ -815,7 +829,8 @@
             <button class="btn-icon" onclick="App.nav('menu')">🏠</button> 
         </div>
         <div class="content-scroll">
-            <div class="card">
+            
+            <div class="container-elevated content-block container-centered">
                 <div class="header-title">Daily New Cards</div>
                 <p style="color:var(--text-sub); font-size:0.9rem;">Maximum new words to introduce per day.</p>
                 <select id="setting-max-new" class="custom-select" style="width:100%;" onchange="App.saveSettings()">
