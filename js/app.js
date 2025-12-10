@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.20 (Corrected Due Tomorrow Logic)
+// app.js — VERSION 1.21 (Mastery Fix + Calendar Month Activity View)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -126,7 +126,7 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Progress Counters (MODIFIED: Corrected Due Tomorrow / New)
+    // Progress Counters
     // -------------------------------------------------------------
     function calcProgress() {
         const now = new Date();
@@ -168,8 +168,7 @@ const App = (function () {
 
         // --- Due Tomorrow Logic ---
 
-        // NEW: If the user hasn't started learning tomorrow yet, the full quota is available.
-        // We assume tomorrow's quota starts at the max limit set by the user (10).
+        // If the user hasn't started learning tomorrow yet, the full quota is available.
         const newDueTomorrow = maxNew; 
 
         // Review cards DUE TOMORROW (due_date = tomorrow)
@@ -193,7 +192,7 @@ const App = (function () {
         setStat("stat-due-new", newDueToday);
         setStat("stat-due-review", reviewDueToday);
         
-        setStat("stat-due-tomorrow-new", newDueTomorrow); // Corrected value
+        setStat("stat-due-tomorrow-new", newDueTomorrow);
         setStat("stat-due-tomorrow-review", reviewDueTomorrow);
     }
 
@@ -332,7 +331,6 @@ const App = (function () {
         }
     }
 
-    // MODIFIED: Added local state update for robustness
     async function rate(rating) {
         if (isProcessing) return;
         isProcessing = true;
@@ -362,11 +360,9 @@ const App = (function () {
         updateProgressBar();
         applyScheduling(card, rating);
         
-        // NEW: Immediately update the main allCards state locally
+        // Immediately update the main allCards state locally
         const cardIndex = allCards.findIndex(c => c.id === card.id);
         if (cardIndex !== -1) {
-            // Use spread to ensure deep copies of properties are retained, 
-            // making the updated first_seen/due_date immediately visible to calcProgress/startSession
             allCards[cardIndex] = { ...card }; 
         }
 
@@ -626,7 +622,7 @@ const App = (function () {
     }
 
     // -------------------------------------------------------------
-    // Charts (UPDATED)
+    // Charts
     // -------------------------------------------------------------
     
     // 1. Mastery Status Pie Chart
@@ -674,20 +670,25 @@ const App = (function () {
         chart.draw(data, options);
     }
 
-    // 2. Mastery HISTORY Area Chart (NEW)
+    // 2. Mastery HISTORY Area Chart
     function drawMasteryHistoryChart() {
         if (!reviewHistory || reviewHistory.length === 0) return;
         
         // --- 1. PREPARE REPLAY ---
-        // Identify all cards and assume they start as "New"
-        // Map: cardId -> { status: 'new', interval: 0, ease: 2.5 }
+        // Identify all cards and initialize their status from the current 'allCards' data.
+        // This prevents previously reviewed cards from starting as 'new' in the historical replay.
         const cardMap = new Map();
         
-        // We only track cards that currently exist in allCards to keep totals consistent
-        const validIds = new Set(allCards.map(c => c.id));
-        
-        validIds.forEach(id => {
-            cardMap.set(id, { status: 'new', interval: 0, ease: 2.5 });
+        // Map card IDs to their CURRENT state in allCards
+        allCards.forEach(c => {
+            if (!c.suspended) {
+                cardMap.set(c.id, { 
+                    status: c.type, 
+                    interval: c.interval || 0, 
+                    ease: c.ease || 2.5,
+                    first_seen: c.first_seen 
+                });
+            }
         });
 
         // Sort history chronological
@@ -697,8 +698,6 @@ const App = (function () {
 
         // --- 2. REPLAY LOOP ---
         const dailyStats = []; // { date, new, learning, reviewing, mastered }
-        const totalCards = validIds.size;
-
         let currentDate = sortedHistory[0].timestamp.slice(0, 10);
         const today = new Date().toISOString().slice(0, 10);
 
@@ -713,15 +712,10 @@ const App = (function () {
                 else s.mastered++;
             }
             
-            // Push date object for Google Charts
             const [y, m, d] = dateStr.split("-").map(Number);
             dailyStats.push([new Date(y, m-1, d), s.new, s.learning, s.reviewing, s.mastered]);
         };
 
-        // Initialize snapshot at start
-        takeSnapshot(currentDate);
-
-        // Group history by date to process in chunks
         let historyIdx = 0;
         
         while (currentDate <= today) {
@@ -730,24 +724,17 @@ const App = (function () {
                 const event = sortedHistory[historyIdx];
                 const evtDate = event.timestamp.slice(0, 10);
 
-                if (evtDate > currentDate) break; // Next day
+                if (evtDate > currentDate) break; 
                 
-                // Process event
                 if (cardMap.has(event.cardid)) {
                     const cardState = cardMap.get(event.cardid);
                     
-                    // Replicate Scheduling Logic to determine RESULTING bucket
-                    // Logic from applyScheduling:
-                    
-                    // 1. If card was New, it becomes Review (Interval 1)
                     if (event.review_type === 'new') {
                         cardState.status = 'review';
                         cardState.interval = 1;
                         cardState.ease = 2.5;
                     }
 
-                    // 2. Apply Rating Modifiers
-                    // Note: We use the values captured in cardState to calculate next state
                     if (event.rating === "again") {
                         cardState.interval = 1;
                         cardState.ease = Math.max(1.3, cardState.ease - 0.2);
@@ -765,16 +752,15 @@ const App = (function () {
                 historyIdx++;
             }
 
-            // End of day: Take snapshot
-            takeSnapshot(currentDate);
+            if (dailyStats.length > 0 || historyIdx > 0 || currentDate === today) {
+                takeSnapshot(currentDate);
+            }
 
-            // Move to next day
             const d = new Date(currentDate);
             d.setDate(d.getDate() + 1);
             currentDate = d.toISOString().slice(0, 10);
         }
 
-        // --- 3. DRAW CHART ---
         const data = new google.visualization.DataTable();
         data.addColumn('date', 'Date');
         data.addColumn('number', 'New');
@@ -786,11 +772,11 @@ const App = (function () {
 
         const options = {
             isStacked: true,
-            colors: ['#ADB5BD', '#FFCA3A', '#1982C4', '#8AC926'], // Grey, Yellow, Blue, Green
+            colors: ['#ADB5BD', '#FFCA3A', '#1982C4', '#8AC926'], 
             chartArea: { width: "85%", height: "70%" },
             legend: { position: 'bottom' },
             hAxis: { format: 'MMM d' },
-            vAxis: { textPosition: 'none', gridlines: { count: 0 } }, // Clean look
+            vAxis: { textPosition: 'none', gridlines: { count: 0 } },
             areaOpacity: 0.9
         };
 
@@ -798,60 +784,99 @@ const App = (function () {
         chart.draw(data, options);
     }
 
-    // 3. Activity History Column Chart
+    // 3. Activity History Column Chart (Updated for Day/Month View)
     function drawChart() {
-        if (!reviewHistory.length) {
-            document.getElementById("report-summary").textContent = "No history available.";
-            return;
-        }
+        if (!reviewHistory) return;
 
         const group = document.getElementById("report-group").value;
-        const dataMap = {};
-
-        reviewHistory.forEach(h => {
-            let key = h.timestamp.slice(0, 10);
-
-            if (group === "month") key = key.slice(0, 7);
-            if (group === "year") key = key.slice(0, 4);
-
-            if (!dataMap[key]) dataMap[key] = { new: 0, rev: 0 };
-
-            if (h.review_type) {
-                if (h.review_type === 'new') dataMap[key].new++;
-                else dataMap[key].rev++;
-            } else {
-                if (h.rating === "again") dataMap[key].rev++;
-                else dataMap[key].new++;
-            }
-        });
-
         const data = new google.visualization.DataTable();
         data.addColumn("date", "Date");
         data.addColumn("number", "New");
         data.addColumn("number", "Review");
 
-        const keys = Object.keys(dataMap).sort();
-        
-        keys.forEach(k => {
-            const [y, m, d] = k.split("-").map(Number);
-            const dt = new Date(y, (m || 1) - 1, d || 1);
-            data.addRow([dt, dataMap[k].new, dataMap[k].rev]);
-        });
-
-        let format = "MMM d"; 
-        if (group === "month") format = "MMM yyyy";
-        if (group === "year") format = "yyyy"; 
-
-        const options = {
+        let options = {
             isStacked: true,
             legend: { position: "bottom" },
             colors: ["#FF9F1C", "#1a80d9"],
             chartArea: { width: "85%", height: "70%" },
-            hAxis: { format: format }
+            vAxis: { viewWindow: { min: 0 } }
         };
+
+        // --- SPECIAL LOGIC FOR "DAY" VIEW (Current Month Calendar) ---
+        if (group === "day") {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth(); // 0-indexed
+
+            // 1. Determine start and end of current month
+            const startDate = new Date(year, month, 1);
+            const endDate = new Date(year, month + 1, 0); 
+
+            // 2. Pre-fill map for every day in the month
+            const dailyMap = new Map();
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                const key = d.toISOString().slice(0, 10);
+                dailyMap.set(key, { new: 0, rev: 0, dateObj: new Date(d) });
+            }
+
+            // 3. Populate with history data
+            reviewHistory.forEach(h => {
+                const key = h.timestamp.slice(0, 10);
+                if (dailyMap.has(key)) {
+                    const entry = dailyMap.get(key);
+                    if (h.review_type === 'new') entry.new++;
+                    else entry.rev++;
+                }
+            });
+
+            // 4. Convert to rows
+            for (const [key, val] of dailyMap.entries()) {
+                data.addRow([val.dateObj, val.new, val.rev]);
+            }
+
+            options.hAxis = { 
+                format: 'd', // Show only day number
+                gridlines: { color: 'transparent' },
+                ticks: [] 
+            };
+            
+            // Remove gaps between bars
+            options.bar = { groupWidth: '90%' }; 
+            
+        } else {
+            // --- STANDARD LOGIC FOR WEEK/MONTH/YEAR ---
+            const dataMap = {};
+
+            reviewHistory.forEach(h => {
+                let key = h.timestamp.slice(0, 10);
+                if (group === "month") key = key.slice(0, 7); 
+                if (group === "year") key = key.slice(0, 4);  
+
+                if (!dataMap[key]) dataMap[key] = { new: 0, rev: 0 };
+
+                if (h.review_type === 'new') dataMap[key].new++;
+                else dataMap[key].rev++;
+            });
+
+            const keys = Object.keys(dataMap).sort();
+            keys.forEach(k => {
+                const parts = k.split("-").map(Number);
+                const dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                data.addRow([dt, dataMap[k].new, dataMap[k].rev]);
+            });
+
+            let format = "MMM d";
+            if (group === "month") format = "MMM";
+            if (group === "year") format = "yyyy";
+            
+            options.hAxis = { format: format };
+            options.bar = { groupWidth: '60%' }; 
+        }
 
         const chart = new google.visualization.ColumnChart(document.getElementById("chart-div"));
         chart.draw(data, options);
+        
+        document.getElementById("report-summary").textContent = `Total Reviews: ${reviewHistory.length}`;
     }
 
     // -------------------------------------------------------------
