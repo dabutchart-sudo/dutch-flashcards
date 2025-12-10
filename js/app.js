@@ -1,5 +1,5 @@
 // ===================================================================
-// app.js — VERSION 1.21 (Mastery Fix + Calendar Month Activity View)
+// app.js — VERSION 1.22 (Anti-Cheat Fix + Mastery/Activity Views)
 // ===================================================================
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, UNSPLASH_ACCESS_KEY, CONFIG_MAX_NEW, APP_VERSION } from "./constants.js";
@@ -266,20 +266,29 @@ const App = (function () {
         const elEmpty = document.getElementById("learn-empty");
         const elActions = document.getElementById("review-actions");
 
-        elCard.classList.remove("flipped");
+        // --- RESET CARD FLIP INSTANTLY ---
+        // We disable transitions to snap the card back to "front" immediately.
+        // This prevents revealing the answer (English) of the NEW card while it rotates.
+        if (elCard) {
+            elCard.style.transition = 'none';
+            elCard.classList.remove("flipped");
+            void elCard.offsetWidth; // Force reflow
+            elCard.style.transition = ''; // Restore transition for user interaction
+        }
+
         isFlipped = false;
-        elActions.classList.add("hidden");
+        if (elActions) elActions.classList.add("hidden");
 
         if (!card) {
-            elCard.style.display = "none";
-            elEmpty.classList.remove("hidden");
+            if (elCard) elCard.style.display = "none";
+            if (elEmpty) elEmpty.classList.remove("hidden");
             document.getElementById("learn-progress-fill").style.width = "100%";
             document.getElementById("learn-progress-text").textContent = `${sessionTotal} / ${sessionTotal}`;
             return;
         }
 
-        elCard.style.display = "block";
-        elEmpty.classList.add("hidden");
+        if (elCard) elCard.style.display = "block";
+        if (elEmpty) elEmpty.classList.add("hidden");
 
         document.getElementById("fc-dutch").textContent = card.dutch;
         document.getElementById("fc-english").textContent = card.english;
